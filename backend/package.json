@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "build": "tsup src/server.ts --format esm --target node20 --out-dir dist --clean --noExternal @karolla/shared",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:seed-sql": "tsx scripts/generate-seed-sql.ts"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
