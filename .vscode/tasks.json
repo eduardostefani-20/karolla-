@@ -1,0 +1,18 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Karolla Pet: instalar dependências", "type": "shell", "command": "npm install", "problemMatcher": [] },
+    {
+      "label": "Karolla Pet: iniciar (API + site)",
+      "type": "shell",
+      "command": "npm run dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    { "label": "Karolla Pet: verificar tipos", "type": "shell", "command": "npm run typecheck", "problemMatcher": ["$tsc"] },
+    { "label": "Karolla Pet: testes", "type": "shell", "command": "npm test", "problemMatcher": [], "group": { "kind": "test", "isDefault": true } },
+    { "label": "Karolla Pet: testes no navegador (E2E)", "type": "shell", "command": "npm run test:e2e", "problemMatcher": [] },
+    { "label": "Karolla Pet: build de produção", "type": "shell", "command": "npm run build", "problemMatcher": [] }
+  ]
+}

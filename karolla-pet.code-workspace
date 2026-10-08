@@ -1,0 +1,32 @@
+{
+  "folders": [
+    { "name": "🐾 Karolla Pet", "path": "." },
+    { "name": "shared — regras compartilhadas", "path": "shared" },
+    { "name": "backend — API", "path": "backend" },
+    { "name": "frontend — site e painel", "path": "frontend" },
+    { "name": "database — Supabase", "path": "database" },
+    { "name": "docs", "path": "docs" }
+  ],
+  "settings": {
+    "files.exclude": { "**/node_modules": true, "**/dist": true, "**/test-results": true },
+    "search.exclude": { "**/node_modules": true, "**/dist": true, "package-lock.json": true },
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2,
+    "files.eol": "\n",
+    "tailwindCSS.experimental.configFile": "frontend/tailwind.config.ts"
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "ms-playwright.playwright",
+      "vitest.explorer",
+      "supabase.vscode-supabase-extension",
+      "mtxr.sqltools",
+      "streetsidesoftware.code-spell-checker-portuguese-brazilian"
+    ]
+  }
+}

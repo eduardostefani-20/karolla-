@@ -1,0 +1,10 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+  "files.exclude": { "**/node_modules": true, "**/dist": true, "**/test-results": true },
+  "search.exclude": { "**/node_modules": true, "**/dist": true, "package-lock.json": true },
+  "tailwindCSS.experimental.configFile": "frontend/tailwind.config.ts"
+}

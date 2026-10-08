@@ -33,6 +33,19 @@ npm install
 cp .env.example .env      # ajuste o que quiser; vazio = modo demo
 ```
 
+## Abrir no VS Code
+
+```bash
+git clone https://github.com/eduardostefani-20/karolla-.git karolla-pet
+cd karolla-pet
+git checkout ccr-5b9be4cb-1qd2qm
+code karolla-pet.code-workspace
+```
+
+Aceite as **extensões recomendadas**. Depois, use *Terminal → Executar tarefa → "Karolla Pet: instalar dependências"*
+e em seguida **"Karolla Pet: iniciar (API + site)"** (ou `Ctrl+Shift+B`). Em *Executar e depurar* há
+"API (debug)", "Site no Chrome" e "Testes da API (debug)".
+
 ## Como executar
 
 ```bash
