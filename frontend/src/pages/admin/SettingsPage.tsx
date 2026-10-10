@@ -75,7 +75,7 @@ export default function SettingsPage() {
           <Panel title="Regras da agenda">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Intervalo entre horários (min)" required error={errors.slotIntervalMinutes} hint="De quanto em quanto tempo os horários aparecem.">{(p) => <Input {...p} type="number" min={5} step={5} {...numberField('slotIntervalMinutes')} />}</Field>
-              <Field label="Atendimentos simultâneos" required error={errors.capacity} hint="Quantos pets a equipe atende ao mesmo tempo.">{(p) => <Input {...p} type="number" min={1} {...numberField('capacity')} />}</Field>
+              <Field label="Vagas por horário" required error={errors.capacity} hint="Pets atendidos ao mesmo tempo. Com 1, cada horário aceita um único agendamento.">{(p) => <Input {...p} type="number" min={1} {...numberField('capacity')} />}</Field>
               <Field label="Antecedência mínima (min)" required error={errors.minAdvanceMinutes} hint="Ex.: 120 = agendar com pelo menos 2h.">{(p) => <Input {...p} type="number" min={0} step={30} {...numberField('minAdvanceMinutes')} />}</Field>
               <Field label="Agenda aberta por (dias)" required error={errors.maxAdvanceDays}>{(p) => <Input {...p} type="number" min={1} {...numberField('maxAdvanceDays')} />}</Field>
             </div>

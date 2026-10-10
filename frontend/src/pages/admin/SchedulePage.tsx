@@ -14,6 +14,57 @@ import { useToast } from '@/components/ui/Toast';
 import { PageHeader, Panel } from '@/components/admin/AdminUi';
 
 type Day = Omit<BusinessHours, 'id'> & { hasBreak: boolean };
+
+/** Vagas por horário e intervalo da agenda (atalho para as configurações mais usadas). */
+function SlotsPanel({ onSaved }: { onSaved: () => void }) {
+  const toast = useToast();
+  const { data: settings, reload } = useAsync(() => adminApi.settings(), []);
+  const [capacity, setCapacity] = useState('1');
+  const [slotInterval, setSlotInterval] = useState('30');
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (!settings) return;
+    setCapacity(String(settings.capacity));
+    setSlotInterval(String(settings.slotIntervalMinutes));
+  }, [settings]);
+  if (!settings) return null;
+  const n = Number(capacity) || 1;
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await adminApi.saveSettings({ ...settings, capacity: Number(capacity), slotIntervalMinutes: Number(slotInterval) });
+      toast('Vagas da agenda salvas. O site já usa a nova regra.');
+      await reload();
+      onSaved();
+    } catch (err) {
+      toast(friendlyMessage(err), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Panel title="Vagas por horário">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Pets atendidos ao mesmo tempo" required hint="Com 1, quem agendar às 9:00 ocupa o horário inteiro.">
+          {(p) => <Input {...p} type="number" min={1} max={50} inputMode="numeric" className="py-2.5" value={capacity} onChange={(e) => setCapacity(e.target.value)} />}
+        </Field>
+        <Field label="Horários de quanto em quanto tempo (min)" required hint="Ex.: 30 = 9:00, 9:30, 10:00...">
+          {(p) => <Input {...p} type="number" min={5} step={5} inputMode="numeric" className="py-2.5" value={slotInterval} onChange={(e) => setSlotInterval(e.target.value)} />}
+        </Field>
+      </div>
+      <p className="mt-3 rounded-2xl bg-brand-50 px-4 py-3 text-sm text-brand-900">
+        {n === 1
+          ? 'Cada horário aceita 1 pet. Quando alguém agenda às 9:00, esse horário (e os seguintes, enquanto durar o atendimento) some para os outros clientes.'
+          : `Cada horário aceita até ${n} pets ao mesmo tempo. Ao lotar, o horário some para os outros clientes.`}
+      </p>
+      <Button className="mt-3" variant="secondary" onClick={save} loading={saving} icon={<Save className="h-4 w-4" />}>
+        Salvar vagas
+      </Button>
+    </Panel>
+  );
+}
 const ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 export default function SchedulePage() {
@@ -141,6 +192,7 @@ export default function SchedulePage() {
         </Panel>
 
         <div className="space-y-6">
+          <SlotsPanel onSaved={() => void reloadPublic()} />
           <Panel title="Bloquear data inteira">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Data" required error={fieldErrors.date}>{(p) => <Input {...p} type="date" min={today} className="py-2.5" value={blockDate.date} onChange={(e) => setBlockDate({ ...blockDate, date: e.target.value })} />}</Field>
