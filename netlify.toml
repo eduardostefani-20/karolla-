@@ -1,0 +1,33 @@
+# Karolla Pet — deploy no Netlify
+#   • site (React) gerado em frontend/dist
+#   • API (Express) como Netlify Function em netlify/functions/api.mts
+# Variáveis (APP_MODE, SUPABASE_*, etc.) ficam em Site settings → Environment variables, nunca aqui.
+
+[build]
+  command = "npm run build -w frontend"
+  publish = "frontend/dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
+
+[functions]
+  node_bundler = "esbuild"
+
+# API → função
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# SPA: qualquer rota do site abre o index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

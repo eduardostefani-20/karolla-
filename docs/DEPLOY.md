@@ -8,6 +8,22 @@
 - [ ] `CORS_ORIGIN` = domínio do site (ex.: `https://karollapet.com.br`)
 - [ ] Opcional: `GOOGLE_SHEETS_WEBHOOK` e `WHATSAPP_PROVIDER=cloud_api`
 
+## Netlify (configurado)
+
+O repositório já tem `netlify.toml`: o site sai de `frontend/dist` e a API roda como
+Netlify Function (`netlify/functions/api.mts`, o mesmo app Express de `backend/`), com `/api/*` → função.
+Projeto: `cool-hotteok-c96ed7` — cada push na branch publica automaticamente.
+
+Variáveis em *Site configuration → Environment variables* (escopo **Functions**):
+
+| Fase | Variáveis |
+|---|---|
+| Pré-visualização (DEMO) | `APP_MODE=demo`, `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD`, `AUTH_TOKEN_SECRET`, `CORS_ORIGIN` |
+| Produção (Supabase) | `APP_MODE=production`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (secreta), `WHATSAPP_NUMBER`, `CORS_ORIGIN` |
+
+⚠️ No modo DEMO o banco é em memória **por instância da função**: agendamentos podem não aparecer no
+painel e somem quando a função reinicia. Serve só para ver o site e testar o fluxo — use Supabase para valer.
+
 ## API (Node)
 Qualquer host Node 20+ (Render, Railway, Fly.io, VPS):
 
