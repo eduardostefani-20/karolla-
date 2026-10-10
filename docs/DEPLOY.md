@@ -21,6 +21,10 @@ Variáveis em *Site configuration → Environment variables* (escopo **Functions
 | Pré-visualização (DEMO) | `APP_MODE=demo`, `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD`, `AUTH_TOKEN_SECRET`, `CORS_ORIGIN` |
 | Produção (Supabase) | `APP_MODE=production`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (secreta), `WHATSAPP_NUMBER`, `CORS_ORIGIN` |
 
+⚠️ Variáveis só valem a partir do **próximo deploy**. Se faltar `DEMO_ADMIN_PASSWORD` ou `AUTH_TOKEN_SECRET`,
+cada instância da função gera valores aleatórios e o login do painel falha. No plano atual, variáveis marcadas
+como *secretas* criadas pela API não foram salvas: confira em *Environment variables* que elas aparecem.
+
 ⚠️ No modo DEMO o banco é em memória **por instância da função**: agendamentos podem não aparecer no
 painel e somem quando a função reinicia. Serve só para ver o site e testar o fluxo — use Supabase para valer.
 
