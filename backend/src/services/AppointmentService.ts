@@ -1,5 +1,6 @@
 import {
   addDays,
+  attributionChannel,
   calculateAppointmentPrice,
   checkSlot,
   effectiveCapacity,
@@ -159,11 +160,12 @@ export class AppointmentService {
   async dashboard(): Promise<DashboardData> {
     const settings = await this.db.settings.get();
     const today = nowInTimezone(this.clock.now(), settings.timezone).date;
-    const [upcomingRaw, customers, pets] = await Promise.all([
-      this.db.appointments.list({ from: today, to: addDays(today, 365) }),
+    const [recentRaw, customers, pets] = await Promise.all([
+      this.db.appointments.list({ from: addDays(today, -30), to: addDays(today, 365) }),
       this.db.customers.list(),
       this.db.pets.list(),
     ]);
+    const upcomingRaw = recentRaw.filter((a) => a.date >= today);
     const todayRows = upcomingRaw.filter((a) => a.date === today && a.status !== 'cancelled');
     const future = upcomingRaw.filter((a) => a.status === 'pending' || a.status === 'confirmed');
     const [todayAgenda, nextAppointments] = await Promise.all([
@@ -183,6 +185,22 @@ export class AppointmentService {
       },
       todayAgenda,
       nextAppointments,
+      channels: this.channels(recentRaw),
     };
+  }
+
+  /** Agendamentos online feitos nos últimos 30 dias, por origem — mostra quais anúncios trazem clientes. */
+  private channels(appointments: Appointment[]): DashboardData['channels'] {
+    const since = this.clock.now().getTime() - 30 * 24 * 60 * 60 * 1000;
+    const groups = new Map<string, DashboardData['channels'][number]>();
+    for (const a of appointments) {
+      if (a.source !== 'online' || Date.parse(a.createdAt) < since) continue;
+      const channel = attributionChannel(a.attribution);
+      const group = groups.get(channel.key) ?? { ...channel, count: 0, revenueCents: 0 };
+      group.count += 1;
+      if (isBlockingStatus(a.status)) group.revenueCents += a.totalCents;
+      groups.set(channel.key, group);
+    }
+    return [...groups.values()].sort((a, b) => b.count - a.count || b.revenueCents - a.revenueCents);
   }
 }

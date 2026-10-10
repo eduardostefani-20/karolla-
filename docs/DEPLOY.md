@@ -1,12 +1,14 @@
 # Deploy
 
 ## Checklist
-- [ ] Supabase: migrations 0001–0005, seed de catálogo, administradora criada (docs/SUPABASE.md)
+- [ ] Supabase: migrations 0001–0006, seed de catálogo, administradora criada (docs/SUPABASE.md)
 - [ ] Preços reais cadastrados no painel (os do seed são fictícios)
 - [ ] Número de WhatsApp em Configurações
 - [ ] `APP_MODE=production` na API (ela se recusa a iniciar com banco em memória ou login mock)
 - [ ] `CORS_ORIGIN` = domínio do site (ex.: `https://karollapet.com.br`)
 - [ ] Instagram do perfil oficial em Configurações (botão “Ver Instagram”)
+- [ ] Domínio `karollapet.com.br` apontado e proteção de visitantes do Netlify desligada (docs/DOMINIO.md)
+- [ ] IDs dos pixels em Configurações → Anúncios (docs/ANUNCIOS.md)
 - [ ] Opcional: `GOOGLE_SHEETS_WEBHOOK`, `WHATSAPP_PROVIDER=cloud_api` e `INSTAGRAM_ACCESS_TOKEN` (docs/INSTAGRAM.md)
 
 ## Netlify (configurado)

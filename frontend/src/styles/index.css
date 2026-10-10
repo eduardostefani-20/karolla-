@@ -1,6 +1,7 @@
 @import '@fontsource-variable/plus-jakarta-sans';
 @import '@fontsource/fredoka/500.css';
 @import '@fontsource/fredoka/600.css';
+@import './theme.css';
 
 @tailwind base;
 @tailwind components;

@@ -39,4 +39,17 @@
 | Uma profissional = um pet por vez; com 2 profissionais, 2 pets no mesmo horário | `shared/tests/availability.test.ts`, backend, banco |
 | Instagram sem token não chama a Meta; com token usa a API oficial e cache | backend (fetch simulado) |
 
+## Anúncios, LGPD e origem dos agendamentos
+
+| Cenário | Onde |
+|---|---|
+| Sem pixels configurados: sem aviso de cookies e sem scripts de terceiros | `e2e/anuncios.spec.ts` |
+| Recusar cookies: nenhum pixel carrega (nem após recarregar) | e2e |
+| Aceitar (pelo rodapé): Meta, Google Ads e TikTok carregam | e2e (scripts simulados) |
+| Agendamento concluído envia `Schedule`/conversão com valor em R$ e ID único | e2e |
+| Painel nunca carrega pixels | e2e |
+| IDs validados e normalizados (ex.: código colado no lugar do ID é recusado) | `backend/tests/marketing.test.ts`, e2e |
+| Origem (UTM, gclid, fbclid, ttclid, site de origem) limpa, gravada e exibida no painel e no Dashboard | backend, e2e, `shared/tests/attribution.test.ts` |
+| Origem inválida nunca impede o agendamento | backend, `database/tests/anuncios_origem.test.sql` |
+
 O E2E usa o Chromium do Playwright; em ambientes com navegador próprio, defina `PW_CHROMIUM_PATH`.

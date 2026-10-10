@@ -261,6 +261,11 @@ export function settingsToRow(s: Partial<BusinessSettings>): Row {
     minAdvanceMinutes: 'min_advance_minutes',
     maxAdvanceDays: 'max_advance_days',
     bookingNotice: 'booking_notice',
+    metaPixelId: 'meta_pixel_id',
+    googleAdsId: 'google_ads_id',
+    googleAdsBookingLabel: 'google_ads_booking_label',
+    googleAdsWhatsappLabel: 'google_ads_whatsapp_label',
+    tiktokPixelId: 'tiktok_pixel_id',
   });
 }
 
@@ -278,6 +283,11 @@ export function settingsFromRow(r: Row): BusinessSettings {
     minAdvanceMinutes: Number(r.min_advance_minutes),
     maxAdvanceDays: Number(r.max_advance_days),
     bookingNotice: str(r.booking_notice),
+    metaPixelId: str(r.meta_pixel_id),
+    googleAdsId: str(r.google_ads_id),
+    googleAdsBookingLabel: str(r.google_ads_booking_label),
+    googleAdsWhatsappLabel: str(r.google_ads_whatsapp_label),
+    tiktokPixelId: str(r.tiktok_pixel_id),
   };
 }
 
@@ -314,6 +324,7 @@ export function appointmentToRow(a: Partial<Appointment>): Row {
     row.inspiration_id = a.inspiration?.id ?? null;
     row.inspiration_snapshot = a.inspiration ?? null;
   }
+  if (a.attribution !== undefined) row.attribution = a.attribution ?? null;
   return row;
 }
 
@@ -339,6 +350,7 @@ export function appointmentFromRow(r: Row): Appointment {
     source: (r.source as Appointment['source']) ?? 'online',
     professionalId: (r.professional_id as string | null) ?? null,
     inspiration: (r.inspiration_snapshot as Appointment['inspiration']) ?? null,
+    attribution: (r.attribution as Appointment['attribution']) ?? null,
     services,
     addons,
     createdAt: str(r.created_at),

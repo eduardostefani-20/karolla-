@@ -21,6 +21,7 @@ import { ConfirmationStep } from '@/components/booking/ConfirmationStep';
 import { firstIncompleteStep, TOTAL_STEPS } from '@/components/booking/steps';
 import { InspirationChip } from '@/components/booking/InspirationChip';
 import { publicApi } from '@/services/publicApi';
+import { trackEvent } from '@/services/tracking';
 
 /**
  * Fluxo de agendamento em 9 etapas. A etapa atual fica na URL (?etapa=N),
@@ -74,6 +75,17 @@ export default function BookingPage() {
         setParams(next, { replace: true });
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Anúncios: "começou um agendamento" (uma vez por visita)
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('karolla:inicio-agendamento')) return;
+      sessionStorage.setItem('karolla:inicio-agendamento', '1');
+    } catch {
+      /* segue sem controle de repetição */
+    }
+    trackEvent('InitiateCheckout');
   }, []);
 
   const next = () => goTo(step + 1);

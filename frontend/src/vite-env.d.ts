@@ -7,3 +7,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Endereço oficial do site (ex.: https://karollapet.com.br) — definido no vite.config.ts. */
+declare const __SITE_URL__: string;

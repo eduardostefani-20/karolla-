@@ -82,6 +82,12 @@ export class CatalogService {
         timezone: settings.timezone,
         maxAdvanceDays: settings.maxAdvanceDays,
         bookingNotice: settings.bookingNotice,
+        // IDs públicos dos pixels de anúncio (o site só os carrega depois do consentimento do visitante)
+        metaPixelId: settings.metaPixelId,
+        googleAdsId: settings.googleAdsId,
+        googleAdsBookingLabel: settings.googleAdsBookingLabel,
+        googleAdsWhatsappLabel: settings.googleAdsWhatsappLabel,
+        tiktokPixelId: settings.tiktokPixelId,
       },
       mode: this.mode,
     };

@@ -81,6 +81,29 @@ export default function SettingsPage() {
             </div>
             <Field label="Aviso exibido no resumo do agendamento" className="mt-4" error={errors.bookingNotice}>{(p) => <Textarea {...p} value={form.bookingNotice} onChange={(e) => set({ bookingNotice: e.target.value })} />}</Field>
           </Panel>
+          <Panel title="Anúncios (tráfego pago)">
+            <p className="mb-4 text-sm text-ink-500">
+              Cole aqui só os <strong>IDs</strong> (não o código inteiro). Os pixels medem quem agenda depois de ver um anúncio e só carregam
+              depois que o visitante aceita os cookies. Vazio = desligado. Passo a passo em <code>docs/ANUNCIOS.md</code>.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Pixel da Meta (Instagram/Facebook)" error={errors.metaPixelId} hint="Gerenciador de Eventos → Fontes de dados → ID do conjunto de dados (só números).">
+                {(p) => <Input {...p} inputMode="numeric" placeholder="123456789012345" value={form.metaPixelId} onChange={(e) => set({ metaPixelId: e.target.value })} />}
+              </Field>
+              <Field label="Pixel do TikTok" error={errors.tiktokPixelId} hint="TikTok Ads → Ferramentas → Eventos → ID do pixel.">
+                {(p) => <Input {...p} placeholder="C4ABCDEF123GHIJ456KL" value={form.tiktokPixelId} onChange={(e) => set({ tiktokPixelId: e.target.value })} />}
+              </Field>
+              <Field label="Google Ads — ID da tag" error={errors.googleAdsId} hint="Formato AW-123456789.">
+                {(p) => <Input {...p} placeholder="AW-123456789" value={form.googleAdsId} onChange={(e) => set({ googleAdsId: e.target.value })} />}
+              </Field>
+              <Field label="Google Ads — rótulo da conversão “Agendamento”" error={errors.googleAdsBookingLabel} hint="Em send_to 'AW-123/AbCdEf', copie só AbCdEf.">
+                {(p) => <Input {...p} placeholder="AbCdEfGhIjK" value={form.googleAdsBookingLabel} onChange={(e) => set({ googleAdsBookingLabel: e.target.value })} />}
+              </Field>
+              <Field label="Google Ads — rótulo da conversão “WhatsApp”" error={errors.googleAdsWhatsappLabel} hint="Conta quem toca no botão do WhatsApp.">
+                {(p) => <Input {...p} placeholder="opcional" value={form.googleAdsWhatsappLabel} onChange={(e) => set({ googleAdsWhatsappLabel: e.target.value })} />}
+              </Field>
+            </div>
+          </Panel>
           <div className="flex justify-end">
             <Button variant="secondary" size="lg" onClick={save} loading={saving} icon={<Save className="h-5 w-5" />}>
               Salvar configurações
@@ -96,6 +119,11 @@ export default function SettingsPage() {
               <StatusRow label="WhatsApp" ok={status.whatsapp.provider === 'cloud_api'} detail={status.whatsapp.provider === 'cloud_api' ? 'Envio automático pela WhatsApp Cloud API.' : status.whatsapp.provider === 'link' ? 'Link wa.me com mensagem pronta (o tutor envia). Sem envio automático.' : 'Desativado.'} />
  <StatusRow label="Fotos e vídeos" ok={status.storage.provider === 'supabase'} detail={status.storage.provider === 'supabase' ? 'Supabase Storage (bucket karolla-media).' : 'Em memória (demo) — somem ao reiniciar.'} />
               <StatusRow label="Publicações do Instagram" ok={status.instagramFeed.configured} detail={status.instagramFeed.configured ? 'API oficial da Meta conectada.' : 'Não conectado (requer token da Meta — veja docs/INSTAGRAM.md). O botão “Ver Instagram” funciona sem isso.'} />
+              <StatusRow
+                label="Pixels de anúncio"
+                ok={Boolean(form.metaPixelId || form.googleAdsId || form.tiktokPixelId)}
+                detail={[form.metaPixelId && 'Meta', form.googleAdsId && 'Google Ads', form.tiktokPixelId && 'TikTok'].filter(Boolean).join(', ') || 'Nenhum configurado (preencha em Anúncios).'}
+              />
               <StatusRow label="Google Sheets" ok={status.googleSheets.configured} detail={status.googleSheets.configured ? 'Webhook configurado.' : 'Não configurado (GOOGLE_SHEETS_WEBHOOK).'} />
             </ul>
             <p className="mt-3 text-xs text-ink-400">Chaves e tokens ficam apenas nas variáveis de ambiente do servidor — veja o README.</p>

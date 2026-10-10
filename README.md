@@ -22,7 +22,8 @@ CLIENTE → FRONT-END (React) → BACK-END (API REST) → BANCO (Supabase/Postgr
 
 Documentação detalhada em [`docs/`](docs): [arquitetura](docs/ARQUITETURA.md), [Supabase](docs/SUPABASE.md),
 [integrações](docs/INTEGRACOES.md), [guia do painel](docs/GUIA-DO-PAINEL.md), [deploy](docs/DEPLOY.md),
-[testes](docs/TESTES.md), [conteúdo e fotos](docs/CONTEUDO.md), [Instagram](docs/INSTAGRAM.md).
+[testes](docs/TESTES.md), [conteúdo e fotos](docs/CONTEUDO.md), [Instagram](docs/INSTAGRAM.md),
+[domínio karollapet.com.br](docs/DOMINIO.md), [anúncios e tráfego pago](docs/ANUNCIOS.md).
 
 ## Como instalar
 
@@ -177,6 +178,8 @@ Tudo pelo painel, sem código — veja o [guia do painel](docs/GUIA-DO-PAINEL.md
 - **Inspirações** → fotos de tosa por raça em `/inspiracoes`; o cliente toca em *Agendar com este visual* e a
   foto vai junto para o agendamento (aparece no detalhe do agendamento no painel).
 - **Stories** → fotos e vídeos que ficam 24 h no topo do site e somem sozinhos.
+- **Configurações → Anúncios** → IDs dos pixels da Meta, Google Ads e TikTok (carregam só após o aceite de cookies);
+  o Dashboard mostra de onde vieram os agendamentos ([docs/ANUNCIOS.md](docs/ANUNCIOS.md)).
 
 ## Testes
 

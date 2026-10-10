@@ -6,7 +6,7 @@
 |---|---|
 | Projeto | `karolla pet` (ref `sffxgcsokfglsxwiaoer`, região us-east-1) |
 | URL | `https://sffxgcsokfglsxwiaoer.supabase.co` |
-| Migrations aplicadas | `0000_backup_rascunho_anterior`, `0001_schema`, `0002_functions`, `0003_rls`, `0004_hardening`, `0005a`–`0005e` (profissionais, inspirações, Stories, bucket de mídia) |
+| Migrations aplicadas | `0000_backup_rascunho_anterior`, `0001_schema`, `0002_functions`, `0003_rls`, `0004_hardening`, `0005a`–`0005e` (profissionais, inspirações, Stories, bucket de mídia), `0006a`–`0006b` (pixels de anúncio e origem dos agendamentos) |
 | Storage | bucket público `karolla-media` (fotos e vídeos de inspirações e Stories; até 50 MB; só imagem/vídeo) |
 | Dados carregados | catálogo (2 espécies, 5 portes, 47 raças, 7 serviços, 7 adicionais, horários, campos) + **35 preços de demonstração** |
 
@@ -34,6 +34,7 @@ No *SQL Editor* do projeto, execute **em ordem**:
 | `database/migrations/0003_rls.sql` | Row Level Security e políticas |
 | `database/migrations/0004_hardening.sql` | move `is_admin()`/`is_owner()` para o schema `private` (fora da API) |
 | `database/migrations/0005_profissionais_inspiracoes_stories.sql` | tabelas `professionals`, `inspirations`, `stories`; colunas `professional_id`, `inspiration_id`, `inspiration_snapshot` em `appointments`; função `create_appointment_v2` (uma profissional atende um pet por vez); bucket `karolla-media` |
+| `database/migrations/0006_anuncios_origem.sql` | IDs dos pixels em `business_settings`; `appointments.attribution` (origem: UTM/anúncio); `create_appointment_v2` grava a origem |
 | `database/seed/0001_catalog.sql` | espécies, portes, ~47 raças, serviços, adicionais, horários, campos do formulário |
 | `database/seed/0002_demo_prices.sql` | ⚠️ preços **fictícios** (opcional — substitua no painel) |
 | `database/seed/0003_demo_customers.sql` | ⚠️ clientes/agendamentos **fictícios** (somente para testes) |

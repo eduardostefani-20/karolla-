@@ -214,10 +214,36 @@ export interface Appointment {
   professionalId: ID | null;
   /** Inspiração de tosa escolhida pelo cliente (null = nenhuma). */
   inspiration: AppointmentInspiration | null;
+  /** De onde o cliente veio (anúncio, Instagram, Google…). null = agendamento antigo ou feito pelo painel. */
+  attribution: AppointmentAttribution | null;
   services: AppointmentServiceItem[];
   addons: AppointmentAddonItem[];
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Origem do cliente, capturada no site a partir dos parâmetros do link (UTM e identificadores de clique
+ * dos anúncios) e do site de onde ele veio. Serve para saber quais campanhas trazem agendamentos.
+ */
+export interface AppointmentAttribution {
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  /** Clique em anúncio do Google Ads (gclid / gbraid / wbraid). */
+  gclid?: string;
+  /** Clique vindo do Instagram/Facebook (anúncio ou link orgânico). */
+  fbclid?: string;
+  /** Clique em anúncio do TikTok. */
+  ttclid?: string;
+  /** Site de onde o cliente veio (só o domínio). */
+  referrer?: string;
+  /** Primeira página que o cliente abriu (caminho, sem domínio). */
+  landingPage?: string;
+  /** Quando a origem foi registrada (ISO). */
+  capturedAt?: string;
 }
 
 export interface BusinessHours {
@@ -264,6 +290,16 @@ export interface BusinessSettings {
   maxAdvanceDays: number;
   /** Mensagem exibida no resumo/confirmação. */
   bookingNotice: string;
+  /** Pixel da Meta (Instagram/Facebook Ads) — só números. Vazio = desligado. */
+  metaPixelId: string;
+  /** Tag do Google Ads (AW-123456789). Vazio = desligado. */
+  googleAdsId: string;
+  /** Rótulo da conversão "agendamento concluído" no Google Ads. */
+  googleAdsBookingLabel: string;
+  /** Rótulo da conversão "clique no WhatsApp" no Google Ads (opcional). */
+  googleAdsWhatsappLabel: string;
+  /** Pixel do TikTok Ads. Vazio = desligado. */
+  tiktokPixelId: string;
 }
 
 export const FORM_FIELD_KEYS = [

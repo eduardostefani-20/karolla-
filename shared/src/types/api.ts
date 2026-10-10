@@ -40,6 +40,11 @@ export type PublicSettings = Pick<
   | 'timezone'
   | 'maxAdvanceDays'
   | 'bookingNotice'
+  | 'metaPixelId'
+  | 'googleAdsId'
+  | 'googleAdsBookingLabel'
+  | 'googleAdsWhatsappLabel'
+  | 'tiktokPixelId'
 >;
 
 /** Tudo que o site público precisa para montar o formulário (somente itens ativos). */
@@ -114,6 +119,8 @@ export interface DashboardData {
   };
   todayAgenda: AppointmentDetail[];
   nextAppointments: AppointmentDetail[];
+  /** Agendamentos feitos nos últimos 30 dias, agrupados por origem (anúncios, Instagram, Google…). */
+  channels: { key: string; label: string; paid: boolean; count: number; revenueCents: number }[];
 }
 
 export interface AuthSession {

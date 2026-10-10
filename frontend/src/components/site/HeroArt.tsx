@@ -1,4 +1,4 @@
-import { PetIllustration } from './PetIllustration';
+import { PetIllustration, THEME } from './PetIllustration';
 
 /** Composição do hero: cachorrinho no banho de espuma + gatinho, com elementos flutuantes. */
 export function HeroArt() {
@@ -8,22 +8,22 @@ export function HeroArt() {
       <div className="absolute right-[4%] top-[8%] h-20 w-20 animate-float rounded-full bg-coral-200/70 blur-[2px]" aria-hidden />
       <svg viewBox="0 0 400 400" className="absolute inset-0 h-full w-full" aria-hidden>
         {/* banheira */}
-        <path d="M60 250 H340 Q336 330 270 338 H130 Q64 330 60 250 Z" fill="#fff" stroke="#1b7a75" strokeWidth="6" />
-        <rect x="48" y="238" width="304" height="22" rx="11" fill="#1b7a75" />
-        <rect x="110" y="336" width="18" height="26" rx="6" fill="#1b7a75" />
-        <rect x="272" y="336" width="18" height="26" rx="6" fill="#1b7a75" />
+        <path d="M60 250 H340 Q336 330 270 338 H130 Q64 330 60 250 Z" className="fill-white stroke-brand-600" strokeWidth="6" />
+        <rect x="48" y="238" width="304" height="22" rx="11" className="fill-brand-600" />
+        <rect x="110" y="336" width="18" height="26" rx="6" className="fill-brand-600" />
+        <rect x="272" y="336" width="18" height="26" rx="6" className="fill-brand-600" />
         {/* patinho */}
         <g transform="translate(300 214)">
-          <ellipse cx="0" cy="14" rx="22" ry="14" fill="#ffc533" />
-          <circle cx="10" cy="-2" r="11" fill="#ffc533" />
-          <path d="M20 -2 L30 1 L20 5 Z" fill="#ff7d57" />
-          <circle cx="13" cy="-5" r="2" fill="#1c2433" />
+          <ellipse cx="0" cy="14" rx="22" ry="14" className="fill-sun-400" />
+          <circle cx="10" cy="-2" r="11" className="fill-sun-400" />
+          <path d="M20 -2 L30 1 L20 5 Z" className="fill-coral-400" />
+          <circle cx="13" cy="-5" r="2" className="fill-ink-800" />
         </g>
       </svg>
       <PetIllustration className="absolute left-[17%] top-[16%] w-[58%] drop-shadow-xl" fur="#f0c58f" furDark="#d39a5c" bubbles title="Cachorro no banho" />
       {/* espuma sobre a borda da banheira */}
       <svg viewBox="0 0 400 400" className="absolute inset-0 h-full w-full" aria-hidden>
-        <g fill="#fff" stroke="#bfe9e5" strokeWidth="3">
+        <g className="fill-white stroke-brand-200" strokeWidth="3">
           <circle cx="104" cy="240" r="24" />
           <circle cx="146" cy="232" r="28" />
           <circle cx="196" cy="236" r="26" />
@@ -38,7 +38,7 @@ export function HeroArt() {
         furDark="#6b7684"
         muzzle="#f4f6f8"
         accessory="bow"
-        accent="#ff7d57"
+        accent={THEME.coral400}
         title="Gatinho com laço"
       />
       <div className="absolute bottom-[14%] left-[2%] animate-float rounded-2xl bg-white px-4 py-3 shadow-soft [animation-delay:-2s]">

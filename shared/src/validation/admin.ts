@@ -134,6 +134,14 @@ export const blockedTimeSchema = z
     path: ['endTime'],
   });
 
+function trackingId(pattern: RegExp, message: string, normalize: (v: string) => string = (v) => v) {
+  return z
+    .string()
+    .default('')
+    .transform((v) => normalize(v.replace(/\s+/g, '')))
+    .pipe(z.union([z.literal(''), z.string().regex(pattern, message)]));
+}
+
 export const settingsSchema = z.object({
   businessName: requiredText('o nome', 80),
   whatsappNumber: z
@@ -150,6 +158,12 @@ export const settingsSchema = z.object({
   minAdvanceMinutes: z.number().int().min(0).max(60 * 24 * 14),
   maxAdvanceDays: z.number().int().min(1).max(365),
   bookingNotice: optionalText(500),
+  // Anúncios: IDs públicos (aparecem no código da página de qualquer site que usa pixel). Vazio = desligado.
+  metaPixelId: trackingId(/^\d{8,20}$/, 'O ID do Pixel da Meta tem só números (ex.: 123456789012345).'),
+  googleAdsId: trackingId(/^AW-\d{6,15}$/, 'Use o formato AW-123456789.', (v) => v.toUpperCase()),
+  googleAdsBookingLabel: trackingId(/^[A-Za-z0-9_-]{4,64}$/, 'Rótulo de conversão inválido (copie só o trecho depois da barra em send_to).'),
+  googleAdsWhatsappLabel: trackingId(/^[A-Za-z0-9_-]{4,64}$/, 'Rótulo de conversão inválido (copie só o trecho depois da barra em send_to).'),
+  tiktokPixelId: trackingId(/^[A-Z0-9]{10,40}$/, 'O ID do Pixel do TikTok tem letras maiúsculas e números (ex.: C4ABCDEF123GHIJ456KL).', (v) => v.toUpperCase()),
 });
 export type SettingsInput = z.input<typeof settingsSchema>;
 

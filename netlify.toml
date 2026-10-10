@@ -10,6 +10,8 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Endereço oficial (canonical, Open Graph, sitemap.xml). Não é segredo.
+  VITE_SITE_URL = "https://karollapet.com.br"
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
 
 [functions]
@@ -26,6 +28,16 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Segurança básica para todas as páginas (os pixels de anúncio continuam funcionando)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "SAMEORIGIN"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+    Strict-Transport-Security = "max-age=31536000"
 
 [[headers]]
   for = "/assets/*"

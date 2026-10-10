@@ -1,39 +1,20 @@
 import type { Config } from 'tailwindcss';
 
-/** Identidade visual Karolla Pet: teal acolhedor + coral afetivo sobre creme. */
+/** Cores vêm de variáveis CSS em src/styles/theme.css (fonte única da paleta da marca). */
+const palette = (name: string, shades: number[]) =>
+  Object.fromEntries(shades.map((shade) => [shade, `rgb(var(--${name}-${shade}) / <alpha-value>)`]));
+
+/** Identidade visual Karolla Pet. */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#effaf9',
-          100: '#d6f2ef',
-          200: '#ade4df',
-          300: '#79cfc8',
-          400: '#45b2ab',
-          500: '#279790',
-          600: '#1b7a75',
-          700: '#19625f',
-          800: '#184f4d',
-          900: '#163f3e',
-          950: '#082626',
-        },
-        coral: {
-          50: '#fff4ef',
-          100: '#ffe5da',
-          200: '#ffc8b3',
-          300: '#ffa384',
-          400: '#ff7d57',
-          500: '#f65d34',
-          600: '#e2441d',
-          700: '#bc3415',
-          800: '#952c17',
-          900: '#792816',
-        },
-        sun: { 100: '#fff3cc', 200: '#ffe699', 300: '#ffd666', 400: '#ffc533', 500: '#f5ae00' },
-        cream: { 50: '#fffcf8', 100: '#fff7ee', 200: '#fdebd8' },
-        ink: { 400: '#6b7280', 500: '#4b5563', 600: '#374151', 700: '#273142', 800: '#1c2433', 900: '#111827' },
+        brand: palette('brand', [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]),
+        coral: palette('coral', [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]),
+        sun: palette('sun', [100, 200, 300, 400, 500]),
+        cream: palette('cream', [50, 100, 200]),
+        ink: palette('ink', [400, 500, 600, 700, 800, 900]),
       },
       fontFamily: {
         display: ['Fredoka', 'ui-rounded', 'system-ui', 'sans-serif'],
@@ -41,8 +22,8 @@ export default {
       },
       borderRadius: { '4xl': '2rem' },
       boxShadow: {
-        soft: '0 10px 30px -12px rgba(22, 63, 62, 0.25)',
-        card: '0 2px 10px -2px rgba(22, 63, 62, 0.08), 0 1px 2px rgba(22, 63, 62, 0.06)',
+        soft: '0 10px 30px -12px rgb(var(--brand-900) / 0.25)',
+        card: '0 2px 10px -2px rgb(var(--brand-900) / 0.08), 0 1px 2px rgb(var(--brand-900) / 0.06)',
       },
       keyframes: {
         'fade-up': { from: { opacity: '0', transform: 'translateY(12px)' }, to: { opacity: '1', transform: 'none' } },

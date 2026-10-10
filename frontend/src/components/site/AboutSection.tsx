@@ -1,6 +1,6 @@
 import { HeartHandshake } from 'lucide-react';
 import { siteContent } from '@/data/content';
-import { PetIllustration } from './PetIllustration';
+import { PetIllustration, THEME } from './PetIllustration';
 
 export function AboutSection() {
   const { about } = siteContent;
@@ -10,7 +10,7 @@ export function AboutSection() {
         <div className="relative mx-auto w-full max-w-sm">
           <div className="absolute inset-0 rotate-6 rounded-[3rem] bg-coral-100" aria-hidden />
           <div className="relative rounded-[3rem] bg-brand-100 p-8">
-            <PetIllustration fur="#fdfaf6" furDark="#e6d7c3" accessory="bow" accent="#ff7d57" title="Cachorrinho com laço após a tosa" />
+            <PetIllustration fur="#fdfaf6" furDark="#e6d7c3" accessory="bow" accent={THEME.coral400} title="Cachorrinho com laço após a tosa" />
           </div>
           <div className="absolute -bottom-5 -right-3 flex items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-soft">
             <HeartHandshake className="h-6 w-6 text-coral-500" aria-hidden />

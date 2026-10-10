@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ImageIcon, MessageCircle, Pencil, RefreshCw, UserRound } from 'lucide-react';
+import { ArrowLeft, ImageIcon, Megaphone, MessageCircle, Pencil, RefreshCw, UserRound } from 'lucide-react';
 import {
   APPOINTMENT_STATUSES,
   APPOINTMENT_STATUS_LABELS,
+  attributionChannel,
   buildWhatsAppLink,
   calculateAppointmentPrice,
   formatAge,
@@ -11,6 +12,7 @@ import {
   formatDateBR,
   formatPhone,
   PricingError,
+  type AppointmentAttribution,
   type AppointmentDetail,
   type AppointmentStatus,
 } from '@karolla/shared';
@@ -252,6 +254,7 @@ export default function AppointmentDetailPage() {
               </p>
             </Panel>
           )}
+          {a.attribution && <OriginPanel attribution={a.attribution} />}
           <Panel title="Itens e valores">
             <ul className="space-y-1.5 text-sm">
               {a.services.map((s) => (
@@ -309,5 +312,36 @@ export default function AppointmentDetailPage() {
       {editCustomer && <EditCustomerModal open customer={a.customer} onClose={() => setEditCustomer(false)} onSaved={() => void reload()} />}
       {editPet && catalog && <EditPetModal open pet={a.pet} catalog={catalog} onClose={() => setEditPet(false)} onSaved={() => void reload()} />}
     </div>
+  );
+}
+
+/** De onde o cliente veio (anúncio, Instagram, Google…) — capturado no site no momento do agendamento. */
+function OriginPanel({ attribution: o }: { attribution: AppointmentAttribution }) {
+  const channel = attributionChannel(o);
+  const rows: [string, string | undefined][] = [
+    ['Campanha', o.utmCampaign],
+    ['Anúncio / conteúdo', o.utmContent],
+    ['Palavra-chave', o.utmTerm],
+    ['Fonte / meio', [o.utmSource, o.utmMedium].filter(Boolean).join(' / ') || undefined],
+    ['Veio do site', o.referrer],
+    ['Primeira página', o.landingPage],
+  ];
+  return (
+    <Panel title={<span className="flex items-center gap-2"><Megaphone className="h-5 w-5 text-brand-600" aria-hidden /> Origem do cliente</span>}>
+      <p className="flex flex-wrap items-center gap-2 font-semibold" data-testid="appointment-origin">
+        {channel.label}
+        {channel.paid && <span className="rounded-full bg-coral-100 px-2 py-0.5 text-xs font-bold text-coral-700">ANÚNCIO</span>}
+      </p>
+      <dl className="mt-2 space-y-1 text-sm">
+        {rows
+          .filter(([, v]) => v)
+          .map(([k, v]) => (
+            <div key={k} className="flex justify-between gap-3">
+              <dt className="text-ink-500">{k}</dt>
+              <dd className="break-all text-right font-medium">{v}</dd>
+            </div>
+          ))}
+      </dl>
+    </Panel>
   );
 }

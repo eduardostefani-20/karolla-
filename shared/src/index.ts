@@ -5,6 +5,7 @@ export * from './utils/money';
 export * from './utils/phone';
 export * from './utils/sanitize';
 export * from './utils/date';
+export * from './utils/attribution';
 export * from './pricing/calculateAppointmentPrice';
 export * from './scheduling/availability';
 export * from './validation/primitives';

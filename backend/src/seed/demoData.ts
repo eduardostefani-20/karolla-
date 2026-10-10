@@ -29,6 +29,12 @@ export function demoSettings(env: { WHATSAPP_NUMBER?: string; TIMEZONE: string }
     minAdvanceMinutes: 120,
     maxAdvanceDays: 60,
     bookingNotice: 'Seu horário fica reservado após a confirmação da Karolla Pet pelo WhatsApp.',
+    // Anúncios desligados no modo demo (nenhum pixel é carregado).
+    metaPixelId: '',
+    googleAdsId: '',
+    googleAdsBookingLabel: '',
+    googleAdsWhatsappLabel: '',
+    tiktokPixelId: '',
   };
 }
 
@@ -237,6 +243,7 @@ export async function seedDemoData(db: MemoryDatabase, opts: { now: Date; timezo
         source: 'online',
         professionalId: null,
         inspiration: null,
+        attribution: null,
         services: price.lines.filter((l) => l.kind === 'service').map((l) => ({ serviceId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
         addons: price.lines.filter((l) => l.kind === 'addon').map((l) => ({ addonId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
       },

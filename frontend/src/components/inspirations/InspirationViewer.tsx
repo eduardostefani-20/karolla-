@@ -7,6 +7,7 @@ import { useCatalog } from '@/context/CatalogContext';
 import { useToast } from '@/components/ui/Toast';
 import { shareLink } from '@/utils/share';
 import { cn } from '@/utils/cn';
+import { trackEvent } from '@/services/tracking';
 
 /** Visualização ampliada (lightbox) de uma inspiração, com Agendar, Favoritar e Compartilhar. */
 export function InspirationViewer({
@@ -41,6 +42,10 @@ export function InspirationViewer({
       document.body.style.overflow = '';
     };
   }, [index, items.length, onClose, onIndex]);
+
+  useEffect(() => {
+    if (item) trackEvent('ViewContent', { contentId: item.id, contentName: `${item.breedName} — ${item.title}` });
+  }, [item]);
 
   if (!item) return null;
   const service = catalog?.services.find((s) => s.id === item.serviceId);

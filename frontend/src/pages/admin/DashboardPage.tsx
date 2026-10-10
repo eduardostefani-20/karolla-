@@ -71,6 +71,29 @@ export default function DashboardPage() {
               )}
             </Panel>
           </div>
+          <Panel title="De onde vieram os agendamentos (últimos 30 dias)">
+            {data.channels.length === 0 ? (
+              <EmptyState title="Nenhum agendamento online nos últimos 30 dias" />
+            ) : (
+              <ul className="divide-y divide-ink-900/5" data-testid="dashboard-channels">
+                {data.channels.map((c) => (
+                  <li key={c.key} className="flex items-center justify-between gap-3 py-2.5">
+                    <span className="flex min-w-0 items-center gap-2 font-semibold">
+                      <span className="truncate">{c.label}</span>
+                      {c.paid && <span className="shrink-0 rounded-full bg-coral-100 px-2 py-0.5 text-xs font-bold text-coral-700">ANÚNCIO</span>}
+                    </span>
+                    <span className="shrink-0 text-right text-sm tabular-nums">
+                      <strong>{c.count}</strong> {c.count === 1 ? 'agendamento' : 'agendamentos'}
+                      <span className="block text-xs text-ink-500">{formatCents(c.revenueCents)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 text-xs text-ink-400">
+              A origem vem do link que o cliente abriu (parâmetros UTM e cliques em anúncios). Use links com UTM nas campanhas — veja docs/ANUNCIOS.md.
+            </p>
+          </Panel>
         </div>
       )}
     </div>

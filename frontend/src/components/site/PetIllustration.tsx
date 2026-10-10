@@ -1,5 +1,12 @@
 import { memo } from 'react';
 
+/** Cores da marca para usar em ilustrações (seguem src/styles/theme.css). */
+export const THEME = {
+  brand500: 'rgb(var(--brand-500))',
+  coral400: 'rgb(var(--coral-400))',
+  sun400: 'rgb(var(--sun-400))',
+} as const;
+
 /**
  * Ilustrações vetoriais próprias (leves, sem dependência externa).
  * Placeholder elegante até a Karolla Pet ter fotos reais — veja docs/CONTEUDO.md.
@@ -22,7 +29,7 @@ export const PetIllustration = memo(function PetIllustration({
   furDark = '#c98d4f',
   muzzle = '#fff1df',
   accessory = 'none',
-  accent = '#ff7d57',
+  accent = THEME.coral400,
   bubbles = false,
   className,
   title,
@@ -33,7 +40,7 @@ export const PetIllustration = memo(function PetIllustration({
       {/* corpo */}
       <ellipse cx="100" cy="172" rx="52" ry="30" fill={fur} />
       <ellipse cx="100" cy="178" rx="28" ry="18" fill={muzzle} />
-      {accessory === 'bandana' && <path d="M58 140 Q100 168 142 140 L128 158 Q100 182 72 158 Z" fill={accent} />}
+      {accessory === 'bandana' && <path d="M58 140 Q100 168 142 140 L128 158 Q100 182 72 158 Z" style={{ fill: accent }} />}
       {/* orelhas */}
       {kind === 'dog' ? (
         <>
@@ -75,8 +82,8 @@ export const PetIllustration = memo(function PetIllustration({
       )}
       {accessory === 'bow' && (
         <g transform="translate(128 52) rotate(18)">
-          <path d="M0 0 L-18 -11 L-18 11 Z" fill={accent} />
-          <path d="M0 0 L18 -11 L18 11 Z" fill={accent} />
+          <path d="M0 0 L-18 -11 L-18 11 Z" style={{ fill: accent }} />
+          <path d="M0 0 L18 -11 L18 11 Z" style={{ fill: accent }} />
           <circle r="5" fill="#fff" opacity=".9" />
         </g>
       )}

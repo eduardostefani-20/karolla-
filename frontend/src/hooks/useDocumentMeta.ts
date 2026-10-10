@@ -19,7 +19,10 @@ export function useDocumentMeta({ title, description, noindex }: { title: string
       set('meta[property="og:description"]', 'property', 'og:description', description);
     }
     set('meta[name="robots"]', 'name', 'robots', noindex ? 'noindex, nofollow' : 'index, follow');
+    // Endereço oficial (domínio próprio), mesmo quando o site é aberto por outro endereço.
+    const url = __SITE_URL__ + window.location.pathname;
     const canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (canonical) canonical.href = window.location.origin + window.location.pathname;
+    if (canonical) canonical.href = url;
+    set('meta[property="og:url"]', 'property', 'og:url', url);
   }, [title, description, noindex]);
 }

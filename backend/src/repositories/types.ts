@@ -71,11 +71,12 @@ export interface NewAppointment {
   source: Appointment['source'];
   professionalId: string | null;
   inspiration: Appointment['inspiration'];
+  attribution: Appointment['attribution'];
   services: AppointmentServiceItem[];
   addons: AppointmentAddonItem[];
 }
 
-export type AppointmentPatch = Partial<Omit<NewAppointment, 'customerId' | 'petId' | 'source' | 'inspiration'>>;
+export type AppointmentPatch = Partial<Omit<NewAppointment, 'customerId' | 'petId' | 'source' | 'inspiration' | 'attribution'>>;
 
 /**
  * Garantia de não-sobreposição aplicada NO MOMENTO DA GRAVAÇÃO.

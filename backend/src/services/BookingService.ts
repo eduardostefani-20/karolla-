@@ -142,6 +142,7 @@ export class BookingService {
       source: 'online' as const,
       professionalId,
       inspiration,
+      attribution: request.attribution,
       services: price.lines
         .filter((l) => l.kind === 'service')
         .map((l) => ({ serviceId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),

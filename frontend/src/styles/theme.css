@@ -1,0 +1,51 @@
+/*
+ * Cores da marca Karolla Pet — FONTE ÚNICA da paleta do site.
+ * Cada cor é escrita como canais RGB ("R G B") para o Tailwind aplicar transparência (ex.: bg-brand-600/20).
+ *   brand  → cor principal (cabeçalho, botões secundários, links, rodapé)
+ *   coral  → cor de destaque (botão principal "Agendar", selos)
+ *   sun    → cor de apoio (avisos, detalhes)
+ *   cream  → fundos claros
+ *   ink    → textos
+ * Para trocar a identidade visual, altere só os valores abaixo (e theme-color no index.html).
+ */
+:root {
+  --brand-50: 239 250 249; /* #effaf9 */
+  --brand-100: 214 242 239; /* #d6f2ef */
+  --brand-200: 173 228 223; /* #ade4df */
+  --brand-300: 121 207 200; /* #79cfc8 */
+  --brand-400: 69 178 171; /* #45b2ab */
+  --brand-500: 39 151 144; /* #279790 */
+  --brand-600: 27 122 117; /* #1b7a75 */
+  --brand-700: 25 98 95; /* #19625f */
+  --brand-800: 24 79 77; /* #184f4d */
+  --brand-900: 22 63 62; /* #163f3e */
+  --brand-950: 8 38 38; /* #082626 */
+
+  --coral-50: 255 244 239; /* #fff4ef */
+  --coral-100: 255 229 218; /* #ffe5da */
+  --coral-200: 255 200 179; /* #ffc8b3 */
+  --coral-300: 255 163 132; /* #ffa384 */
+  --coral-400: 255 125 87; /* #ff7d57 */
+  --coral-500: 246 93 52; /* #f65d34 */
+  --coral-600: 226 68 29; /* #e2441d */
+  --coral-700: 188 52 21; /* #bc3415 */
+  --coral-800: 149 44 23; /* #952c17 */
+  --coral-900: 121 40 22; /* #792816 */
+
+  --sun-100: 255 243 204; /* #fff3cc */
+  --sun-200: 255 230 153; /* #ffe699 */
+  --sun-300: 255 214 102; /* #ffd666 */
+  --sun-400: 255 197 51; /* #ffc533 */
+  --sun-500: 245 174 0; /* #f5ae00 */
+
+  --cream-50: 255 252 248; /* #fffcf8 */
+  --cream-100: 255 247 238; /* #fff7ee */
+  --cream-200: 253 235 216; /* #fdebd8 */
+
+  --ink-400: 107 114 128; /* #6b7280 */
+  --ink-500: 75 85 99; /* #4b5563 */
+  --ink-600: 55 65 81; /* #374151 */
+  --ink-700: 39 49 66; /* #273142 */
+  --ink-800: 28 36 51; /* #1c2433 */
+  --ink-900: 17 24 39; /* #111827 */
+}

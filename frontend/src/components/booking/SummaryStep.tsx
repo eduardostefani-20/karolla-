@@ -4,6 +4,8 @@ import { formatAge, formatCents, formatDateBR, formatDateLong, normalizeBrazilia
 import { useCatalog } from '@/context/CatalogContext';
 import { useBooking } from '@/context/BookingContext';
 import { publicApi } from '@/services/publicApi';
+import { getAttribution } from '@/services/attribution';
+import { trackEvent } from '@/services/tracking';
 import { ApiError, friendlyMessage } from '@/services/api';
 import { Alert } from '@/components/ui/Feedback';
 import { useBookingPrice } from './useBookingPrice';
@@ -91,11 +93,14 @@ export function SummaryStep({
       tutor: { ...t, whatsapp: normalizeBrazilianPhone(t.whatsapp) },
       professionalId: draft.professionalId,
       inspirationId: draft.inspiration?.id ?? null,
+      attribution: getAttribution(),
       expectedTotalCents: price.totalCents,
       website: honeypot,
     };
     try {
       const result = await publicApi.createAppointment(payload);
+      // Conversão dos anúncios (só envia se o visitante aceitou os cookies)
+      trackEvent('Schedule', { value: result.appointment.totalCents / 100, eventId: result.appointment.id, contentId: draft.serviceId, contentName: service?.name });
       update({ result });
       onConfirmed();
     } catch (err) {

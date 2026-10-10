@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { FormFieldConfig, FormFieldKey } from '../types/domain';
 import { DEFAULT_FORM_FIELDS } from '../constants';
+import { sanitizeAttribution } from '../utils/attribution';
 import { dateSchema, emailSchema, idSchema, optionalText, phoneSchema, requiredText, timeSchema } from './primitives';
 
 /**
@@ -54,6 +55,8 @@ export const bookingRequestSchema = z.object({
   professionalId: idSchema.nullable().optional(),
   /** Inspiração de tosa escolhida no catálogo (só a referência; o servidor busca os dados). */
   inspirationId: idSchema.nullable().optional(),
+  /** Origem do cliente (UTM/anúncio). Limpa no servidor; nunca bloqueia o agendamento. */
+  attribution: z.unknown().optional().transform(sanitizeAttribution),
   /** Total que o cliente viu na tela. Se divergir do recálculo do servidor, o cliente é avisado. */
   expectedTotalCents: z.number().int().min(0).optional(),
   /** Honeypot anti-spam: deve chegar vazio. */

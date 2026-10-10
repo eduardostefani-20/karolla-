@@ -3,6 +3,8 @@ import { Instagram, Mail, MapPin, MessageCircle } from 'lucide-react';
 import { buildWhatsAppLink, formatPhone, instagramProfileUrl, WEEKDAY_SHORT } from '@karolla/shared';
 import { useCatalog } from '@/context/CatalogContext';
 import { Logo } from './Logo';
+import { openConsentPreferences } from '@/services/consent';
+import { configuredPlatforms } from '@/services/tracking';
 
 export function Footer() {
   const { catalog } = useCatalog();
@@ -65,9 +67,19 @@ export function Footer() {
       <div className="border-t border-white/10">
         <div className="container-page flex flex-col items-center justify-between gap-2 py-5 text-xs text-brand-100/60 sm:flex-row">
           <p>© {new Date().getFullYear()} Karolla Pet. Todos os direitos reservados.</p>
-          <Link to="/admin" className="hover:text-white">
-            Área administrativa
-          </Link>
+          <nav aria-label="Links legais" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <Link to="/privacidade" className="hover:text-white">
+              Política de privacidade
+            </Link>
+            {configuredPlatforms(s).length > 0 && (
+              <button type="button" onClick={openConsentPreferences} className="hover:text-white">
+                Preferências de cookies
+              </button>
+            )}
+            <Link to="/admin" className="hover:text-white">
+              Área administrativa
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>
