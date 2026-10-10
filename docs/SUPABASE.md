@@ -20,7 +20,7 @@ Authentication → Providers → Email (configuração do painel).
 
 ## Produção no Netlify
 
-O site `cool-hotteok-c96ed7` roda com `APP_MODE=production`: banco e login no Supabase.
+O site `karolllapet` roda com `APP_MODE=production`: banco e login no Supabase.
 Administrador: o usuário do Supabase Auth com registro ativo em `public.admins` (perfil `owner`).
 O login de demonstração foi removido.
 

@@ -15,7 +15,7 @@
 
 O repositório já tem `netlify.toml`: o site sai de `frontend/dist` e a API roda como
 Netlify Function (`netlify/functions/api.mts`, o mesmo app Express de `backend/`), com `/api/*` → função.
-Projeto: `cool-hotteok-c96ed7` — cada push na branch publica automaticamente.
+Projeto: `karolllapet` (https://karolllapet.netlify.app) — cada push na branch publica automaticamente.
 
 Função agendada `netlify/functions/stories-cleanup.mts` (minuto 7 de cada hora): apaga do banco e do Storage
 os Stories com mais de 24 h. Ela só faz limpeza — o site já esconde o Story vencido pela data gravada no banco.

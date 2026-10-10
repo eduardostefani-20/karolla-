@@ -12,7 +12,7 @@ no compartilhamento (Open Graph), em `sitemap.xml` e `robots.txt`. Falta só reg
 
 ## 2. Apontar para o Netlify (escolha **um** caminho)
 
-Antes, no Netlify: *Projeto `cool-hotteok-c96ed7` → Domain management → Add a domain* → `karollapet.com.br`
+Antes, no Netlify: *Projeto `karolllapet` → Domain management → Add a domain* → `karollapet.com.br`
 (o Netlify oferece incluir `www.karollapet.com.br` também — aceite).
 
 ### Caminho A — DNS do Netlify (mais simples, recomendado)
@@ -29,7 +29,7 @@ No Registro.br: *DNS → Editar zona* (modo avançado) e crie:
 | Tipo | Nome | Valor |
 |---|---|---|
 | A | (vazio / `karollapet.com.br`) | `75.2.60.5` |
-| CNAME | `www` | `cool-hotteok-c96ed7.netlify.app` |
+| CNAME | `www` | `karolllapet.netlify.app` |
 
 (`75.2.60.5` é o endereço do balanceador do Netlify para domínio raiz — confira na
 [documentação do Netlify](https://docs.netlify.com/domains-https/custom-domains/configure-external-dns/) no dia.)
@@ -40,8 +40,8 @@ A propagação leva de minutos até 48 h.
 1. **HTTPS**: em *Domain management → HTTPS*, o certificado (Let's Encrypt) é emitido automaticamente.
 2. **Domínio principal**: deixe `karollapet.com.br` como *Primary domain* — o Netlify redireciona
    `www` e o endereço `.netlify.app` para ele.
-3. **Abrir para o público**: *Project configuration → Access & security → Visitor access* → desative a
-   exigência de login da equipe Netlify (hoje o site só abre para quem está logado no Netlify).
+3. **Acesso público**: a produção já está aberta (a exigência de login da equipe Netlify vale só para
+   versões de teste). Confira em *Project configuration → Access & security → Visitor access*.
 4. **CORS** (opcional, a API é no mesmo endereço): em *Environment variables*, `CORS_ORIGIN` =
    `https://karollapet.com.br,https://www.karollapet.com.br`.
 5. **Google Search Console**: adicione a propriedade de domínio `karollapet.com.br`, verifique com o
