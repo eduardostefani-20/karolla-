@@ -65,5 +65,5 @@ Se o token expirar, o site **continua funcionando**: a seção de publicações 
 
 ## Stories e inspirações não dependem da Meta
 Os Stories de 24 h e o catálogo de inspirações do site são publicados **pelo painel** e
-guardados no Supabase (Storage `karolla-media`). A Meta não permite publicar Stories pela API
-para este tipo de integração, e o site não depende do Instagram para funcionar.
+guardados no Supabase (Storage `karolla-media`). Eles não são copiados do Instagram nem enviados
+para ele: o site funciona igual com ou sem a integração da Meta.
