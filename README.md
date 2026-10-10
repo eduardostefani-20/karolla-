@@ -22,7 +22,7 @@ CLIENTE → FRONT-END (React) → BACK-END (API REST) → BANCO (Supabase/Postgr
 
 Documentação detalhada em [`docs/`](docs): [arquitetura](docs/ARQUITETURA.md), [Supabase](docs/SUPABASE.md),
 [integrações](docs/INTEGRACOES.md), [guia do painel](docs/GUIA-DO-PAINEL.md), [deploy](docs/DEPLOY.md),
-[testes](docs/TESTES.md), [conteúdo e fotos](docs/CONTEUDO.md).
+[testes](docs/TESTES.md), [conteúdo e fotos](docs/CONTEUDO.md), [Instagram](docs/INSTAGRAM.md).
 
 ## Como instalar
 
@@ -111,6 +111,7 @@ Veja [`.env.example`](.env.example) (comentado). Resumo:
 | `WHATSAPP_NUMBER` | número inicial da Karolla Pet (depois editável no painel) |
 | `WHATSAPP_PROVIDER` | `link` (padrão), `cloud_api` ou `disabled` |
 | `GOOGLE_SHEETS_WEBHOOK`, `GOOGLE_SHEETS_WEBHOOK_SECRET` | planilha via Apps Script |
+| `INSTAGRAM_ACCESS_TOKEN` | opcional — publicações reais do perfil pela API oficial da Meta ([docs/INSTAGRAM.md](docs/INSTAGRAM.md)) |
 | `CORS_ORIGIN` | origem(ns) do site autorizadas a chamar a API |
 | `VITE_API_URL` | (front) URL pública da API; vazio = mesma origem |
 
@@ -171,6 +172,11 @@ Tudo pelo painel, sem código — veja o [guia do painel](docs/GUIA-DO-PAINEL.md
 - **Formulário** → mostrar/ocultar e tornar obrigatórios peso, idade, observações, e-mail e endereço;
   editar rótulos; gerenciar adicionais, portes, raças e espécies.
 - **Horários** → funcionamento, intervalo, dias fechados, bloqueio de datas e de horários.
+- **Profissionais** → cada profissional atende um pet por vez; com profissionais cadastrados, o número de
+  pets no mesmo horário passa a ser o número de profissionais livres (sem cadastro, vale "vagas por horário").
+- **Inspirações** → fotos de tosa por raça em `/inspiracoes`; o cliente toca em *Agendar com este visual* e a
+  foto vai junto para o agendamento (aparece no detalhe do agendamento no painel).
+- **Stories** → fotos e vídeos que ficam 24 h no topo do site e somem sozinhos.
 
 ## Testes
 

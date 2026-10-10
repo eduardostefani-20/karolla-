@@ -1,12 +1,13 @@
 # Deploy
 
 ## Checklist
-- [ ] Supabase: migrations 0001–0003, seed de catálogo, administradora criada (docs/SUPABASE.md)
+- [ ] Supabase: migrations 0001–0005, seed de catálogo, administradora criada (docs/SUPABASE.md)
 - [ ] Preços reais cadastrados no painel (os do seed são fictícios)
 - [ ] Número de WhatsApp em Configurações
 - [ ] `APP_MODE=production` na API (ela se recusa a iniciar com banco em memória ou login mock)
 - [ ] `CORS_ORIGIN` = domínio do site (ex.: `https://karollapet.com.br`)
-- [ ] Opcional: `GOOGLE_SHEETS_WEBHOOK` e `WHATSAPP_PROVIDER=cloud_api`
+- [ ] Instagram do perfil oficial em Configurações (botão “Ver Instagram”)
+- [ ] Opcional: `GOOGLE_SHEETS_WEBHOOK`, `WHATSAPP_PROVIDER=cloud_api` e `INSTAGRAM_ACCESS_TOKEN` (docs/INSTAGRAM.md)
 
 ## Netlify (configurado)
 
@@ -14,12 +15,16 @@ O repositório já tem `netlify.toml`: o site sai de `frontend/dist` e a API rod
 Netlify Function (`netlify/functions/api.mts`, o mesmo app Express de `backend/`), com `/api/*` → função.
 Projeto: `cool-hotteok-c96ed7` — cada push na branch publica automaticamente.
 
+Função agendada `netlify/functions/stories-cleanup.mts` (minuto 7 de cada hora): apaga do banco e do Storage
+os Stories com mais de 24 h. Ela só faz limpeza — o site já esconde o Story vencido pela data gravada no banco.
+
 Variáveis em *Site configuration → Environment variables* (escopo **Functions**):
 
 | Fase | Variáveis |
 |---|---|
 | Pré-visualização (DEMO) | `APP_MODE=demo`, `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD`, `AUTH_TOKEN_SECRET`, `CORS_ORIGIN` |
 | Produção (Supabase) | `APP_MODE=production`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (secreta), `WHATSAPP_NUMBER`, `CORS_ORIGIN` |
+| Opcional | `INSTAGRAM_ACCESS_TOKEN` (secreta) — publicações reais do perfil (docs/INSTAGRAM.md) |
 
 ⚠️ Variáveis só valem a partir do **próximo deploy**. Se faltar `DEMO_ADMIN_PASSWORD` ou `AUTH_TOKEN_SECRET`,
 cada instância da função gera valores aleatórios e o login do painel falha. No plano atual, variáveis marcadas

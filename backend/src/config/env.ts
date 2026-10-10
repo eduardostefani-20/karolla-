@@ -48,7 +48,7 @@ const envSchema = z.object({
 
   // Instagram (API oficial da Meta) — opcional. Sem token, o site só mostra o botão "Ver Instagram".
   INSTAGRAM_ACCESS_TOKEN: optional,
-  INSTAGRAM_API_VERSION: z.string().default('v21.0'),
+  INSTAGRAM_API_VERSION: z.string().regex(/^v\d+\.\d+$/).default('v23.0'),
 
   INTEGRATION_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
 });

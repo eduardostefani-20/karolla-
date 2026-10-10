@@ -39,7 +39,29 @@ ativar/desativar e ordenar.
 Defina para cada dia: aberto/fechado, abertura, fechamento e intervalo. Bloqueie **datas inteiras**
 (feriados) ou **faixas de horário**. O site só oferece horários livres considerando a duração do atendimento.
 
+## Profissionais
+**Profissionais** → cadastre quem dá banho e tosa (nome, cor na agenda e serviços que faz).
+Cada profissional atende **um pet por vez**: com 2 profissionais, o site oferece 2 pets no mesmo horário.
+O cliente pode escolher a profissional na etapa do horário (ou "Qualquer profissional"). No detalhe do
+agendamento você troca a profissional; a **Agenda → Dia** mostra uma coluna por profissional.
+Sem nenhuma profissional ativa, vale o número de **vagas por horário** de Horários/Configurações.
+
+## Inspirações de tosa
+**Inspirações** → **Nova inspiração**: foto, raça (cachorro ou gato), título, descrição e serviço sugerido.
+Elas aparecem em **/inspiracoes** e na página inicial, em grade estilo Instagram, com busca por raça,
+favoritos e compartilhamento. Quando o cliente toca em **Agendar com este visual**, o agendamento segue
+igual (mesmos serviços, preços e horários) e a foto aparece no detalhe do agendamento, em
+"Inspiração escolhida pelo cliente". Use **No site/Oculta** para tirar do ar; foto já usada em agendamento
+não pode ser excluída (só ocultada), para não sumir do histórico.
+
+## Stories
+**Stories** → **Novo story**: escolha uma foto ou vídeo (até 50 MB) e uma legenda opcional.
+Ele aparece no topo da página inicial e do catálogo por **24 horas** e some sozinho — a hora fica gravada
+no banco, então não depende de ninguém estar com o site aberto. Dá para excluir antes. Só a administração
+publica; visitantes não conseguem enviar nada.
+
 ## Configurações
-Nome, **WhatsApp da Karolla Pet**, e-mail, Instagram, endereço, intervalo entre horários, atendimentos
+Nome, **WhatsApp da Karolla Pet**, e-mail, **Instagram** (o @ ou link do perfil oficial — ativa o botão
+"Ver Instagram"), endereço, intervalo entre horários, atendimentos
 simultâneos, antecedência mínima, quantos dias a agenda fica aberta e o aviso do resumo.
 O quadro **Integrações e ambiente** mostra o que está realmente conectado.
