@@ -59,6 +59,7 @@ function SlotsPanel({ onSaved }: { onSaved: () => void }) {
           ? 'Cada horário aceita 1 pet. Quando alguém agenda às 9:00, esse horário (e os seguintes, enquanto durar o atendimento) some para os outros clientes.'
           : `Cada horário aceita até ${n} pets ao mesmo tempo. Ao lotar, o horário some para os outros clientes.`}
       </p>
+      <p className="mt-2 text-xs text-ink-500">Com profissionais ativos (menu Profissionais), a agenda passa a ser 1 pet por profissional e este número deixa de ser usado.</p>
       <Button className="mt-3" variant="secondary" onClick={save} loading={saving} icon={<Save className="h-4 w-4" />}>
         Salvar vagas
       </Button>

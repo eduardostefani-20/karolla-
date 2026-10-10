@@ -19,6 +19,8 @@ import { TutorStep } from '@/components/booking/TutorStep';
 import { SummaryStep } from '@/components/booking/SummaryStep';
 import { ConfirmationStep } from '@/components/booking/ConfirmationStep';
 import { firstIncompleteStep, TOTAL_STEPS } from '@/components/booking/steps';
+import { InspirationChip } from '@/components/booking/InspirationChip';
+import { publicApi } from '@/services/publicApi';
 
 /**
  * Fluxo de agendamento em 9 etapas. A etapa atual fica na URL (?etapa=N),
@@ -30,7 +32,7 @@ export default function BookingPage() {
     description: 'Agende online o banho, a tosa e os cuidados do seu pet na Karolla Pet. Veja o preço na hora e escolha o melhor horário.',
   });
   const { catalog, loading, error, reload } = useCatalog();
-  const { draft, reset } = useBooking();
+  const { draft, reset, update } = useBooking();
   const [params, setParams] = useSearchParams();
   const [timeNotice, setTimeNotice] = useState<string | null>(null);
 
@@ -56,9 +58,21 @@ export default function BookingPage() {
     if (step !== 6) setTimeNotice(null);
   }, [step]);
 
-  // abrir /agendar depois de um agendamento concluído começa um novo
+  // abrir /agendar depois de um agendamento concluído começa um novo;
+  // vindo do catálogo (?inspiracao=id), anexa só a referência da foto escolhida.
   useEffect(() => {
-    if (confirmed && !params.get('etapa')) reset();
+    const inspirationId = params.get('inspiracao');
+    if (confirmed && (!params.get('etapa') || inspirationId)) reset();
+    if (!inspirationId) return;
+    publicApi
+      .inspiration(inspirationId)
+      .then((i) => update({ inspiration: { id: i.id, title: i.title, imageUrl: i.imageUrl, breedName: i.breedName } }))
+      .catch(() => undefined) // foto removida/desativada: segue o agendamento normal
+      .finally(() => {
+        const next = new URLSearchParams(params);
+        next.delete('inspiracao');
+        setParams(next, { replace: true });
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -118,6 +132,7 @@ export default function BookingPage() {
           <div className={showSummary ? 'grid gap-8 lg:grid-cols-[1fr_340px]' : 'mx-auto max-w-2xl'}>
             {/* só opacidade: transform criaria um "containing block" e quebraria a barra fixa do celular */}
             <div key={step} className="animate-fade-in">
+              {step < TOTAL_STEPS && step !== 8 && <InspirationChip compact={step > 1} />}
               {content}
             </div>
             {showSummary && (

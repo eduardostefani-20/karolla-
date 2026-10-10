@@ -45,6 +45,21 @@ export function ConfirmationStep() {
           <dt className="text-xs font-bold uppercase text-ink-400">Total</dt>
           <dd className="font-display text-3xl font-semibold text-brand-700">{formatCents(a.totalCents)}</dd>
         </div>
+        {a.professionalId && (
+          <div className="col-span-2">
+            <dt className="text-xs font-bold uppercase text-ink-400">Profissional</dt>
+            <dd className="font-semibold">{catalog?.professionals.find((p) => p.id === a.professionalId)?.name ?? 'Definido pela equipe'}</dd>
+          </div>
+        )}
+        {a.inspiration && (
+          <div className="col-span-2 flex items-center gap-3 rounded-2xl bg-coral-50 p-2.5">
+            <img src={a.inspiration.imageUrl} alt={a.inspiration.title} className="h-14 w-14 rounded-xl object-cover" />
+            <div>
+              <dt className="text-xs font-bold uppercase text-coral-600">Inspiração enviada</dt>
+              <dd className="font-semibold">{a.inspiration.title}</dd>
+            </div>
+          </div>
+        )}
         <div className="col-span-2 text-xs text-ink-400">Código: {a.id.slice(0, 8).toUpperCase()}</div>
       </dl>
 

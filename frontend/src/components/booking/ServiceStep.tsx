@@ -30,7 +30,7 @@ export function ServiceStep({ onBack, onNext }: { onBack: () => void; onNext: ()
                 selected={draft.serviceId === s.id}
                 disabled={!price}
                 testId={`service-${s.id}`}
-                onClick={() => update((d) => (d.serviceId === s.id ? {} : { serviceId: s.id, time: null }))}
+                onClick={() => update((d) => (d.serviceId === s.id ? {} : { serviceId: s.id, time: null, professionalId: null }))}
               >
                 <span className="flex flex-col gap-1 pr-8 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <span>

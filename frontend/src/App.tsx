@@ -11,6 +11,7 @@ import HomePage from '@/pages/HomePage';
 // Agendamento e painel carregados sob demanda (lazy loading) — a home abre mais rápido.
 const BookingPage = lazy(() => import('@/pages/BookingPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+const InspirationsPage = lazy(() => import('@/pages/InspirationsPage'));
 const AdminRoutes = lazy(() => import('@/pages/admin/AdminRoutes'));
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
             <Routes>
               <Route element={<PublicLayout />}>
                 <Route index element={<HomePage />} />
+                <Route path="inspiracoes" element={<InspirationsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
               <Route

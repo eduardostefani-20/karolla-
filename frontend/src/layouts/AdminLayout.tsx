@@ -2,6 +2,9 @@ import { Suspense, useState } from 'react';
 import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
 import {
   CalendarDays,
+  Clapperboard,
+  Images,
+  IdCard,
   ClipboardList,
   ClipboardPen,
   Clock,
@@ -29,9 +32,12 @@ const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
   { to: '/admin/agendamentos', label: 'Agendamentos', icon: ClipboardList },
   { to: '/admin/clientes', label: 'Clientes', icon: Users },
   { to: '/admin/pets', label: 'Pets', icon: PawPrint },
+  { to: '/admin/profissionais', label: 'Profissionais', icon: IdCard },
   { to: '/admin/servicos', label: 'Serviços', icon: Scissors },
   { to: '/admin/precos', label: 'Preços', icon: Tags },
   { to: '/admin/adicionais', label: 'Adicionais', icon: PlusCircle },
+  { to: '/admin/inspiracoes', label: 'Inspirações', icon: Images },
+  { to: '/admin/stories', label: 'Stories', icon: Clapperboard },
   { to: '/admin/formulario', label: 'Formulário', icon: ClipboardPen },
   { to: '/admin/horarios', label: 'Horários', icon: Clock },
   { to: '/admin/configuracoes', label: 'Configurações', icon: Settings },

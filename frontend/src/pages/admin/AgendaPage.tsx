@@ -39,16 +39,40 @@ function assignLanes(items: AppointmentDetail[]) {
   });
 }
 
-function DayTimeline({ items, open, close }: { items: AppointmentDetail[]; open: number; close: number }) {
-  const placed = assignLanes(items.filter((a) => a.status !== 'cancelled'));
-  const laneCount = Math.max(1, ...placed.map((p) => p.lane + 1));
+/** Com profissionais: uma coluna por profissional (+ "Sem profissional"). Sem: colunas por sobreposição. */
+function professionalLanes(items: AppointmentDetail[], professionals: { id: string; name: string; color: string }[]) {
+  const unassigned = items.filter((a) => !a.professionalId || !professionals.some((p) => p.id === a.professionalId));
+  const extra = assignLanes(unassigned);
+  const extraCount = Math.max(0, ...extra.map((e) => e.lane + 1));
+  const placed = [
+    ...items.filter((a) => !unassigned.includes(a)).map((a) => ({ a, lane: professionals.findIndex((p) => p.id === a.professionalId) })),
+    ...extra.map((e) => ({ a: e.a, lane: professionals.length + e.lane })),
+  ];
+  const headers = [...professionals.map((p) => ({ name: p.name, color: p.color })), ...Array.from({ length: extraCount }, () => ({ name: 'Sem profissional', color: '#9ca3af' }))];
+  return { placed, headers };
+}
+
+function DayTimeline({ items, open, close, professionals }: { items: AppointmentDetail[]; open: number; close: number; professionals: { id: string; name: string; color: string }[] }) {
+  const visible = items.filter((a) => a.status !== 'cancelled');
+  const byPro = professionals.length > 0 ? professionalLanes(visible, professionals) : null;
+  const placed = byPro ? byPro.placed : assignLanes(visible);
+  const laneCount = Math.max(1, byPro ? byPro.headers.length : 0, ...placed.map((p) => p.lane + 1));
   const hours = [];
   for (let m = Math.floor(open / 60) * 60; m <= close; m += 60) hours.push(m);
   const height = ((close - Math.floor(open / 60) * 60) / 60) * HOUR_PX;
   const base = Math.floor(open / 60) * 60;
   return (
     <div className="card overflow-x-auto p-4">
-      <div className="relative min-w-[320px]" style={{ height }}>
+      {byPro && (
+        <div className="mb-2 ml-16 grid gap-1" style={{ gridTemplateColumns: `repeat(${laneCount}, minmax(0, 1fr))`, minWidth: laneCount * 120 }}>
+          {byPro.headers.map((h, i) => (
+            <span key={i} className="truncate rounded-lg px-2 py-1 text-center text-xs font-bold text-white" style={{ background: h.color }}>
+              {h.name}
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="relative min-w-[320px]" style={{ height, minWidth: byPro ? laneCount * 120 + 64 : undefined }}>
         {hours.map((m) => (
           <div key={m} className="absolute inset-x-0 flex items-start gap-3" style={{ top: ((m - base) / 60) * HOUR_PX }}>
             <span className="w-12 -translate-y-2 text-right text-xs font-semibold tabular-nums text-ink-400">{minutesToTime(m)}</span>
@@ -62,6 +86,7 @@ function DayTimeline({ items, open, close }: { items: AppointmentDetail[]; open:
               to={`/admin/agendamentos/${a.id}`}
               className={cn('absolute overflow-hidden rounded-xl border-l-4 border-brand-600 px-2.5 py-1.5 text-xs shadow-card transition-transform hover:z-10 hover:scale-[1.01]', STATUS_STYLES[a.status])}
               style={{
+                borderLeftColor: a.professional?.color,
                 top: ((timeToMinutes(a.time) - base) / 60) * HOUR_PX + 1,
                 height: Math.max(28, (a.durationMinutes / 60) * HOUR_PX - 3),
                 left: `calc(${(lane / laneCount) * 100}% + 2px)`,
@@ -88,7 +113,7 @@ export default function AgendaPage() {
   const today = nowInTimezone(new Date(), tz).date;
   const [view, setView] = useState<View>('day');
   const [date, setDate] = useState(today);
-  const [filters, setFilters] = useState<FilterState>({ status: '', serviceId: '', search: '' });
+  const [filters, setFilters] = useState<FilterState>({ status: '', serviceId: '', search: '', professionalId: '' });
   const search = useDebounce(filters.search);
 
   const range = useMemo(() => {
@@ -102,8 +127,8 @@ export default function AgendaPage() {
 
   const { data: adminCatalog } = useAsync(() => adminApi.catalog(), []);
   const { data, loading, error } = useAsync(
-    () => adminApi.appointments({ ...range, status: filters.status || undefined, serviceId: filters.serviceId || undefined, search: search || undefined }),
-    [range.from, range.to, filters.status, filters.serviceId, search],
+    () => adminApi.appointments({ ...range, status: filters.status || undefined, serviceId: filters.serviceId || undefined, professionalId: filters.professionalId || undefined, search: search || undefined }),
+    [range.from, range.to, filters.status, filters.serviceId, filters.professionalId, search],
   );
 
   const hours = catalog?.businessHours.find((h) => h.weekday === weekdayOf(date));
@@ -144,7 +169,7 @@ export default function AgendaPage() {
         </div>
       </div>
       <div className="mb-5">
-        <AppointmentFilters value={filters} onChange={setFilters} services={adminCatalog?.services ?? []} />
+        <AppointmentFilters value={filters} onChange={setFilters} services={adminCatalog?.services ?? []} professionals={adminCatalog?.professionals ?? []} />
       </div>
 
       <h2 className="mb-3 font-display text-lg first-letter:uppercase text-ink-700">
@@ -153,7 +178,7 @@ export default function AgendaPage() {
 
       {loading && <Spinner />}
       {error && <Alert tone="error">{error}</Alert>}
-      {data && view === 'day' && (data.length === 0 ? <EmptyState title="Nenhum agendamento neste dia" /> : <DayTimeline items={data} open={open} close={close} />)}
+      {data && view === 'day' && (data.length === 0 ? <EmptyState title="Nenhum agendamento neste dia" /> : <DayTimeline items={data} open={open} close={close} professionals={(adminCatalog?.professionals ?? []).filter((p) => p.active || data.some((a) => a.professionalId === p.id))} />)}
       {data && view === 'week' && (
         <div className="scroll-thin -mx-4 overflow-x-auto px-4 pb-2">
           <div className="grid min-w-[840px] grid-cols-7 gap-2">

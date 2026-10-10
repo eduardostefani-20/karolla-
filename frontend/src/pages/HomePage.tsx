@@ -6,7 +6,8 @@ import { AboutSection } from '@/components/site/AboutSection';
 import { ServicesSection } from '@/components/site/ServicesSection';
 import { HowItWorksSection } from '@/components/site/HowItWorksSection';
 import { DifferentialsSection } from '@/components/site/DifferentialsSection';
-import { GallerySection } from '@/components/site/GallerySection';
+import { InspirationsSection } from '@/components/site/InspirationsSection';
+import { StoriesBar } from '@/components/stories/StoriesBar';
 import { FaqSection } from '@/components/site/FaqSection';
 import { FinalCta } from '@/components/site/FinalCta';
 import { siteContent } from '@/data/content';
@@ -23,12 +24,15 @@ export default function HomePage() {
 
   return (
     <>
+      <div className="container-page pt-4">
+        <StoriesBar />
+      </div>
       <Hero />
       <AboutSection />
       <ServicesSection />
       <HowItWorksSection />
       <DifferentialsSection />
-      <GallerySection />
+      <InspirationsSection />
       <FaqSection />
       <FinalCta />
       <script

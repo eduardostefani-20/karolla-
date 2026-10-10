@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, Pencil, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ImageIcon, MessageCircle, Pencil, RefreshCw, UserRound } from 'lucide-react';
 import {
   APPOINTMENT_STATUSES,
   APPOINTMENT_STATUS_LABELS,
@@ -41,12 +41,13 @@ function EditForm({ a, onSaved }: { a: AppointmentDetail; onSaved: (a: Appointme
     addonIds: a.addons.map((x) => x.addonId),
     notes: a.notes,
     customerNotes: a.customerNotes,
+    professionalId: a.professionalId ?? '',
     recalculatePrice: false,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    setForm((f) => ({ ...f, date: a.date, time: a.time, notes: a.notes, sizeId: a.sizeId }));
+    setForm((f) => ({ ...f, date: a.date, time: a.time, notes: a.notes, sizeId: a.sizeId, professionalId: a.professionalId ?? '' }));
   }, [a]);
 
   const itemsChanged = form.serviceId !== (a.services[0]?.serviceId ?? '') || form.sizeId !== a.sizeId || form.addonIds.slice().sort().join() !== a.addons.map((x) => x.addonId).sort().join();
@@ -68,6 +69,7 @@ function EditForm({ a, onSaved }: { a: AppointmentDetail; onSaved: (a: Appointme
         time: form.time,
         notes: form.notes,
         customerNotes: form.customerNotes,
+        ...((form.professionalId || null) !== (a.professionalId ?? null) ? { professionalId: form.professionalId || null } : {}),
         ...(itemsChanged || form.recalculatePrice ? { serviceIds: [form.serviceId], addonIds: form.addonIds, sizeId: form.sizeId, recalculatePrice: form.recalculatePrice } : {}),
       });
       toast('Agendamento atualizado.');
@@ -95,6 +97,21 @@ function EditForm({ a, onSaved }: { a: AppointmentDetail; onSaved: (a: Appointme
           )}
         </Field>
       </div>
+      {(catalog.professionals.length > 0 || a.professionalId) && (
+        <Field label="Profissional" hint="O sistema não deixa um profissional com dois pets ao mesmo tempo.">
+          {(p) => (
+            <Select {...p} value={form.professionalId} onChange={(e) => setForm({ ...form, professionalId: e.target.value })} data-testid="appointment-professional">
+              <option value="">Sem profissional definido</option>
+              {catalog.professionals.map((pr) => (
+                <option key={pr.id} value={pr.id}>
+                  {pr.name}
+                  {pr.active ? '' : ' (inativo)'}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      )}
       <Field label="Serviço" required>
         {(p) => (
           <Select {...p} value={form.serviceId} onChange={(e) => setForm({ ...form, serviceId: e.target.value })}>
@@ -219,6 +236,22 @@ export default function AppointmentDetailPage() {
         </div>
 
         <div className="space-y-6">
+          {a.inspiration && (
+            <Panel title={<span className="flex items-center gap-2"><ImageIcon className="h-5 w-5 text-coral-500" aria-hidden /> Inspiração escolhida pelo cliente</span>}>
+              <a href={a.inspiration.imageUrl} target="_blank" rel="noopener noreferrer" className="block" data-testid="appointment-inspiration">
+                <img src={a.inspiration.imageUrl} alt={a.inspiration.title} className="max-h-80 w-full rounded-2xl object-cover" />
+              </a>
+              <p className="mt-3 font-semibold">{a.inspiration.title}</p>
+              <p className="text-sm text-ink-500">{a.inspiration.breedName} • toque na foto para ampliar</p>
+            </Panel>
+          )}
+          {a.professional && (
+            <Panel title={<span className="flex items-center gap-2"><UserRound className="h-5 w-5 text-brand-600" aria-hidden /> Profissional</span>}>
+              <p className="flex items-center gap-2 font-semibold">
+                <span className="h-3 w-3 rounded-full" style={{ background: a.professional.color }} aria-hidden /> {a.professional.name}
+              </p>
+            </Panel>
+          )}
           <Panel title="Itens e valores">
             <ul className="space-y-1.5 text-sm">
               {a.services.map((s) => (

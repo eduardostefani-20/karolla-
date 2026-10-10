@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Clock } from 'lucide-react';
+import { Clock, ImageIcon } from 'lucide-react';
 import { formatCents, formatDateBR, minutesToTime, timeToMinutes, type AppointmentDetail } from '@karolla/shared';
 import { StatusBadge } from './AdminUi';
 
@@ -24,6 +24,7 @@ export function AppointmentCard({ a, showDate }: { a: AppointmentDetail; showDat
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-display text-lg font-semibold text-ink-900 group-hover:text-brand-700">{a.pet.name}</p>
           <StatusBadge status={a.status} />
+          {a.inspiration && <ImageIcon className="h-4 w-4 text-coral-500" aria-label="Com foto de inspiração" />}
         </div>
         <p className="truncate text-sm font-medium text-ink-700">
           {a.services.map((s) => s.name).join(' + ')}
@@ -31,6 +32,11 @@ export function AppointmentCard({ a, showDate }: { a: AppointmentDetail; showDat
         </p>
         <p className="truncate text-xs text-ink-500">
           {a.pet.breedName} • Tutor: {a.customer.name}
+          {a.professional && (
+            <span className="ml-1 inline-flex items-center gap-1 font-semibold" style={{ color: a.professional.color }}>
+              • {a.professional.name}
+            </span>
+          )}
         </p>
       </div>
       <div className="hidden shrink-0 self-center text-right sm:block">

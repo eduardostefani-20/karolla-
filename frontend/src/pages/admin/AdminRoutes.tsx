@@ -17,6 +17,9 @@ const AddonsPage = lazy(() => import('./AddonsPage'));
 const FormEditorPage = lazy(() => import('./FormEditorPage'));
 const SchedulePage = lazy(() => import('./SchedulePage'));
 const SettingsPage = lazy(() => import('./SettingsPage'));
+const ProfessionalsPage = lazy(() => import('./ProfessionalsPage'));
+const InspirationsAdminPage = lazy(() => import('./InspirationsAdminPage'));
+const StoriesAdminPage = lazy(() => import('./StoriesAdminPage'));
 
 export default function AdminRoutes() {
   return (
@@ -37,6 +40,9 @@ export default function AdminRoutes() {
         <Route path="formulario" element={<FormEditorPage />} />
         <Route path="horarios" element={<SchedulePage />} />
         <Route path="configuracoes" element={<SettingsPage />} />
+        <Route path="profissionais" element={<ProfessionalsPage />} />
+        <Route path="inspiracoes" element={<InspirationsAdminPage />} />
+        <Route path="stories" element={<StoriesAdminPage />} />
         <Route path="*" element={<DashboardPage />} />
       </Route>
     </Routes>

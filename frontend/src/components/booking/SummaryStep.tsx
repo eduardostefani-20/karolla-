@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { CalendarDays, Clock, MapPin, PawPrint, Plus, Scissors, User } from 'lucide-react';
+import { CalendarDays, Clock, ImageIcon, MapPin, PawPrint, Plus, Scissors, User, UserRound } from 'lucide-react';
 import { formatAge, formatCents, formatDateBR, formatDateLong, normalizeBrazilianPhone, type BookingRequestInput } from '@karolla/shared';
 import { useCatalog } from '@/context/CatalogContext';
 import { useBooking } from '@/context/BookingContext';
@@ -19,6 +19,7 @@ const FIELD_INFO: Record<string, { label: string; step: number }> = {
   'pet.weightKg': { label: 'Peso do pet', step: 2 },
   'pet.ageMonths': { label: 'Idade do pet', step: 2 },
   'pet.notes': { label: 'Observações do pet', step: 2 },
+  inspirationId: { label: 'Inspiração', step: 8 },
   serviceIds: { label: 'Serviço', step: 3 },
   addonIds: { label: 'Adicionais', step: 4 },
   date: { label: 'Data', step: 5 },
@@ -88,6 +89,8 @@ export function SummaryStep({
       date: draft.date,
       time: draft.time,
       tutor: { ...t, whatsapp: normalizeBrazilianPhone(t.whatsapp) },
+      professionalId: draft.professionalId,
+      inspirationId: draft.inspiration?.id ?? null,
       expectedTotalCents: price.totalCents,
       website: honeypot,
     };
@@ -165,6 +168,20 @@ export function SummaryStep({
         <Block icon={<Scissors className="h-4 w-4" aria-hidden />} title="Serviço" onEdit={() => goTo(3)}>
           <p className="font-semibold">{service?.name}</p>
         </Block>
+        {draft.inspiration && (
+          <Block icon={<ImageIcon className="h-4 w-4" aria-hidden />} title="Inspiração escolhida">
+            <div className="flex items-center gap-3">
+              <img src={draft.inspiration.imageUrl} alt={draft.inspiration.title} className="h-20 w-20 rounded-2xl object-cover" />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{draft.inspiration.title}</p>
+                <p className="text-sm text-ink-500">{draft.inspiration.breedName}</p>
+                <button type="button" onClick={() => update({ inspiration: null })} className="mt-1 text-sm font-semibold text-coral-600 underline">
+                  Remover foto
+                </button>
+              </div>
+            </div>
+          </Block>
+        )}
         <Block icon={<Plus className="h-4 w-4" aria-hidden />} title="Adicionais" onEdit={() => goTo(4)}>
           {addons.length ? <ul className="list-inside list-disc">{addons.map((a) => <li key={a.id}>{a.name}</li>)}</ul> : <p className="text-ink-500">Nenhum</p>}
         </Block>
@@ -177,6 +194,11 @@ export function SummaryStep({
             <p className="font-semibold">{draft.time}</p>
           </Block>
         </div>
+        {catalog.professionals.length > 0 && (
+          <Block icon={<UserRound className="h-4 w-4" aria-hidden />} title="Profissional" onEdit={() => goTo(6)}>
+            <p className="font-semibold">{catalog.professionals.find((p) => p.id === draft.professionalId)?.name ?? 'Sem preferência (definido pela equipe)'}</p>
+          </Block>
+        )}
         <Block icon={<User className="h-4 w-4" aria-hidden />} title="Tutor" onEdit={() => goTo(7)}>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
             <dt className="text-ink-500">Nome:</dt>

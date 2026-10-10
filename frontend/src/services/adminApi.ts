@@ -16,6 +16,10 @@ import type {
   CustomerSummary,
   DashboardData,
   FormFieldConfig,
+  Inspiration,
+  Professional,
+  Story,
+  UploadTicket,
   Pet,
   PetDetail,
   PetSize,
@@ -60,7 +64,7 @@ export const adminApi = {
   createService: (body: Body) => apiRequest<Service>('POST', '/admin/services', { ...auth, body }),
   updateService: (id: string, body: Body) => apiRequest<Service>('PATCH', `/admin/services/${id}`, { ...auth, body }),
   deleteService: (id: string) => apiRequest<void>('DELETE', `/admin/services/${id}`, auth),
-  reorder: (entity: 'services' | 'addons' | 'sizes', ids: string[]) => apiRequest<unknown>('POST', `/admin/${entity}/reorder`, { ...auth, body: { ids } }),
+  reorder: (entity: 'services' | 'addons' | 'sizes' | 'professionals', ids: string[]) => apiRequest<unknown>('POST', `/admin/${entity}/reorder`, { ...auth, body: { ids } }),
   savePrices: (prices: { serviceId: string; sizeId: string; priceCents: number | null; durationMinutes: number | null }[]) =>
     apiRequest<ServicePrice[]>('PUT', '/admin/prices', { ...auth, body: { prices } }),
   createAddon: (body: Body) => apiRequest<Addon>('POST', '/admin/addons', { ...auth, body }),
@@ -76,6 +80,20 @@ export const adminApi = {
   updateSize: (id: string, body: Body) => apiRequest<PetSize>('PATCH', `/admin/sizes/${id}`, { ...auth, body }),
   deleteSize: (id: string) => apiRequest<void>('DELETE', `/admin/sizes/${id}`, auth),
   saveFormFields: (fields: FormFieldConfig[]) => apiRequest<FormFieldConfig[]>('PUT', '/admin/form-fields', { ...auth, body: { fields } }),
+
+  createProfessional: (body: Body) => apiRequest<Professional>('POST', '/admin/professionals', { ...auth, body }),
+  updateProfessional: (id: string, body: Body) => apiRequest<Professional>('PATCH', `/admin/professionals/${id}`, { ...auth, body }),
+  deleteProfessional: (id: string) => apiRequest<void>('DELETE', `/admin/professionals/${id}`, auth),
+
+  uploadTicket: (body: { kind: 'inspiration' | 'story'; contentType: string; size: number }) =>
+    apiRequest<UploadTicket>('POST', '/admin/media/upload-ticket', { ...auth, body }),
+  inspirations: () => apiRequest<Inspiration[]>('GET', '/admin/inspirations', auth),
+  createInspiration: (body: Body) => apiRequest<Inspiration>('POST', '/admin/inspirations', { ...auth, body }),
+  updateInspiration: (id: string, body: Body) => apiRequest<Inspiration>('PATCH', `/admin/inspirations/${id}`, { ...auth, body }),
+  deleteInspiration: (id: string) => apiRequest<void>('DELETE', `/admin/inspirations/${id}`, auth),
+  stories: () => apiRequest<Story[]>('GET', '/admin/stories', auth),
+  createStory: (body: Body) => apiRequest<Story>('POST', '/admin/stories', { ...auth, body }),
+  deleteStory: (id: string) => apiRequest<void>('DELETE', `/admin/stories/${id}`, auth),
 
   schedule: () => apiRequest<{ businessHours: BusinessHours[]; blockedDates: BlockedDate[]; blockedTimes: BlockedTime[] }>('GET', '/admin/schedule', auth),
   saveBusinessHours: (days: Omit<BusinessHours, 'id'>[]) => apiRequest<BusinessHours[]>('PUT', '/admin/business-hours', { ...auth, body: { days } }),

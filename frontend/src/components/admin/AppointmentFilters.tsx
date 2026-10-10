@@ -1,16 +1,27 @@
 import { Search } from 'lucide-react';
-import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_LABELS, type AppointmentStatus, type Service } from '@karolla/shared';
+import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_LABELS, type AppointmentStatus, type Professional, type Service } from '@karolla/shared';
 import { Input, Select } from '@/components/ui/Field';
 
 export interface FilterState {
   status: AppointmentStatus | '';
   serviceId: string;
   search: string;
+  professionalId?: string;
 }
 
-export function AppointmentFilters({ value, onChange, services }: { value: FilterState; onChange: (v: FilterState) => void; services: Service[] }) {
+export function AppointmentFilters({
+  value,
+  onChange,
+  services,
+  professionals = [],
+}: {
+  value: FilterState;
+  onChange: (v: FilterState) => void;
+  services: Service[];
+  professionals?: Pick<Professional, 'id' | 'name'>[];
+}) {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className={professionals.length ? 'grid gap-3 sm:grid-cols-2 lg:grid-cols-4' : 'grid gap-3 sm:grid-cols-3'}>
       <label className="relative block">
         <span className="sr-only">Buscar pet ou cliente</span>
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden />
@@ -39,6 +50,19 @@ export function AppointmentFilters({ value, onChange, services }: { value: Filte
           ))}
         </Select>
       </label>
+      {professionals.length > 0 && (
+        <label className="block">
+          <span className="sr-only">Profissional</span>
+          <Select className="py-2.5" value={value.professionalId ?? ''} onChange={(e) => onChange({ ...value, professionalId: e.target.value })}>
+            <option value="">Todos os profissionais</option>
+            {professionals.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+        </label>
+      )}
     </div>
   );
 }

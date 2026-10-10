@@ -67,7 +67,7 @@ export default function SettingsPage() {
                 {(p) => <Input {...p} inputMode="tel" value={form.whatsappNumber} onChange={(e) => set({ whatsappNumber: e.target.value })} />}
               </Field>
               <Field label="E-mail de contato" error={errors.contactEmail}>{(p) => <Input {...p} type="email" value={form.contactEmail} onChange={(e) => set({ contactEmail: e.target.value })} />}</Field>
-              <Field label="Instagram" error={errors.instagram}>{(p) => <Input {...p} placeholder="@karollapet" value={form.instagram} onChange={(e) => set({ instagram: e.target.value })} />}</Field>
+              <Field label="Instagram oficial" error={errors.instagram} hint="@ do perfil ou link (instagram.com/...). Usado no botão “Ver Instagram”; vazio = botão oculto.">{(p) => <Input {...p} placeholder="@perfil_da_karolla" value={form.instagram} onChange={(e) => set({ instagram: e.target.value })} />}</Field>
               <Field label="Endereço" error={errors.addressLine}>{(p) => <Input {...p} value={form.addressLine} onChange={(e) => set({ addressLine: e.target.value })} />}</Field>
               <Field label="Cidade" error={errors.city}>{(p) => <Input {...p} value={form.city} onChange={(e) => set({ city: e.target.value })} />}</Field>
             </div>
@@ -94,6 +94,8 @@ export default function SettingsPage() {
               <StatusRow label="Banco de dados" ok={status.database.provider === 'supabase' && status.database.connected} detail={status.database.provider === 'supabase' ? (status.database.connected ? 'Supabase conectado.' : 'Supabase configurado, mas sem resposta.') : 'Em memória (demo). Supabase não conectado.'} />
               <StatusRow label="Login" ok={status.auth.provider === 'supabase'} detail={status.auth.provider === 'supabase' ? 'Supabase Auth.' : 'Autenticação de demonstração (mock).'} />
               <StatusRow label="WhatsApp" ok={status.whatsapp.provider === 'cloud_api'} detail={status.whatsapp.provider === 'cloud_api' ? 'Envio automático pela WhatsApp Cloud API.' : status.whatsapp.provider === 'link' ? 'Link wa.me com mensagem pronta (o tutor envia). Sem envio automático.' : 'Desativado.'} />
+ <StatusRow label="Fotos e vídeos" ok={status.storage.provider === 'supabase'} detail={status.storage.provider === 'supabase' ? 'Supabase Storage (bucket karolla-media).' : 'Em memória (demo) — somem ao reiniciar.'} />
+              <StatusRow label="Publicações do Instagram" ok={status.instagramFeed.configured} detail={status.instagramFeed.configured ? 'API oficial da Meta conectada.' : 'Não conectado (requer token da Meta — veja docs/INSTAGRAM.md). O botão “Ver Instagram” funciona sem isso.'} />
               <StatusRow label="Google Sheets" ok={status.googleSheets.configured} detail={status.googleSheets.configured ? 'Webhook configurado.' : 'Não configurado (GOOGLE_SHEETS_WEBHOOK).'} />
             </ul>
             <p className="mt-3 text-xs text-ink-400">Chaves e tokens ficam apenas nas variáveis de ambiente do servidor — veja o README.</p>

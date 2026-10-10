@@ -21,8 +21,8 @@ export default function AppointmentsPage() {
   const search = useDebounce(filters.search);
   const { data: adminCatalog } = useAsync(() => adminApi.catalog(), []);
   const { data, loading, error } = useAsync(
-    () => adminApi.appointments({ from: from || undefined, to: to || undefined, status: filters.status || undefined, serviceId: filters.serviceId || undefined, search: search || undefined }),
-    [from, to, filters.status, filters.serviceId, search],
+    () => adminApi.appointments({ from: from || undefined, to: to || undefined, status: filters.status || undefined, serviceId: filters.serviceId || undefined, professionalId: filters.professionalId || undefined, search: search || undefined }),
+    [from, to, filters.status, filters.serviceId, filters.professionalId, search],
   );
 
   return (
@@ -33,7 +33,7 @@ export default function AppointmentsPage() {
           <Field label="De" required>{(p) => <Input {...p} type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="py-2.5" />}</Field>
           <Field label="Até" required>{(p) => <Input {...p} type="date" value={to} onChange={(e) => setTo(e.target.value)} className="py-2.5" />}</Field>
         </div>
-        <AppointmentFilters value={filters} onChange={setFilters} services={adminCatalog?.services ?? []} />
+        <AppointmentFilters value={filters} onChange={setFilters} services={adminCatalog?.services ?? []} professionals={adminCatalog?.professionals ?? []} />
       </div>
       {loading && <Spinner />}
       {error && <Alert tone="error">{error}</Alert>}

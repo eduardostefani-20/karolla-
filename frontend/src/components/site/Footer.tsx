@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Instagram, Mail, MapPin, MessageCircle } from 'lucide-react';
-import { buildWhatsAppLink, formatPhone, WEEKDAY_SHORT } from '@karolla/shared';
+import { buildWhatsAppLink, formatPhone, instagramProfileUrl, WEEKDAY_SHORT } from '@karolla/shared';
 import { useCatalog } from '@/context/CatalogContext';
 import { Logo } from './Logo';
 
@@ -33,10 +33,10 @@ export function Footer() {
                 </a>
               </li>
             )}
-            {s?.instagram && (
+            {instagramProfileUrl(s?.instagram) && (
               <li>
-                <a className="inline-flex items-center gap-2 hover:text-white" href={`https://instagram.com/${s.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer">
-                  <Instagram className="h-4 w-4" aria-hidden /> {s.instagram}
+                <a className="inline-flex items-center gap-2 hover:text-white" href={instagramProfileUrl(s?.instagram)!} target="_blank" rel="noopener noreferrer">
+                  <Instagram className="h-4 w-4" aria-hidden /> Ver Instagram
                 </a>
               </li>
             )}
