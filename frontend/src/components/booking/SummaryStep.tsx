@@ -10,6 +10,27 @@ import { useBookingPrice } from './useBookingPrice';
 import { StepHeader } from './StepHeader';
 import { StepNav } from './StepNav';
 
+/** Rótulos amigáveis e etapa de cada campo que o servidor pode recusar. */
+const FIELD_INFO: Record<string, { label: string; step: number }> = {
+  'pet.name': { label: 'Nome do pet', step: 2 },
+  'pet.breedId': { label: 'Raça', step: 2 },
+  'pet.breedName': { label: 'Raça', step: 2 },
+  'pet.sizeId': { label: 'Porte', step: 2 },
+  'pet.weightKg': { label: 'Peso do pet', step: 2 },
+  'pet.ageMonths': { label: 'Idade do pet', step: 2 },
+  'pet.notes': { label: 'Observações do pet', step: 2 },
+  serviceIds: { label: 'Serviço', step: 3 },
+  addonIds: { label: 'Adicionais', step: 4 },
+  date: { label: 'Data', step: 5 },
+  time: { label: 'Horário', step: 6 },
+};
+function fieldInfo(path: string) {
+  if (FIELD_INFO[path]) return FIELD_INFO[path]!;
+  if (path.startsWith('tutor.')) return { label: 'Seus dados', step: 7 };
+  if (path.startsWith('pet.')) return { label: 'Dados do pet', step: 2 };
+  return null;
+}
+
 function Block({ icon, title, onEdit, children }: { icon: ReactNode; title: string; onEdit?: () => void; children: ReactNode }) {
   return (
     <section className="border-b border-dashed border-ink-900/10 py-4 last:border-0">
@@ -44,6 +65,7 @@ export function SummaryStep({
   const { price, error: priceError } = useBookingPrice();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ path: string; label: string; step: number; message: string }[]>([]);
   const [honeypot, setHoneypot] = useState('');
 
   if (!catalog) return null;
@@ -58,6 +80,7 @@ export function SummaryStep({
     if (!price || !draft.serviceId || !draft.date || !draft.time || !draft.speciesId) return;
     setSubmitting(true);
     setError(null);
+    setFieldErrors([]);
     const payload: BookingRequestInput = {
       pet: { ...draft.pet, speciesId: draft.speciesId },
       serviceIds: [draft.serviceId],
@@ -81,6 +104,14 @@ export function SummaryStep({
       if (err instanceof ApiError && ['PRICE_CHANGED', 'SERVICE_INACTIVE', 'ADDON_INACTIVE', 'PRICE_NOT_CONFIGURED'].includes(err.code)) {
         await reload();
       }
+      if (err instanceof ApiError) {
+        setFieldErrors(
+          Object.entries(err.fields).flatMap(([path, message]) => {
+            const info = fieldInfo(path);
+            return info ? [{ path, ...info, message }] : [];
+          }),
+        );
+      }
       setError(friendlyMessage(err));
     } finally {
       setSubmitting(false);
@@ -92,7 +123,20 @@ export function SummaryStep({
       <StepHeader step={8} title="Resumo do agendamento" subtitle="Confira tudo com calma antes de confirmar." />
       {error && (
         <Alert tone="error" className="mb-4" title="Não foi possível confirmar">
-          {error}
+          {fieldErrors.length ? (
+            <ul className="space-y-1.5">
+              {fieldErrors.map((f) => (
+                <li key={f.path}>
+                  <strong>{f.label}:</strong> {f.message}{' '}
+                  <button type="button" className="font-semibold underline" onClick={() => goTo(f.step)}>
+                    Corrigir
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            error
+          )}
         </Alert>
       )}
       <div className="card px-5 py-1 sm:px-6">

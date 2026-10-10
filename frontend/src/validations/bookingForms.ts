@@ -49,6 +49,10 @@ export function petFormSchema(config: FormConfigMap) {
       if (need('pet.age') && v.ageValue == null) ctx.addIssue({ code: 'custom', path: ['ageValue'], message: 'Informe a idade do pet.' });
       if (need('pet.notes') && !v.notes) ctx.addIssue({ code: 'custom', path: ['notes'], message: 'Preencha as observações.' });
       if (v.ageValue != null && !Number.isInteger(v.ageValue)) ctx.addIssue({ code: 'custom', path: ['ageValue'], message: 'Use um número inteiro.' });
+      // o servidor aceita até 360 meses (30 anos)
+      if (v.ageValue != null && v.ageUnit === 'anos' && v.ageValue > 30) {
+        ctx.addIssue({ code: 'custom', path: ['ageValue'], message: 'Confira a idade: use no máximo 30 anos.' });
+      }
     });
 }
 export type PetFormInput = z.input<ReturnType<typeof petFormSchema>>;

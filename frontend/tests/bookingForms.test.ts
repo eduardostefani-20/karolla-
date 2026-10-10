@@ -42,3 +42,13 @@ describe('tutorFormSchema', () => {
     expect(tutorFormSchema(relaxed).safeParse(empty).success).toBe(true);
   });
 });
+
+describe('idade', () => {
+  it('recusa idade em anos acima de 30 (ex.: 188 anos)', () => {
+    const r = petFormSchema(config).safeParse({ ...pet, ageValue: '188', ageUnit: 'anos' });
+    expect(r.success).toBe(false);
+  });
+  it('aceita 300 meses', () => {
+    expect(petFormSchema(config).safeParse({ ...pet, ageValue: '300', ageUnit: 'meses' }).success).toBe(true);
+  });
+});
