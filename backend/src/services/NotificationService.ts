@@ -28,7 +28,11 @@ export class NotificationService {
       this.db.settings.get(),
     ]);
     if (!c || !p) throw new Error('Cliente ou pet do agendamento não encontrado.');
-    const [size, species] = await Promise.all([this.db.sizes.findById(appointment.sizeId), this.db.species.findById(p.speciesId)]);
+    const [size, species, professional] = await Promise.all([
+      this.db.sizes.findById(appointment.sizeId),
+      this.db.species.findById(p.speciesId),
+      appointment.professionalId ? this.db.professionals.findById(appointment.professionalId) : Promise.resolve(null),
+    ]);
     return {
       appointment,
       customer: c,
@@ -36,6 +40,7 @@ export class NotificationService {
       sizeName: size?.name ?? '',
       speciesName: species?.name ?? '',
       businessName: settings.businessName,
+      professionalName: professional?.name ?? '',
     };
   }
 

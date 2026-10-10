@@ -1,6 +1,8 @@
 import {
   calculateAppointmentPrice,
   checkSlot,
+  effectiveCapacity,
+  qualifiedProfessionals,
   getDayAvailability,
   PricingError,
   resolveFormConfig,
@@ -10,11 +12,12 @@ import {
   type AvailabilityResponse,
   type BookingRequest,
   type BookingResult,
+  type AppointmentInspiration,
   type Customer,
   type Pet,
 } from '@karolla/shared';
 import type { DatabaseService } from '../repositories/types';
-import { AppError, ConflictError, ValidationError } from '../utils/errors';
+import { AppError, ConflictError, SlotConflictError, ValidationError } from '../utils/errors';
 import type { CatalogService } from './CatalogService';
 import type { ScheduleService } from './ScheduleService';
 import type { NotificationService } from './NotificationService';
@@ -44,7 +47,14 @@ export class BookingService {
     private readonly notifications: NotificationService,
   ) {}
 
-  async getAvailability(input: { date: string; serviceIds: string[]; addonIds: string[]; sizeId: string; speciesId?: string }): Promise<AvailabilityResponse> {
+  async getAvailability(input: {
+    date: string;
+    serviceIds: string[];
+    addonIds: string[];
+    sizeId: string;
+    speciesId?: string;
+    professionalId?: string;
+  }): Promise<AvailabilityResponse> {
     let duration: number;
     try {
       duration = calculateAppointmentPrice(input, await this.catalog.getPricingCatalog()).totalDurationMinutes;
@@ -52,10 +62,13 @@ export class BookingService {
       pricingErrorToAppError(err);
     }
     const ctx = await this.schedule.getAvailabilityContext(input.date, input.date);
-    const day = getDayAvailability(ctx, input.date, duration);
+    const day = getDayAvailability(ctx, input.date, duration, { serviceIds: input.serviceIds, professionalId: input.professionalId });
+    const allPros = await this.db.professionals.list({ active: true });
+    const qualifiedIds = new Set(qualifiedProfessionals(allPros, input.serviceIds).map((p) => p.id));
     return {
       date: day.date,
       durationMinutes: duration,
+      professionals: allPros.filter((p) => qualifiedIds.has(p.id)).map(({ id, name }) => ({ id, name })),
       closedReason: day.closedReason,
       closedMessage: day.closedReason ? SLOT_REASON_MESSAGES[day.closedReason] : null,
       slots: day.slots,
@@ -100,42 +113,68 @@ export class BookingService {
     }
 
     // 4. Pré-checagem de disponibilidade (mensagem detalhada). A garantia final é atômica no repositório.
-    const ctx = await this.schedule.getAvailabilityContext(request.date, request.date);
-    const slot = checkSlot(ctx, request.date, request.time, price.totalDurationMinutes);
+    const serviceIds = request.serviceIds;
+    let ctx = await this.schedule.getAvailabilityContext(request.date, request.date);
+    const slotOptions = { serviceIds, professionalId: request.professionalId ?? undefined };
+    let slot = checkSlot(ctx, request.date, request.time, price.totalDurationMinutes, slotOptions);
     if (!slot.ok) throw new ConflictError('SLOT_UNAVAILABLE', SLOT_REASON_MESSAGES[slot.reason]);
 
-    // 5. Cliente e pet (reaproveita cadastro existente pelo WhatsApp)
+    // 5. Inspiração escolhida no catálogo: grava só a referência (título, foto, raça) do momento
+    const inspiration = request.inspirationId ? await this.inspirationSnapshot(request.inspirationId) : null;
+
+    // 6. Cliente e pet (reaproveita cadastro existente pelo WhatsApp)
     const customer = await this.upsertCustomer(request.tutor);
     const pet = await this.upsertPet(customer.id, { ...request.pet, breedName });
 
-    // 6. Grava o agendamento (fonte principal de verdade)
-    const appointment = await this.db.appointments.create(
-      {
-        customerId: customer.id,
-        petId: pet.id,
-        sizeId: size.id,
-        date: request.date,
-        time: request.time,
-        durationMinutes: price.totalDurationMinutes,
-        totalCents: price.totalCents,
-        status: 'pending',
-        notes: '',
-        customerNotes: request.tutor.notes,
-        source: 'online',
-        services: price.lines
-          .filter((l) => l.kind === 'service')
-          .map((l) => ({ serviceId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
-        addons: price.lines
-          .filter((l) => l.kind === 'addon')
-          .map((l) => ({ addonId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
-      },
-      { capacity: ctx.settings.capacity },
-    );
+    // 7. Grava o agendamento (fonte principal de verdade). Se o profissional sorteado for ocupado
+    //    no mesmo instante por outro cliente, tenta o próximo profissional livre.
+    const newAppointment = (professionalId: string | null) => ({
+      customerId: customer.id,
+      petId: pet.id,
+      sizeId: size.id,
+      date: request.date,
+      time: request.time,
+      durationMinutes: price.totalDurationMinutes,
+      totalCents: price.totalCents,
+      status: 'pending' as const,
+      notes: '',
+      customerNotes: request.tutor.notes,
+      source: 'online' as const,
+      professionalId,
+      inspiration,
+      services: price.lines
+        .filter((l) => l.kind === 'service')
+        .map((l) => ({ serviceId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
+      addons: price.lines
+        .filter((l) => l.kind === 'addon')
+        .map((l) => ({ addonId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
+    });
+    let appointment;
+    for (let attempt = 0; ; attempt++) {
+      const professionalId = slot.professionalId ?? null;
+      try {
+        appointment = await this.db.appointments.create(newAppointment(professionalId), { capacity: effectiveCapacity(ctx), professionalId });
+        break;
+      } catch (err) {
+        if (!(err instanceof SlotConflictError) || !professionalId || request.professionalId || attempt >= 5) throw err;
+        ctx = await this.schedule.getAvailabilityContext(request.date, request.date);
+        slot = checkSlot(ctx, request.date, request.time, price.totalDurationMinutes, slotOptions);
+        if (!slot.ok) throw err;
+      }
+    }
 
-    // 7. Integrações (falhas não afetam o agendamento salvo)
+    // 8. Integrações (falhas não afetam o agendamento salvo)
     const { whatsappLink } = await this.notifications.onAppointmentCreated(appointment, customer, pet);
 
     return { appointment, pet, customer: { name: customer.name }, whatsappLink: whatsappLink ?? '' };
+  }
+
+  private async inspirationSnapshot(id: string): Promise<AppointmentInspiration> {
+    const item = await this.db.inspirations.findById(id);
+    if (!item || !item.active) {
+      throw new ValidationError('A inspiração escolhida não está mais disponível.', { inspirationId: 'Escolha outra inspiração ou remova a foto.' });
+    }
+    return { id: item.id, title: item.title, imageUrl: item.imageUrl, breedName: item.breedName };
   }
 
   private async upsertCustomer(tutor: BookingRequest['tutor']): Promise<Customer> {

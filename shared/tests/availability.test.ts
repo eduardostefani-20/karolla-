@@ -90,3 +90,40 @@ describe('getDayAvailability', () => {
     expect(getDayAvailability(ctx(), '2026-10-01', 60).closedReason).toBe('PAST');
   });
 });
+
+describe('agenda por profissional', () => {
+  const professionals = [
+    { id: 'ana', serviceIds: ['banho'] },
+    { id: 'bia', serviceIds: [] }, // faz tudo
+  ];
+  const base = (appointments: Parameters<typeof checkSlot>[0]['appointments'] = []) => ctx({ appointments, professionals });
+
+  it('escolhe um profissional livre e habilitado', () => {
+    const r = checkSlot(base(), '2026-10-08', '09:00', 60, { serviceIds: ['tosa'] });
+    expect(r).toEqual({ ok: true, professionalId: 'bia' });
+  });
+  it('profissional ocupado não recebe outro pet no mesmo horário', () => {
+    const appts = [{ id: 'x', date: '2026-10-08', time: '09:00', durationMinutes: 60, status: 'confirmed' as const, professionalId: 'bia' }];
+    expect(checkSlot(base(appts), '2026-10-08', '09:30', 60, { serviceIds: ['tosa'] })).toEqual({ ok: false, reason: 'FULL' });
+    // banho: Ana está livre
+    expect(checkSlot(base(appts), '2026-10-08', '09:30', 60, { serviceIds: ['banho'] })).toEqual({ ok: true, professionalId: 'ana' });
+  });
+  it('respeita o profissional escolhido pelo cliente', () => {
+    expect(checkSlot(base(), '2026-10-08', '09:00', 60, { serviceIds: ['banho'], professionalId: 'ana' })).toEqual({ ok: true, professionalId: 'ana' });
+    expect(checkSlot(base(), '2026-10-08', '09:00', 60, { serviceIds: ['tosa'], professionalId: 'ana' })).toEqual({ ok: false, reason: 'NO_PROFESSIONAL' });
+  });
+  it('agendamentos antigos sem profissional ocupam uma vaga da equipe', () => {
+    const appts = [
+      { date: '2026-10-08', time: '09:00', durationMinutes: 60, status: 'pending' as const, professionalId: null },
+      { date: '2026-10-08', time: '09:00', durationMinutes: 60, status: 'pending' as const, professionalId: 'ana' },
+    ];
+    expect(checkSlot(base(appts), '2026-10-08', '09:00', 60, { serviceIds: ['banho'] })).toEqual({ ok: false, reason: 'FULL' });
+  });
+  it('distribui para quem tem menos atendimentos no dia', () => {
+    const appts = [{ date: '2026-10-08', time: '08:00', durationMinutes: 60, status: 'confirmed' as const, professionalId: 'ana' }];
+    expect(checkSlot(base(appts), '2026-10-08', '14:00', 60, { serviceIds: ['banho'] })).toEqual({ ok: true, professionalId: 'bia' });
+  });
+  it('sem profissionais cadastrados mantém a regra de vagas por horário', () => {
+    expect(checkSlot(ctx({ professionals: [] }), '2026-10-08', '09:00', 60)).toEqual({ ok: true });
+  });
+});

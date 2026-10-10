@@ -2,6 +2,7 @@ import {
   addonSchema,
   breedSchema,
   formFieldsSchema,
+  professionalSchema,
   resolveFormConfig,
   serviceSchema,
   servicePricesSchema,
@@ -43,7 +44,7 @@ export class CatalogService {
   }
 
   async getPublicCatalog(): Promise<PublicCatalog> {
-    const [species, breeds, sizes, services, servicePrices, addons, formFields, businessHours, settings, blockedDates] = await Promise.all([
+    const [species, breeds, sizes, services, servicePrices, addons, formFields, businessHours, settings, blockedDates, professionals] = await Promise.all([
       this.db.species.list({ active: true }),
       this.db.breeds.list({ active: true }),
       this.db.sizes.list({ active: true }),
@@ -54,6 +55,7 @@ export class CatalogService {
       this.db.businessHours.list(),
       this.db.settings.get(),
       this.db.blockedDates.list(),
+      this.db.professionals.list({ active: true }),
     ]);
     const activeServiceIds = new Set(services.map((s) => s.id));
     const activeSizeIds = new Set(sizes.map((s) => s.id));
@@ -68,6 +70,7 @@ export class CatalogService {
       addons,
       formFields: Object.values(resolveFormConfig(formFields)),
       businessHours,
+      professionals: professionals.map(({ id, name, serviceIds }) => ({ id, name, serviceIds })),
       closedDates: blockedDates.filter((b) => b.date >= today && b.date <= lastDay).map((b) => b.date),
       settings: {
         businessName: settings.businessName,
@@ -85,7 +88,7 @@ export class CatalogService {
   }
 
   async getAdminCatalog(): Promise<AdminCatalog> {
-    const [species, breeds, sizes, services, servicePrices, addons, formFields] = await Promise.all([
+    const [species, breeds, sizes, services, servicePrices, addons, formFields, professionals] = await Promise.all([
       this.db.species.list(),
       this.db.breeds.list(),
       this.db.sizes.list(),
@@ -93,8 +96,9 @@ export class CatalogService {
       this.db.servicePrices.list(),
       this.db.addons.list(),
       this.db.formFields.list(),
+      this.db.professionals.list(),
     ]);
-    return { species, breeds, sizes, services, servicePrices, addons, formFields: Object.values(resolveFormConfig(formFields)) };
+    return { species, breeds, sizes, services, servicePrices, addons, formFields: Object.values(resolveFormConfig(formFields)), professionals };
   }
 
   // ---------- Serviços ----------
@@ -124,7 +128,7 @@ export class CatalogService {
     await this.db.services.delete(id);
   }
 
-  async reorder(entity: 'services' | 'addons' | 'sizes' | 'species' | 'breeds', ids: string[]) {
+  async reorder(entity: 'services' | 'addons' | 'sizes' | 'species' | 'breeds' | 'professionals', ids: string[]) {
     const repo = this.db[entity] as TableRepository<{ id: string; sortOrder: number }>;
     for (const [index, id] of ids.entries()) await repo.update(id, { sortOrder: index + 1 });
     return repo.list();
@@ -221,6 +225,33 @@ export class CatalogService {
     }
     for (const price of await this.db.servicePrices.list({ sizeId: id })) await this.db.servicePrices.delete(price.id);
     await this.db.sizes.delete(id);
+  }
+
+  // ---------- Profissionais ----------
+  private async assertServicesExist(ids: string[]) {
+    if (!ids.length) return;
+    const all = new Set((await this.db.services.list()).map((s) => s.id));
+    if (ids.some((id) => !all.has(id))) throw new NotFoundError('Serviço não encontrado.');
+  }
+
+  async createProfessional(input: z.output<typeof professionalSchema>) {
+    await this.assertServicesExist(input.serviceIds);
+    const sortOrder = input.sortOrder || (await this.nextSortOrder(this.db.professionals));
+    return this.db.professionals.create({ ...input, sortOrder });
+  }
+
+  async updateProfessional(id: string, input: Partial<z.output<typeof professionalSchema>>) {
+    if (input.serviceIds) await this.assertServicesExist(input.serviceIds);
+    return this.db.professionals.update(id, input);
+  }
+
+  /** Profissional com histórico não é excluído (a agenda antiga continua com o nome dele): desative. */
+  async deleteProfessional(id: string) {
+    if (!(await this.db.professionals.findById(id))) throw new NotFoundError('Profissional não encontrado.');
+    if ((await this.db.appointments.countByProfessional(id)) > 0) {
+      throw new ConflictError('IN_USE', 'Este profissional tem agendamentos. Desative-o em vez de excluir para manter o histórico.');
+    }
+    await this.db.professionals.delete(id);
   }
 
   // ---------- Campos do formulário ----------

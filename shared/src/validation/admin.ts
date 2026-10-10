@@ -174,6 +174,7 @@ export const appointmentUpdateSchema = z
     serviceIds: z.array(idSchema).min(1, 'Escolha pelo menos um serviço.').max(5),
     addonIds: z.array(idSchema).max(20),
     sizeId: idSchema,
+    professionalId: idSchema.nullable(),
     notes: optionalText(1000),
     customerNotes: optionalText(500),
     /** Recalcula o valor com a tabela de preços atual. Se false, mantém valores gravados quando os itens não mudarem. */
@@ -212,8 +213,66 @@ export const appointmentListQuerySchema = z.object({
   serviceId: idSchema.optional(),
   petId: idSchema.optional(),
   customerId: idSchema.optional(),
+  professionalId: idSchema.optional(),
   search: z.string().trim().max(80).optional(),
 });
 export type AppointmentListQuery = z.infer<typeof appointmentListQuerySchema>;
 
 export const adminRoleSchema = z.enum(ADMIN_ROLES);
+
+export const professionalSchema = z.object({
+  name: requiredText('o nome', 80),
+  serviceIds: z.array(idSchema).max(100).default([]),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida.').default('#279790'),
+  active: z.boolean().default(true),
+  sortOrder: sortOrderSchema.default(0),
+});
+export type ProfessionalInput = z.input<typeof professionalSchema>;
+
+/** URL de mídia: https (armazenamento) ou caminho local do próprio site/API. */
+export const mediaUrlSchema = z
+  .string()
+  .trim()
+  .max(1000)
+  .refine((v) => /^https:\/\//.test(v) || /^\/(?!\/)/.test(v), 'Endereço de mídia inválido.');
+
+export const inspirationSchema = z.object({
+  title: requiredText('o título', 80),
+  description: optionalText(300),
+  speciesId: idSchema,
+  breedId: idSchema.nullable().default(null),
+  breedName: optionalText(80),
+  imageUrl: mediaUrlSchema,
+  storagePath: z.string().max(300).default(''),
+  serviceId: idSchema.nullable().default(null),
+  active: z.boolean().default(true),
+  sortOrder: sortOrderSchema.default(0),
+});
+export type InspirationInput = z.input<typeof inspirationSchema>;
+
+export const storySchema = z.object({
+  mediaType: z.enum(['image', 'video']),
+  mediaUrl: mediaUrlSchema,
+  storagePath: z.string().max(300).default(''),
+  caption: optionalText(200),
+});
+export type StoryInput = z.input<typeof storySchema>;
+
+export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+export const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'] as const;
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+
+export const uploadRequestSchema = z
+  .object({
+    kind: z.enum(['inspiration', 'story']),
+    contentType: z.enum([...IMAGE_TYPES, ...VIDEO_TYPES], { errorMap: () => ({ message: 'Use foto JPG, PNG ou WebP, ou vídeo MP4, WebM ou MOV.' }) }),
+    size: z.number().int().positive(),
+  })
+  .superRefine((v, ctx) => {
+    const isVideo = (VIDEO_TYPES as readonly string[]).includes(v.contentType);
+    if (isVideo && v.kind !== 'story') ctx.addIssue({ code: 'custom', path: ['contentType'], message: 'Inspirações aceitam apenas fotos.' });
+    const max = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    if (v.size > max) ctx.addIssue({ code: 'custom', path: ['size'], message: `Arquivo muito grande (máximo ${max / 1024 / 1024} MB).` });
+  });
+export type UploadRequest = z.infer<typeof uploadRequestSchema>;

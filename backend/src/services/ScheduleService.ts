@@ -29,14 +29,16 @@ export class ScheduleService {
 
   /** Contexto completo para o motor de disponibilidade. */
   async getAvailabilityContext(from: string, to: string): Promise<AvailabilityContext> {
-    const [businessHours, blockedDates, blockedTimes, appointments, settings] = await Promise.all([
+    const [businessHours, blockedDates, blockedTimes, appointments, settings, professionals] = await Promise.all([
       this.db.businessHours.list(),
       this.db.blockedDates.list(),
       this.db.blockedTimes.list(),
       this.db.appointments.listOccupying(from, to),
       this.db.settings.get(),
+      this.db.professionals.list({ active: true }),
     ]);
     return {
+      professionals: professionals.map(({ id, serviceIds }) => ({ id, serviceIds })),
       businessHours,
       blockedDates,
       blockedTimes,

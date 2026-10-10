@@ -46,6 +46,10 @@ const envSchema = z.object({
   GOOGLE_SHEETS_WEBHOOK: optional,
   GOOGLE_SHEETS_WEBHOOK_SECRET: optional,
 
+  // Instagram (API oficial da Meta) — opcional. Sem token, o site só mostra o botão "Ver Instagram".
+  INSTAGRAM_ACCESS_TOKEN: optional,
+  INSTAGRAM_API_VERSION: z.string().default('v21.0'),
+
   INTEGRATION_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
 });
 

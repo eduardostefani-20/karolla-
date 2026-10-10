@@ -13,6 +13,7 @@ export const availabilityQuerySchema = z.object({
   addonIds: csv,
   sizeId: idSchema,
   speciesId: idSchema.optional(),
+  professionalId: idSchema.optional(),
 });
 
 export const searchQuerySchema = z.object({ search: z.string().trim().max(80).optional() });

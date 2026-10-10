@@ -1,5 +1,5 @@
 import { createClient, type PostgrestError, type SupabaseClient } from '@supabase/supabase-js';
-import { isBlockingStatus, NON_BLOCKING_STATUSES, type Customer } from '@karolla/shared';
+import { isBlockingStatus, NON_BLOCKING_STATUSES, type Customer, type Story } from '@karolla/shared';
 import { InfrastructureError, NotFoundError, SlotConflictError, ConflictError } from '../../utils/errors';
 import type {
   AdminRecord,
@@ -26,7 +26,10 @@ import {
   formFieldFromRow,
   formFieldToRow,
   integrationLogMapping,
+  inspirationMapping,
   petMapping,
+  professionalMapping,
+  storyMapping,
   serviceItemsToJson,
   serviceMapping,
   servicePriceMapping,
@@ -128,6 +131,7 @@ class SupabaseAppointments implements AppointmentRepository {
     if (filter.status) query = query.eq('status', filter.status);
     if (filter.customerId) query = query.eq('customer_id', filter.customerId);
     if (filter.petId) query = query.eq('pet_id', filter.petId);
+    if (filter.professionalId) query = query.eq('professional_id', filter.professionalId);
     if (filter.serviceId) {
       const { data, error } = await this.client.from('appointment_services').select('appointment_id').eq('service_id', filter.serviceId);
       if (error) fail(error, 'filter by service');
@@ -149,7 +153,7 @@ class SupabaseAppointments implements AppointmentRepository {
   async listOccupying(from: string, to: string) {
     const { data, error } = await this.client
       .from('appointments')
-      .select('id, date, start_time, duration_minutes, status')
+      .select('id, date, start_time, duration_minutes, status, professional_id')
       .gte('date', from)
       .lte('date', to)
       .not('status', 'in', `(${NON_BLOCKING_STATUSES.join(',')})`);
@@ -161,17 +165,19 @@ class SupabaseAppointments implements AppointmentRepository {
         time: String(r.start_time).slice(0, 5),
         durationMinutes: Number(r.duration_minutes),
         status: r.status as NewAppointment['status'],
+        professionalId: (r.professional_id as string | null) ?? null,
       }))
       .filter((a) => isBlockingStatus(a.status));
   }
 
-  /** Inserção atômica via função SQL `create_appointment` (lock por data + checagem de capacidade). */
+  /** Inserção atômica via função SQL `create_appointment_v2` (lock por data + checagem de capacidade). */
   async create(input: NewAppointment, guard: CapacityGuard) {
-    const { data, error } = await this.client.rpc('create_appointment', {
+    const { data, error } = await this.client.rpc('create_appointment_v2', {
       p_appointment: appointmentToRow(input),
       p_services: serviceItemsToJson(input.services),
       p_addons: addonItemsToJson(input.addons),
       p_capacity: guard.capacity,
+      p_professional_id: guard.professionalId ?? null,
     });
     if (error) fail(error, 'create appointment');
     const created = await this.findById(String(data));
@@ -206,6 +212,27 @@ class SupabaseAppointments implements AppointmentRepository {
   countByAddon(addonId: string) {
     return this.countRefs('appointment_addons', 'addon_id', addonId);
   }
+
+  countByInspiration(inspirationId: string) {
+    return this.countRefs('appointments', 'inspiration_id', inspirationId);
+  }
+
+  countByProfessional(professionalId: string) {
+    return this.countRefs('appointments', 'professional_id', professionalId);
+  }
+}
+
+class SupabaseStories extends SupabaseTable<Story> {
+  async listActive(nowIso: string) {
+    const { data, error } = await this.client.from('stories').select('*').gt('expires_at', nowIso).order('created_at');
+    if (error) fail(error, 'list active stories');
+    return (data as Row[]).map(this.mapping.fromRow);
+  }
+  async listExpired(nowIso: string) {
+    const { data, error } = await this.client.from('stories').select('*').lte('expires_at', nowIso);
+    if (error) fail(error, 'list expired stories');
+    return (data as Row[]).map(this.mapping.fromRow);
+  }
 }
 
 export class SupabaseDatabase implements DatabaseService {
@@ -225,6 +252,9 @@ export class SupabaseDatabase implements DatabaseService {
   blockedDates;
   blockedTimes;
   integrationLogs;
+  professionals;
+  inspirations;
+  stories;
 
   constructor(url: string, serviceRoleKey: string) {
     this.client = createClient(url, serviceRoleKey, {
@@ -243,6 +273,14 @@ export class SupabaseDatabase implements DatabaseService {
     this.blockedDates = new SupabaseTable(this.client, blockedDateMapping);
     this.blockedTimes = new SupabaseTable(this.client, blockedTimeMapping);
     this.integrationLogs = new SupabaseTable(this.client, integrationLogMapping);
+    this.professionals = new SupabaseTable(this.client, professionalMapping);
+    this.inspirations = new SupabaseTable(this.client, inspirationMapping);
+    this.stories = new SupabaseStories(this.client, storyMapping);
+  }
+
+  /** Cliente com service role — usado também pelo armazenamento de mídia (Supabase Storage). */
+  get rawClient(): SupabaseClient {
+    return this.client;
   }
 
   settings = {

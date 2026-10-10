@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
+import { MemoryMediaStorage } from '../integrations/storage/providers';
 import type { Container } from '../container';
 import { asyncHandler as h } from '../utils/asyncHandler';
 import { requireAuth, requireRole } from '../middleware/auth';
@@ -21,6 +22,10 @@ export function buildRoutes(c: Container): Router {
   // ---------------- Público ----------------
   router.get('/public/catalog', h(pub.catalog));
   router.get('/public/availability', h(pub.availability));
+  router.get('/public/inspirations', h(pub.inspirations));
+  router.get('/public/inspirations/:id', h(pub.inspiration));
+  router.get('/public/stories', h(pub.stories));
+  router.get('/public/instagram-feed', h(pub.instagramFeed));
   router.post(
     '/public/appointments',
     rateLimit({ keyPrefix: 'booking', windowMs: 60 * 60 * 1000, max: isTest ? 10_000 : 20, message: 'Muitos agendamentos em sequência. Fale com a Karolla Pet pelo WhatsApp.' }),
@@ -79,6 +84,20 @@ export function buildRoutes(c: Container): Router {
   a.delete('/sizes/:id', manage, h(admin.deleteSize));
   a.put('/form-fields', manage, h(admin.saveFormFields));
 
+  a.post('/professionals', manage, h(admin.createProfessional));
+  a.post('/professionals/reorder', manage, h(admin.reorder('professionals')));
+  a.patch('/professionals/:id', manage, h(admin.updateProfessional));
+  a.delete('/professionals/:id', manage, h(admin.deleteProfessional));
+
+  a.post('/media/upload-ticket', manage, h(admin.uploadTicket));
+  a.get('/inspirations', h(admin.listInspirations));
+  a.post('/inspirations', manage, h(admin.createInspiration));
+  a.patch('/inspirations/:id', manage, h(admin.updateInspiration));
+  a.delete('/inspirations/:id', manage, h(admin.deleteInspiration));
+  a.get('/stories', h(admin.listStories));
+  a.post('/stories', manage, h(admin.createStory));
+  a.delete('/stories/:id', manage, h(admin.deleteStory));
+
   a.get('/schedule', h(admin.getSchedule));
   a.put('/business-hours', manage, h(admin.saveBusinessHours));
   a.post('/blocked-dates', manage, h(admin.addBlockedDate));
@@ -89,5 +108,19 @@ export function buildRoutes(c: Container): Router {
   a.put('/settings', manage, h(admin.updateSettings));
 
   router.use('/admin', a);
+
+  // ---------------- Mídia do modo DEMO (em produção os arquivos ficam no Supabase Storage) ----------------
+  if (c.storage instanceof MemoryMediaStorage) {
+    const storage = c.storage;
+    router.put('/media/upload/:token', express.raw({ type: () => true, limit: '60mb' }), (req, res) => {
+      storage.receive(String(req.params.token), req.body as Buffer, String(req.headers['content-type'] ?? ''));
+      res.status(204).end();
+    });
+    router.get('/media/files/*', (req, res) => {
+      const file = storage.get(String((req.params as Record<string, string>)[0]));
+      if (!file) return void res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Arquivo não encontrado.' } });
+      res.set('Content-Type', file.contentType).set('Cache-Control', 'public, max-age=3600').send(file.body);
+    });
+  }
   return router;
 }

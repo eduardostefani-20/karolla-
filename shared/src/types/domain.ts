@@ -122,6 +122,61 @@ export interface Pet {
   updatedAt: string;
 }
 
+/** Profissional da equipe (banhista, tosador...). Cada profissional atende 1 pet por vez. */
+export interface Professional {
+  id: ID;
+  name: string;
+  /** Serviços que executa. Lista vazia = todos os serviços. */
+  serviceIds: ID[];
+  /** Cor usada na agenda do painel. */
+  color: string;
+  active: boolean;
+  sortOrder: number;
+}
+
+/** Foto do catálogo de inspirações de tosa (estilo Instagram). */
+export interface Inspiration {
+  id: ID;
+  title: string;
+  description: string;
+  speciesId: ID;
+  breedId: ID | null;
+  breedName: string;
+  /** URL pública da foto. */
+  imageUrl: string;
+  /** Caminho no armazenamento (para excluir o arquivo). Vazio para imagens estáticas. */
+  storagePath: string;
+  /** Serviço sugerido para este visual (opcional, apenas informativo). */
+  serviceId: ID | null;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Referência da inspiração escolhida, "fotografada" no agendamento. */
+export interface AppointmentInspiration {
+  id: ID;
+  title: string;
+  imageUrl: string;
+  breedName: string;
+}
+
+export type StoryMediaType = 'image' | 'video';
+
+/** Story com validade de 24h (expiresAt persistido no banco). */
+export interface Story {
+  id: ID;
+  mediaType: StoryMediaType;
+  mediaUrl: string;
+  storagePath: string;
+  caption: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export const STORY_TTL_HOURS = 24;
+
 /** Itens são "fotografados" no momento do agendamento: mudanças de preço futuras não alteram o histórico. */
 export interface AppointmentServiceItem {
   serviceId: ID;
@@ -155,6 +210,10 @@ export interface Appointment {
   /** Observações escritas pelo tutor no formulário. */
   customerNotes: string;
   source: AppointmentSource;
+  /** Profissional responsável (null = sem profissional definido). */
+  professionalId: ID | null;
+  /** Inspiração de tosa escolhida pelo cliente (null = nenhuma). */
+  inspiration: AppointmentInspiration | null;
   services: AppointmentServiceItem[];
   addons: AppointmentAddonItem[];
   createdAt: string;

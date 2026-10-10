@@ -13,7 +13,10 @@ import type {
   Customer,
   FormFieldConfig,
   IntegrationLog,
+  Inspiration,
   OccupiedSlot,
+  Professional,
+  Story,
   Pet,
   PetSize,
   Service,
@@ -51,6 +54,7 @@ export interface AppointmentFilter {
   customerId?: string;
   petId?: string;
   serviceId?: string;
+  professionalId?: string;
 }
 
 export interface NewAppointment {
@@ -65,11 +69,13 @@ export interface NewAppointment {
   notes: string;
   customerNotes: string;
   source: Appointment['source'];
+  professionalId: string | null;
+  inspiration: Appointment['inspiration'];
   services: AppointmentServiceItem[];
   addons: AppointmentAddonItem[];
 }
 
-export type AppointmentPatch = Partial<Omit<NewAppointment, 'customerId' | 'petId' | 'source'>>;
+export type AppointmentPatch = Partial<Omit<NewAppointment, 'customerId' | 'petId' | 'source' | 'inspiration'>>;
 
 /**
  * Garantia de não-sobreposição aplicada NO MOMENTO DA GRAVAÇÃO.
@@ -77,7 +83,10 @@ export type AppointmentPatch = Partial<Omit<NewAppointment, 'customerId' | 'petI
  * `capacity` atendimentos simultâneos — de forma atômica (lock/transação).
  */
 export interface CapacityGuard {
+  /** Máximo de atendimentos simultâneos no pet shop (com profissionais: número de profissionais ativos). */
   capacity: number;
+  /** Se definido, o profissional também não pode ter outro atendimento sobreposto. */
+  professionalId?: string | null;
 }
 
 export interface AppointmentRepository {
@@ -90,6 +99,14 @@ export interface AppointmentRepository {
   update(id: string, patch: AppointmentPatch, guard: CapacityGuard | null): Promise<Appointment>;
   countByService(serviceId: string): Promise<number>;
   countByAddon(addonId: string): Promise<number>;
+  countByInspiration(inspirationId: string): Promise<number>;
+  countByProfessional(professionalId: string): Promise<number>;
+}
+
+export interface StoryRepository extends TableRepository<Story> {
+  /** Somente stories ainda válidos (expiresAt > agora), mais recentes por último. */
+  listActive(nowIso: string): Promise<Story[]>;
+  listExpired(nowIso: string): Promise<Story[]>;
 }
 
 export interface SettingsRepository {
@@ -131,6 +148,9 @@ export interface DatabaseService {
   settings: SettingsRepository;
   formFields: FormFieldRepository;
   integrationLogs: TableRepository<IntegrationLog>;
+  professionals: TableRepository<Professional>;
+  inspirations: TableRepository<Inspiration>;
+  stories: StoryRepository;
   admins: AdminRepository;
   healthCheck(): Promise<boolean>;
 }

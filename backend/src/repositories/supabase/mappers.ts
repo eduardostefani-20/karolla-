@@ -9,7 +9,10 @@ import type {
   Customer,
   FormFieldConfig,
   IntegrationLog,
+  Inspiration,
   Pet,
+  Professional,
+  Story,
   PetSize,
   Service,
   ServicePrice,
@@ -293,7 +296,7 @@ export function formFieldToRow(f: FormFieldConfig): Row {
 }
 
 export function appointmentToRow(a: Partial<Appointment>): Row {
-  return pick(a as Row, {
+  const row = pick(a as Row, {
     customerId: 'customer_id',
     petId: 'pet_id',
     sizeId: 'size_id',
@@ -305,7 +308,13 @@ export function appointmentToRow(a: Partial<Appointment>): Row {
     notes: 'notes',
     customerNotes: 'customer_notes',
     source: 'source',
+    professionalId: 'professional_id',
   });
+  if (a.inspiration !== undefined) {
+    row.inspiration_id = a.inspiration?.id ?? null;
+    row.inspiration_snapshot = a.inspiration ?? null;
+  }
+  return row;
 }
 
 export function appointmentFromRow(r: Row): Appointment {
@@ -328,6 +337,8 @@ export function appointmentFromRow(r: Row): Appointment {
     notes: str(r.notes),
     customerNotes: str(r.customer_notes),
     source: (r.source as Appointment['source']) ?? 'online',
+    professionalId: (r.professional_id as string | null) ?? null,
+    inspiration: (r.inspiration_snapshot as Appointment['inspiration']) ?? null,
     services,
     addons,
     createdAt: str(r.created_at),
@@ -342,3 +353,63 @@ export function serviceItemsToJson(items: Appointment['services']) {
 export function addonItemsToJson(items: Appointment['addons']) {
   return items.map((a, position) => ({ addon_id: a.addonId, name: a.name, price_cents: a.priceCents, duration_minutes: a.durationMinutes, position }));
 }
+
+export const professionalMapping: TableMapping<Professional> = {
+  table: 'professionals',
+  order: sortOrder,
+  toRow: (e) => pick(e as Row, { id: 'id', name: 'name', serviceIds: 'service_ids', color: 'color', active: 'active', sortOrder: 'sort_order' }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    name: str(r.name),
+    serviceIds: (r.service_ids as string[] | null) ?? [],
+    color: str(r.color) || '#279790',
+    active: Boolean(r.active),
+    sortOrder: Number(r.sort_order),
+  }),
+};
+
+export const inspirationMapping: TableMapping<Inspiration> = {
+  table: 'inspirations',
+  order: [
+    { column: 'sort_order', ascending: true },
+    { column: 'created_at', ascending: false },
+  ],
+  toRow: (e) =>
+    pick(e as Row, {
+      id: 'id', title: 'title', description: 'description', speciesId: 'species_id', breedId: 'breed_id', breedName: 'breed_name',
+      imageUrl: 'image_url', storagePath: 'storage_path', serviceId: 'service_id', active: 'active', sortOrder: 'sort_order',
+    }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    title: str(r.title),
+    description: str(r.description),
+    speciesId: str(r.species_id),
+    breedId: (r.breed_id as string | null) ?? null,
+    breedName: str(r.breed_name),
+    imageUrl: str(r.image_url),
+    storagePath: str(r.storage_path),
+    serviceId: (r.service_id as string | null) ?? null,
+    active: Boolean(r.active),
+    sortOrder: Number(r.sort_order),
+    createdAt: str(r.created_at),
+    updatedAt: str(r.updated_at),
+  }),
+};
+
+export const storyMapping: TableMapping<Story> = {
+  table: 'stories',
+  order: [{ column: 'created_at', ascending: true }],
+  toRow: (e) =>
+    pick(e as Row, {
+      id: 'id', mediaType: 'media_type', mediaUrl: 'media_url', storagePath: 'storage_path', caption: 'caption', expiresAt: 'expires_at',
+    }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    mediaType: r.media_type as Story['mediaType'],
+    mediaUrl: str(r.media_url),
+    storagePath: str(r.storage_path),
+    caption: str(r.caption),
+    createdAt: new Date(str(r.created_at)).toISOString(),
+    expiresAt: new Date(str(r.expires_at)).toISOString(),
+  }),
+};

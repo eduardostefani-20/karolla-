@@ -1,5 +1,8 @@
 import type {
   AdminUser,
+  Inspiration,
+  Professional,
+  Story,
   Addon,
   Appointment,
   Breed,
@@ -49,6 +52,8 @@ export interface PublicCatalog {
   addons: Addon[];
   formFields: FormFieldConfig[];
   businessHours: BusinessHours[];
+  /** Profissionais ativos (o cliente pode escolher ou deixar "sem preferência"). */
+  professionals: Pick<Professional, 'id' | 'name' | 'serviceIds'>[];
   /** Datas futuras bloqueadas (sem o motivo, que é interno). */
   closedDates: string[];
   settings: PublicSettings;
@@ -60,6 +65,8 @@ export type AppMode = 'demo' | 'production';
 export interface AvailabilityResponse {
   date: string;
   durationMinutes: number;
+  /** Profissionais que fazem os serviços escolhidos (vazio = agenda sem profissionais). */
+  professionals: Pick<Professional, 'id' | 'name'>[];
   closedReason: string | null;
   closedMessage: string | null;
   slots: { time: string; available: boolean }[];
@@ -75,6 +82,7 @@ export interface BookingResult {
 export interface AppointmentDetail extends Appointment {
   customer: Customer;
   pet: Pet;
+  professional: Pick<Professional, 'id' | 'name' | 'color'> | null;
   integrationLogs?: IntegrationLog[];
 }
 
@@ -114,6 +122,39 @@ export interface AuthSession {
   user: AdminUser;
 }
 
+export type PublicInspiration = Omit<Inspiration, 'storagePath' | 'active' | 'sortOrder' | 'updatedAt'>;
+export type PublicStory = Omit<Story, 'storagePath'>;
+
+export interface InstagramPost {
+  id: string;
+  caption: string;
+  mediaType: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+  mediaUrl: string;
+  thumbnailUrl: string | null;
+  permalink: string;
+  timestamp: string;
+}
+
+export interface InstagramFeedResponse {
+  /** false = integração oficial da Meta não configurada (nenhum post é inventado). */
+  configured: boolean;
+  posts: InstagramPost[];
+}
+
+/** Upload direto para o armazenamento (URL assinada e temporária). */
+export interface UploadTicket {
+  provider: 'supabase' | 'memory';
+  /** Supabase: URL do storage, bucket e token para uploadToSignedUrl. */
+  storageUrl?: string;
+  bucket?: string;
+  token?: string;
+  apiKey?: string;
+  /** Memória (demo): URL para PUT do arquivo. */
+  uploadUrl?: string;
+  path: string;
+  publicUrl: string;
+}
+
 export interface AdminCatalog {
   species: Species[];
   breeds: Breed[];
@@ -122,10 +163,13 @@ export interface AdminCatalog {
   servicePrices: ServicePrice[];
   addons: Addon[];
   formFields: FormFieldConfig[];
+  professionals: Professional[];
 }
 
 export interface SystemStatus {
   mode: AppMode;
+  storage: { provider: string };
+  instagramFeed: { configured: boolean };
   database: { provider: string; connected: boolean };
   auth: { provider: string };
   whatsapp: { provider: string; configured: boolean };

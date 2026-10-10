@@ -260,6 +260,8 @@ describe('Painel administrativo', () => {
       mode: 'demo',
       database: { provider: 'memory', connected: true },
       auth: { provider: 'mock' },
+      storage: { provider: 'memory' },
+      instagramFeed: { configured: false },
       whatsapp: { provider: 'link', configured: true },
       googleSheets: { provider: 'disabled', configured: false },
     });

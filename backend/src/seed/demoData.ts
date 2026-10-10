@@ -133,6 +133,40 @@ export async function seedDemoData(db: MemoryDatabase, opts: { now: Date; timezo
     await db.addons.create({ id, name, description, priceCents, durationMinutes, active: true, sortOrder: i + 1 });
   }
 
+  // Inspirações de tosa (DEMO: ilustrações estáticas em /images/inspiracoes — em produção, fotos reais enviadas no painel)
+  const inspirations = [
+    ['Tosa bebê', 'Pelagem curtinha e uniforme, fácil de cuidar.', 'dog', 'dog-shih-tzu', 'shih-tzu-bebe', 'tosa-maquina'],
+    ['Shih Tzu com lacinho', 'Franja presa e acabamento arredondado.', 'dog', 'dog-shih-tzu', 'shih-tzu-lacinho', 'banho-tosa'],
+    ['Poodle na tesoura', 'Volume e definição feitos à tesoura.', 'dog', 'dog-poodle', 'poodle-tesoura', 'tosa-tesoura'],
+    ['Golden: higiênica + banho', 'Patas, barriga e regiões íntimas aparadas.', 'dog', 'dog-golden-retriever', 'golden-higienica', 'tosa-higienica'],
+    ['Yorkshire clássico', 'Tosa no padrão da raça com laço.', 'dog', 'dog-yorkshire', 'yorkshire-classica', 'tosa'],
+    ['Spitz "leãozinho"', 'Corpo curto, juba e cauda preservadas.', 'dog', 'dog-spitz-alemao', 'spitz-leao', 'tosa-tesoura'],
+    ['Persa escovado', 'Escovação completa e higiênica.', 'cat', 'cat-persa', 'persa-escovacao', 'escovacao'],
+  ] as const;
+  for (const [i, [title, description, speciesId, breedId, file, serviceId]] of inspirations.entries()) {
+    const breed = await db.breeds.findById(breedId);
+    await db.inspirations.create({
+      id: `demo-${file}`,
+      title,
+      description,
+      speciesId,
+      breedId,
+      breedName: breed?.name ?? '',
+      imageUrl: `/images/inspiracoes/${file}.svg`,
+      storagePath: '',
+      serviceId,
+      active: true,
+      sortOrder: i + 1,
+    });
+  }
+  await db.stories.create({
+    mediaType: 'image',
+    mediaUrl: '/images/inspiracoes/shih-tzu-lacinho.svg',
+    storagePath: '',
+    caption: 'Mel saindo cheirosa hoje! 🎀 (exemplo)',
+    expiresAt: new Date(opts.now.getTime() + 24 * 3_600_000).toISOString(),
+  });
+
   // Horário de funcionamento (exemplo editável no painel)
   for (let weekday = 0; weekday <= 6; weekday++) {
     await db.businessHours.create({
@@ -201,6 +235,8 @@ export async function seedDemoData(db: MemoryDatabase, opts: { now: Date; timezo
         notes: '',
         customerNotes: '',
         source: 'online',
+        professionalId: null,
+        inspiration: null,
         services: price.lines.filter((l) => l.kind === 'service').map((l) => ({ serviceId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
         addons: price.lines.filter((l) => l.kind === 'addon').map((l) => ({ addonId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
       },

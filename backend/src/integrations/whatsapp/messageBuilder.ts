@@ -7,6 +7,8 @@ export interface AppointmentMessageContext {
   sizeName: string;
   speciesName: string;
   businessName: string;
+  /** Nome do profissional responsável (vazio = sem profissional). */
+  professionalName?: string;
 }
 
 /** Mensagem padrão de novo agendamento (texto puro, compatível com WhatsApp). */
@@ -32,6 +34,13 @@ export function buildNewAppointmentMessage(ctx: AppointmentMessageContext): stri
     '',
     '*ADICIONAIS*',
     addons,
+    ctx.professionalName ? '' : null,
+    ctx.professionalName ? '*PROFISSIONAL*' : null,
+    ctx.professionalName || null,
+    a.inspiration ? '' : null,
+    a.inspiration ? '*INSPIRAÇÃO ESCOLHIDA*' : null,
+    a.inspiration ? `${a.inspiration.title} (${a.inspiration.breedName})` : null,
+    a.inspiration && /^https:/.test(a.inspiration.imageUrl) ? a.inspiration.imageUrl : null,
     '',
     '*DATA*',
     formatDateBR(a.date),

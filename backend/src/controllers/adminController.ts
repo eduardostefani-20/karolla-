@@ -10,6 +10,9 @@ import {
   businessHoursSchema,
   customerUpdateSchema,
   formFieldsSchema,
+  inspirationSchema,
+  professionalSchema,
+  storySchema,
   petUpdateSchema,
   reorderSchema,
   serviceSchema,
@@ -46,6 +49,8 @@ export function adminController(c: Container) {
         mode: c.env.APP_MODE,
         database: { provider: c.db.provider, connected: await c.db.healthCheck().catch(() => false) },
         auth: { provider: c.auth.provider },
+        storage: { provider: c.storage.provider },
+        instagramFeed: { configured: c.instagram.configured },
         ...c.notifications.status(),
       };
       res.json(status);
@@ -146,11 +151,51 @@ export function adminController(c: Container) {
       await c.catalog.deleteSize(id(req));
       res.status(204).end();
     },
-    reorder(entity: 'services' | 'addons' | 'sizes' | 'species' | 'breeds') {
+    reorder(entity: 'services' | 'addons' | 'sizes' | 'species' | 'breeds' | 'professionals') {
       return async (req: Request, res: Response) => {
         res.json(await c.catalog.reorder(entity, parse(reorderSchema, req.body).ids));
       };
     },
+    // ----- Profissionais -----
+    async createProfessional(req: Request, res: Response) {
+      res.status(201).json(await c.catalog.createProfessional(parse(professionalSchema, req.body)));
+    },
+    async updateProfessional(req: Request, res: Response) {
+      res.json(await c.catalog.updateProfessional(id(req), parse(partialOf(professionalSchema), req.body)));
+    },
+    async deleteProfessional(req: Request, res: Response) {
+      await c.catalog.deleteProfessional(id(req));
+      res.status(204).end();
+    },
+
+    // ----- Mídia: inspirações e stories -----
+    async uploadTicket(req: Request, res: Response) {
+      res.json(await c.media.createUploadTicket(req.body));
+    },
+    async listInspirations(_req: Request, res: Response) {
+      res.json(await c.media.listInspirations());
+    },
+    async createInspiration(req: Request, res: Response) {
+      res.status(201).json(await c.media.createInspiration(parse(inspirationSchema, req.body)));
+    },
+    async updateInspiration(req: Request, res: Response) {
+      res.json(await c.media.updateInspiration(id(req), parse(partialOf(inspirationSchema), req.body)));
+    },
+    async deleteInspiration(req: Request, res: Response) {
+      await c.media.deleteInspiration(id(req));
+      res.status(204).end();
+    },
+    async listStories(_req: Request, res: Response) {
+      res.json(await c.media.listAdminStories());
+    },
+    async createStory(req: Request, res: Response) {
+      res.status(201).json(await c.media.createStory(parse(storySchema, req.body)));
+    },
+    async deleteStory(req: Request, res: Response) {
+      await c.media.deleteStory(id(req));
+      res.status(204).end();
+    },
+
     async saveFormFields(req: Request, res: Response) {
       res.json(await c.catalog.saveFormFields(parse(formFieldsSchema, req.body)));
     },

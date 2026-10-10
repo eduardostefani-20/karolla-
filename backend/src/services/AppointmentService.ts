@@ -2,6 +2,7 @@ import {
   addDays,
   calculateAppointmentPrice,
   checkSlot,
+  effectiveCapacity,
   isBlockingStatus,
   nowInTimezone,
   SLOT_REASON_MESSAGES,
@@ -35,12 +36,18 @@ export class AppointmentService {
 
   private async attach(appointments: Appointment[]): Promise<AppointmentDetail[]> {
     if (!appointments.length) return [];
-    const [customers, pets] = await Promise.all([this.db.customers.list(), this.db.pets.list()]);
+    const [customers, pets, professionals] = await Promise.all([this.db.customers.list(), this.db.pets.list(), this.db.professionals.list()]);
     const byCustomer = new Map(customers.map((c) => [c.id, c]));
     const byPet = new Map(pets.map((p) => [p.id, p]));
+    const byPro = new Map(professionals.map(({ id, name, color }) => [id, { id, name, color }]));
     return appointments
       .filter((a) => byCustomer.has(a.customerId) && byPet.has(a.petId))
-      .map((a) => ({ ...a, customer: byCustomer.get(a.customerId) as Customer, pet: byPet.get(a.petId) as Pet }));
+      .map((a) => ({
+        ...a,
+        customer: byCustomer.get(a.customerId) as Customer,
+        pet: byPet.get(a.petId) as Pet,
+        professional: (a.professionalId && byPro.get(a.professionalId)) || null,
+      }));
   }
 
   async list(query: AppointmentListQuery): Promise<AppointmentDetail[]> {
@@ -83,7 +90,11 @@ export class AppointmentService {
       status: input.status,
       notes: input.notes,
       customerNotes: input.customerNotes,
+      professionalId: input.professionalId,
     };
+    if (input.professionalId && !(await this.db.professionals.findById(input.professionalId))) {
+      throw new NotFoundError('Profissional não encontrado.');
+    }
 
     if (itemsChanged || input.recalculatePrice) {
       let price;
@@ -107,8 +118,11 @@ export class AppointmentService {
       time: patch.time ?? current.time,
       durationMinutes: patch.durationMinutes ?? current.durationMinutes,
       status: patch.status ?? current.status,
+      professionalId: input.professionalId !== undefined ? input.professionalId : current.professionalId,
     };
     const occupiesNewTime =
+      next.professionalId !== current.professionalId ||
+      itemsChanged ||
       next.date !== current.date ||
       next.time !== current.time ||
       next.durationMinutes > current.durationMinutes ||
@@ -121,9 +135,13 @@ export class AppointmentService {
       const result = checkSlot(ctx, next.date, next.time, next.durationMinutes, {
         excludeAppointmentId: id,
         enforceBookingWindow: false,
+        serviceIds,
+        professionalId: next.professionalId ?? undefined,
       });
       if (!result.ok) throw new ConflictError('SLOT_UNAVAILABLE', SLOT_REASON_MESSAGES[result.reason]);
-      guard = { capacity: ctx.settings.capacity };
+      // Agenda por profissional: agendamento sem profissional recebe um livre ao ser remarcado.
+      if (!next.professionalId && result.professionalId) patch.professionalId = result.professionalId;
+      guard = { capacity: effectiveCapacity(ctx), professionalId: patch.professionalId ?? next.professionalId };
     }
 
     const updated = await this.db.appointments.update(id, patch, guard);

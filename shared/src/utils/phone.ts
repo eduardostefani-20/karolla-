@@ -46,3 +46,15 @@ export function buildWhatsAppLink(number: string, text?: string): string {
   const base = `https://wa.me/${toWhatsAppInternational(number)}`;
   return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
+
+/**
+ * Link do perfil oficial do Instagram a partir do que foi configurado no painel
+ * ("@karollapet", "karollapet" ou a URL completa). Vazio/inválido = null (nada é inventado).
+ */
+export function instagramProfileUrl(value: string | null | undefined): string | null {
+  const raw = (value ?? '').trim();
+  if (!raw) return null;
+  const fromUrl = raw.match(/instagram\.com\/([A-Za-z0-9._]+)/i)?.[1];
+  const handle = (fromUrl ?? raw.replace(/^@/, '')).replace(/\/+$/, '');
+  return /^[A-Za-z0-9._]{1,30}$/.test(handle) ? `https://www.instagram.com/${handle}/` : null;
+}

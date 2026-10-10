@@ -11,6 +11,10 @@ import type { WhatsAppService } from './integrations/whatsapp/WhatsAppService';
 import { DisabledWhatsAppProvider, WhatsAppCloudApiProvider, WhatsAppLinkProvider } from './integrations/whatsapp/providers';
 import type { GoogleSheetsService } from './integrations/sheets/GoogleSheetsService';
 import { DisabledGoogleSheetsService, WebhookGoogleSheetsService } from './integrations/sheets/providers';
+import type { MediaStorage } from './integrations/storage/MediaStorage';
+import { MemoryMediaStorage, SupabaseMediaStorage } from './integrations/storage/providers';
+import { DisabledInstagramFeed, GraphInstagramFeed, type InstagramFeedService } from './integrations/instagram/InstagramFeedService';
+import { MediaService } from './services/MediaService';
 import { CatalogService } from './services/CatalogService';
 import { ScheduleService } from './services/ScheduleService';
 import { NotificationService } from './services/NotificationService';
@@ -37,6 +41,9 @@ export interface Container {
   booking: BookingService;
   appointments: AppointmentService;
   customers: CustomerService;
+  storage: MediaStorage;
+  instagram: InstagramFeedService;
+  media: MediaService;
 }
 
 export interface ContainerOverrides {
@@ -45,6 +52,8 @@ export interface ContainerOverrides {
   auth?: AuthService;
   whatsapp?: WhatsAppService;
   sheets?: GoogleSheetsService;
+  storage?: MediaStorage;
+  instagram?: InstagramFeedService;
 }
 
 export async function buildContainer(env: Env, overrides: ContainerOverrides = {}): Promise<Container> {
@@ -100,6 +109,18 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
       ? new WebhookGoogleSheetsService({ url: env.GOOGLE_SHEETS_WEBHOOK, secret: env.GOOGLE_SHEETS_WEBHOOK_SECRET, timeoutMs: env.INTEGRATION_TIMEOUT_MS })
       : new DisabledGoogleSheetsService());
 
+  const storage =
+    overrides.storage ??
+    (db instanceof SupabaseDatabase
+      ? new SupabaseMediaStorage(db.rawClient, { url: env.SUPABASE_URL!, anonKey: env.SUPABASE_ANON_KEY ?? '' })
+      : new MemoryMediaStorage());
+
+  const instagram =
+    overrides.instagram ??
+    (env.INSTAGRAM_ACCESS_TOKEN
+      ? new GraphInstagramFeed({ accessToken: env.INSTAGRAM_ACCESS_TOKEN, apiVersion: env.INSTAGRAM_API_VERSION, limit: 12, cacheMs: 30 * 60_000, timeoutMs: env.INTEGRATION_TIMEOUT_MS })
+      : new DisabledInstagramFeed());
+
   const catalog = new CatalogService(db, env.APP_MODE, clock);
   const schedule = new ScheduleService(db, clock);
   const notifications = new NotificationService(db, whatsapp, sheets);
@@ -107,5 +128,7 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
   const appointments = new AppointmentService(db, catalog, schedule, notifications, clock);
   const customers = new CustomerService(db);
 
-  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers };
+  const media = new MediaService(db, storage, clock);
+
+  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media };
 }

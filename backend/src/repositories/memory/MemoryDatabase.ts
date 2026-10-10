@@ -7,6 +7,7 @@ import {
   type BusinessSettings,
   type Customer,
   type FormFieldConfig,
+  type Story,
 } from '@karolla/shared';
 import { NotFoundError, SlotConflictError } from '../../utils/errors';
 import type {
@@ -106,6 +107,7 @@ class MemoryAppointments implements AppointmentRepository {
         (!filter.status || a.status === filter.status) &&
         (!filter.customerId || a.customerId === filter.customerId) &&
         (!filter.petId || a.petId === filter.petId) &&
+        (!filter.professionalId || a.professionalId === filter.professionalId) &&
         (!filter.serviceId || a.services.some((s) => s.serviceId === filter.serviceId)),
     );
     rows.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
@@ -120,14 +122,19 @@ class MemoryAppointments implements AppointmentRepository {
   async listOccupying(from: string, to: string) {
     return [...this.rows.values()]
       .filter((a) => a.date >= from && a.date <= to && isBlockingStatus(a.status))
-      .map(({ id, date, time, durationMinutes, status }) => ({ id, date, time, durationMinutes, status }));
+      .map(({ id, date, time, durationMinutes, status, professionalId }) => ({ id, date, time, durationMinutes, status, professionalId }));
   }
 
   /** Verificação síncrona: em Node não há interrupção entre checagem e escrita (atômico). */
   private assertCapacity(date: string, time: string, duration: number, guard: CapacityGuard, excludeId?: string) {
     const start = timeToMinutes(time);
-    const concurrent = maxConcurrentInInterval([...this.rows.values()], date, start, start + duration, excludeId);
+    const all = [...this.rows.values()];
+    const concurrent = maxConcurrentInInterval(all, date, start, start + duration, excludeId);
     if (concurrent >= guard.capacity) throw new SlotConflictError();
+    if (guard.professionalId) {
+      const own = all.filter((a) => a.professionalId === guard.professionalId);
+      if (maxConcurrentInInterval(own, date, start, start + duration, excludeId) > 0) throw new SlotConflictError();
+    }
   }
 
   async create(data: NewAppointment, guard: CapacityGuard): Promise<Appointment> {
@@ -144,7 +151,7 @@ class MemoryAppointments implements AppointmentRepository {
     const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
     const next: Appointment = { ...current, ...clone(defined), id, updatedAt: nowIso() };
     if (guard && isBlockingStatus(next.status)) {
-      this.assertCapacity(next.date, next.time, next.durationMinutes, guard, id);
+      this.assertCapacity(next.date, next.time, next.durationMinutes, { ...guard, professionalId: next.professionalId }, id);
     }
     this.rows.set(id, next);
     return clone(next);
@@ -156,6 +163,26 @@ class MemoryAppointments implements AppointmentRepository {
 
   async countByAddon(addonId: string) {
     return [...this.rows.values()].filter((a) => a.addons.some((s) => s.addonId === addonId)).length;
+  }
+
+  async countByInspiration(inspirationId: string) {
+    return [...this.rows.values()].filter((a) => a.inspiration?.id === inspirationId).length;
+  }
+
+  async countByProfessional(professionalId: string) {
+    return [...this.rows.values()].filter((a) => a.professionalId === professionalId).length;
+  }
+}
+
+class MemoryStories extends MemoryTable<Story> {
+  constructor() {
+    super(true);
+  }
+  async listActive(nowIso: string) {
+    return this.listSync().filter((s) => s.expiresAt > nowIso).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+  async listExpired(nowIso: string) {
+    return this.listSync().filter((s) => s.expiresAt <= nowIso);
   }
 }
 
@@ -174,6 +201,9 @@ export class MemoryDatabase implements DatabaseService {
   blockedDates = new MemoryTable<import('@karolla/shared').BlockedDate>();
   blockedTimes = new MemoryTable<import('@karolla/shared').BlockedTime>();
   integrationLogs = new MemoryTable<import('@karolla/shared').IntegrationLog>(true);
+  professionals = new MemoryTable<import('@karolla/shared').Professional>();
+  inspirations = new MemoryTable<import('@karolla/shared').Inspiration>(true);
+  stories = new MemoryStories();
 
   private settingsRow: BusinessSettings;
   private formFieldRows = new Map<string, FormFieldConfig>();

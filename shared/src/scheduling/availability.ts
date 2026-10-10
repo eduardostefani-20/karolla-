@@ -24,6 +24,13 @@ export interface OccupiedSlot {
   time: string;
   durationMinutes: number;
   status: AppointmentStatus;
+  professionalId?: string | null;
+}
+
+/** Profissional ativo, como o motor de agenda precisa (cada um atende 1 pet por vez). */
+export interface SchedulingProfessional {
+  id: string;
+  serviceIds: string[];
 }
 
 export type SchedulingSettings = Pick<
@@ -38,6 +45,12 @@ export interface AvailabilityContext {
   appointments: OccupiedSlot[];
   settings: SchedulingSettings;
   now: Date;
+  /**
+   * Profissionais ATIVOS. Quando houver pelo menos um, a agenda passa a ser por profissional:
+   * cada um atende 1 pet por vez e a capacidade total = número de profissionais.
+   * Vazio/ausente = regra de vagas por horário (settings.capacity).
+   */
+  professionals?: SchedulingProfessional[];
 }
 
 export type SlotUnavailableReason =
@@ -50,7 +63,8 @@ export type SlotUnavailableReason =
   | 'OUTSIDE_HOURS'
   | 'BREAK'
   | 'BLOCKED_TIME'
-  | 'FULL';
+  | 'FULL'
+  | 'NO_PROFESSIONAL';
 
 export const SLOT_REASON_MESSAGES: Record<SlotUnavailableReason, string> = {
   INVALID: 'Data ou horário inválido.',
@@ -63,6 +77,7 @@ export const SLOT_REASON_MESSAGES: Record<SlotUnavailableReason, string> = {
   BREAK: 'Este horário coincide com o intervalo da equipe.',
   BLOCKED_TIME: 'Este horário está bloqueado.',
   FULL: 'Este horário acabou de ser ocupado. Escolha outro horário.',
+  NO_PROFESSIONAL: 'Nenhum profissional disponível realiza este serviço. Fale com a Karolla Pet.',
 };
 
 export interface SlotCheckOptions {
@@ -72,9 +87,19 @@ export interface SlotCheckOptions {
   enforceBookingWindow?: boolean;
   /** Aplica funcionamento, intervalo e bloqueios. Padrão: true. */
   enforceBusinessRules?: boolean;
+  /** Serviços do atendimento (define quais profissionais podem atender). */
+  serviceIds?: string[];
+  /** Profissional escolhido. Ausente/null = qualquer profissional habilitado. */
+  professionalId?: string | null;
 }
 
-export type SlotCheckResult = { ok: true } | { ok: false; reason: SlotUnavailableReason };
+/** Em agenda por profissional, `professionalId` é o profissional livre escolhido para o horário. */
+export type SlotCheckResult = { ok: true; professionalId?: string } | { ok: false; reason: SlotUnavailableReason };
+
+/** Profissionais habilitados para TODOS os serviços informados. */
+export function qualifiedProfessionals<T extends SchedulingProfessional>(professionals: T[], serviceIds: string[] = []): T[] {
+  return professionals.filter((p) => p.serviceIds.length === 0 || serviceIds.every((id) => p.serviceIds.includes(id)));
+}
 
 export function isBlockingStatus(status: AppointmentStatus): boolean {
   return !NON_BLOCKING_STATUSES.includes(status);
@@ -152,10 +177,45 @@ export function checkSlot(
     if (blockedTime) return { ok: false, reason: 'BLOCKED_TIME' };
   }
 
+  const pros = ctx.professionals ?? [];
+  if (pros.length > 0) return checkProfessionals(ctx, pros, date, start, end, options);
+
   const concurrent = maxConcurrentInInterval(ctx.appointments, date, start, end, options.excludeAppointmentId);
   if (concurrent >= Math.max(1, ctx.settings.capacity)) return { ok: false, reason: 'FULL' };
 
   return { ok: true };
+}
+
+/**
+ * Agenda por profissional: precisa existir um profissional habilitado e livre no intervalo inteiro,
+ * e o total de atendimentos simultâneos (incluindo antigos sem profissional) não pode passar
+ * do número de profissionais. Escolhe o profissional livre com menos minutos agendados no dia.
+ */
+function checkProfessionals(
+  ctx: AvailabilityContext,
+  pros: SchedulingProfessional[],
+  date: string,
+  start: number,
+  end: number,
+  options: SlotCheckOptions,
+): SlotCheckResult {
+  const qualified = qualifiedProfessionals(pros, options.serviceIds);
+  const candidates = options.professionalId ? qualified.filter((p) => p.id === options.professionalId) : qualified;
+  if (candidates.length === 0) return { ok: false, reason: 'NO_PROFESSIONAL' };
+
+  const exclude = options.excludeAppointmentId;
+  const free = candidates.filter(
+    (p) => maxConcurrentInInterval(ctx.appointments.filter((a) => a.professionalId === p.id), date, start, end, exclude) === 0,
+  );
+  if (free.length === 0) return { ok: false, reason: 'FULL' };
+  if (maxConcurrentInInterval(ctx.appointments, date, start, end, exclude) >= pros.length) return { ok: false, reason: 'FULL' };
+
+  const busyMinutes = (id: string) =>
+    ctx.appointments
+      .filter((a) => a.date === date && a.professionalId === id && isBlockingStatus(a.status) && (exclude == null || a.id !== exclude))
+      .reduce((sum, a) => sum + a.durationMinutes, 0);
+  const chosen = [...free].sort((a, b) => busyMinutes(a.id) - busyMinutes(b.id))[0]!;
+  return { ok: true, professionalId: chosen.id };
 }
 
 export interface DayAvailability {
@@ -170,6 +230,7 @@ export function getDayAvailability(
   ctx: AvailabilityContext,
   date: string,
   durationMinutes: number,
+  options: Pick<SlotCheckOptions, 'serviceIds' | 'professionalId'> = {},
 ): DayAvailability {
   const now = nowInTimezone(ctx.now, ctx.settings.timezone);
   const daysAhead = diffInDays(now.date, date);
@@ -190,11 +251,17 @@ export function getDayAvailability(
   const slots: DayAvailability['slots'] = [];
   for (let m = timeToMinutes(hours.openTime); m + durationMinutes <= timeToMinutes(hours.closeTime); m += step) {
     const time = minutesToTime(m);
-    const result = checkSlot(ctx, date, time, durationMinutes);
+    const result = checkSlot(ctx, date, time, durationMinutes, options);
     // Horários que caem no intervalo nem aparecem; os demais aparecem como ocupados/indisponíveis.
     if (!result.ok && result.reason === 'BREAK') continue;
     slots.push({ time, available: result.ok });
   }
   const anyAvailable = slots.some((s) => s.available);
   return { date, closedReason: anyAvailable || slots.length ? null : 'OUTSIDE_HOURS', slots };
+}
+
+/** Limite de atendimentos simultâneos: nº de profissionais ativos (agenda por profissional) ou vagas por horário. */
+export function effectiveCapacity(ctx: Pick<AvailabilityContext, 'professionals' | 'settings'>): number {
+  const pros = ctx.professionals?.length ?? 0;
+  return pros > 0 ? pros : Math.max(1, ctx.settings.capacity);
 }

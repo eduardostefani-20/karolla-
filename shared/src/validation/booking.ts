@@ -50,6 +50,10 @@ export const bookingRequestSchema = z.object({
   date: dateSchema,
   time: timeSchema,
   tutor: tutorStepSchema,
+  /** Profissional escolhido pelo cliente (null/ausente = sem preferência). */
+  professionalId: idSchema.nullable().optional(),
+  /** Inspiração de tosa escolhida no catálogo (só a referência; o servidor busca os dados). */
+  inspirationId: idSchema.nullable().optional(),
   /** Total que o cliente viu na tela. Se divergir do recálculo do servidor, o cliente é avisado. */
   expectedTotalCents: z.number().int().min(0).optional(),
   /** Honeypot anti-spam: deve chegar vazio. */
