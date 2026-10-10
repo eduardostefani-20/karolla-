@@ -1,6 +1,6 @@
 -- KAROLLA PET — schema consolidado (gerado a partir de migrations/*.sql; a fonte oficial são as migrations)
 
--- >>> migrations/0001_schema.sql
+-- >>> database/migrations/0001_schema.sql
 -- =============================================================================
 -- KAROLLA PET — 0001: Tabelas, relacionamentos e índices
 -- Banco: Supabase (PostgreSQL 15+). Execute as migrations em ordem.
@@ -14,6 +14,7 @@ create extension if not exists pgcrypto;
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -294,7 +295,7 @@ create trigger business_settings_updated_at before update on public.business_set
 
 insert into public.business_settings (id) values (1) on conflict do nothing;
 
--- >>> migrations/0002_functions.sql
+-- >>> database/migrations/0002_functions.sql
 -- =============================================================================
 -- KAROLLA PET — 0002: Funções de negócio (gravação atômica de agendamentos)
 -- Chamadas pelo back-end com a service role (supabase.rpc). Nunca expostas ao público.
@@ -305,6 +306,7 @@ create or replace function public.time_to_minutes(t time)
 returns integer
 language sql
 immutable
+set search_path = ''
 as $$ select (extract(hour from t) * 60 + extract(minute from t))::integer $$;
 
 -- Garante que [p_start, p_start + p_duration) não ultrapasse p_capacity atendimentos simultâneos.
@@ -319,6 +321,7 @@ create or replace function public.assert_slot_capacity(
 )
 returns void
 language plpgsql
+set search_path = ''
 as $$
 declare
   v_start integer := public.time_to_minutes(p_start);
@@ -363,6 +366,7 @@ create or replace function public.create_appointment(
 )
 returns uuid
 language plpgsql
+set search_path = ''
 as $$
 declare
   v_id uuid;
@@ -421,6 +425,7 @@ create or replace function public.update_appointment(
 )
 returns void
 language plpgsql
+set search_path = ''
 as $$
 declare
   r public.appointments%rowtype;
@@ -472,6 +477,10 @@ $$;
 revoke all on function public.assert_slot_capacity(date, time, integer, integer, uuid) from public;
 revoke all on function public.create_appointment(jsonb, jsonb, jsonb, integer) from public;
 revoke all on function public.update_appointment(uuid, jsonb, jsonb, jsonb, integer) from public;
+-- No Supabase, anon/authenticated recebem EXECUTE por padrão: revogar explicitamente.
+revoke all on function public.assert_slot_capacity(date, time, integer, integer, uuid) from anon, authenticated;
+revoke all on function public.create_appointment(jsonb, jsonb, jsonb, integer) from anon, authenticated;
+revoke all on function public.update_appointment(uuid, jsonb, jsonb, jsonb, integer) from anon, authenticated;
 grant execute on function public.assert_slot_capacity(date, time, integer, integer, uuid) to service_role;
 grant execute on function public.create_appointment(jsonb, jsonb, jsonb, integer) to service_role;
 grant execute on function public.update_appointment(uuid, jsonb, jsonb, jsonb, integer) to service_role;
@@ -481,7 +490,7 @@ create or replace function public.handle_new_auth_user()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.users (id, email, name)
@@ -491,11 +500,13 @@ begin
 end;
 $$;
 
+revoke all on function public.handle_new_auth_user() from public, anon, authenticated;
+
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_auth_user();
 
--- >>> migrations/0003_rls.sql
+-- >>> database/migrations/0003_rls.sql
 -- =============================================================================
 -- KAROLLA PET — 0003: Row Level Security
 --
@@ -511,7 +522,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (select 1 from public.admins a where a.user_id = auth.uid() and a.active);
 $$;
@@ -521,7 +532,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (select 1 from public.admins a where a.user_id = auth.uid() and a.active and a.role = 'owner');
 $$;
@@ -583,3 +594,22 @@ create policy "usuario: proprio perfil" on public.users for select to authentica
 create policy "usuario: atualiza proprio perfil" on public.users for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 create policy "admins: leitura" on public.admins for select to authenticated using (user_id = auth.uid() or public.is_admin());
 create policy "admins: somente owner altera" on public.admins for all to authenticated using (public.is_owner()) with check (public.is_owner());
+
+-- >>> database/migrations/0004_hardening.sql
+-- =============================================================================
+-- KAROLLA PET — 0004: Endurecimento de segurança (recomendações do Supabase Advisor)
+-- is_admin()/is_owner() são SECURITY DEFINER e só existem para as políticas RLS:
+-- ficam num schema não exposto pela API (private) e sem acesso para anon.
+-- As políticas continuam funcionando (referenciam a função pelo OID).
+-- =============================================================================
+create schema if not exists private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated, service_role;
+
+alter function public.is_admin() set schema private;
+alter function public.is_owner() set schema private;
+
+revoke all on function private.is_admin() from public, anon;
+revoke all on function private.is_owner() from public, anon;
+grant execute on function private.is_admin() to authenticated, service_role;
+grant execute on function private.is_owner() to authenticated, service_role;

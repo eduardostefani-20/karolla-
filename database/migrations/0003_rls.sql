@@ -13,7 +13,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (select 1 from public.admins a where a.user_id = auth.uid() and a.active);
 $$;
@@ -23,7 +23,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (select 1 from public.admins a where a.user_id = auth.uid() and a.active and a.role = 'owner');
 $$;

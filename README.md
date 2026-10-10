@@ -119,7 +119,8 @@ Veja [`.env.example`](.env.example) (comentado). Resumo:
 ## Como conectar o Supabase
 
 1. Crie um projeto em supabase.com.
-2. No **SQL Editor**, execute em ordem: `database/migrations/0001_schema.sql`, `0002_functions.sql`, `0003_rls.sql`.
+2. No **SQL Editor**, execute em ordem: `database/migrations/0001_schema.sql`, `0002_functions.sql`, `0003_rls.sql`, `0004_hardening.sql`.
+   *(No projeto `karolla pet` isso já foi feito — veja [docs/SUPABASE.md](docs/SUPABASE.md).)*
 3. Execute `database/seed/0001_catalog.sql` (catálogo inicial). Opcional: `0002_demo_prices.sql`
    (**preços fictícios**, para ter algo a editar) e `0003_demo_customers.sql` (clientes fictícios — não use em produção).
 4. Em *Project Settings → API*, copie URL, `anon` e `service_role` para o `.env`:

@@ -8,6 +8,7 @@ create or replace function public.time_to_minutes(t time)
 returns integer
 language sql
 immutable
+set search_path = ''
 as $$ select (extract(hour from t) * 60 + extract(minute from t))::integer $$;
 
 -- Garante que [p_start, p_start + p_duration) não ultrapasse p_capacity atendimentos simultâneos.
@@ -22,6 +23,7 @@ create or replace function public.assert_slot_capacity(
 )
 returns void
 language plpgsql
+set search_path = ''
 as $$
 declare
   v_start integer := public.time_to_minutes(p_start);
@@ -66,6 +68,7 @@ create or replace function public.create_appointment(
 )
 returns uuid
 language plpgsql
+set search_path = ''
 as $$
 declare
   v_id uuid;
@@ -124,6 +127,7 @@ create or replace function public.update_appointment(
 )
 returns void
 language plpgsql
+set search_path = ''
 as $$
 declare
   r public.appointments%rowtype;
@@ -175,6 +179,10 @@ $$;
 revoke all on function public.assert_slot_capacity(date, time, integer, integer, uuid) from public;
 revoke all on function public.create_appointment(jsonb, jsonb, jsonb, integer) from public;
 revoke all on function public.update_appointment(uuid, jsonb, jsonb, jsonb, integer) from public;
+-- No Supabase, anon/authenticated recebem EXECUTE por padrão: revogar explicitamente.
+revoke all on function public.assert_slot_capacity(date, time, integer, integer, uuid) from anon, authenticated;
+revoke all on function public.create_appointment(jsonb, jsonb, jsonb, integer) from anon, authenticated;
+revoke all on function public.update_appointment(uuid, jsonb, jsonb, jsonb, integer) from anon, authenticated;
 grant execute on function public.assert_slot_capacity(date, time, integer, integer, uuid) to service_role;
 grant execute on function public.create_appointment(jsonb, jsonb, jsonb, integer) to service_role;
 grant execute on function public.update_appointment(uuid, jsonb, jsonb, jsonb, integer) to service_role;
@@ -184,7 +192,7 @@ create or replace function public.handle_new_auth_user()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.users (id, email, name)
@@ -193,6 +201,8 @@ begin
   return new;
 end;
 $$;
+
+revoke all on function public.handle_new_auth_user() from public, anon, authenticated;
 
 create trigger on_auth_user_created
   after insert on auth.users
