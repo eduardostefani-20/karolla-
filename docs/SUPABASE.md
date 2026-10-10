@@ -17,6 +17,12 @@ do total (dentro de uma transação desfeita), e acesso anônimo restrito ao cat
 não aponta problemas no banco; resta apenas ativar *Leaked password protection* em
 Authentication → Providers → Email (configuração do painel).
 
+## Produção no Netlify
+
+O site `cool-hotteok-c96ed7` roda com `APP_MODE=production`: banco e login no Supabase.
+Administrador: o usuário do Supabase Auth com registro ativo em `public.admins` (perfil `owner`).
+O login de demonstração foi removido.
+
 ## 1. Banco
 No *SQL Editor* do projeto, execute **em ordem**:
 
