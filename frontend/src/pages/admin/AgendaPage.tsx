@@ -67,7 +67,7 @@ function DayTimeline({ items, open, close, professionals }: { items: Appointment
       {byPro && (
         <div className="mb-2 ml-16 grid gap-1" style={{ gridTemplateColumns: `repeat(${laneCount}, minmax(0, 1fr))`, minWidth: laneCount * 120 }}>
           {byPro.headers.map((h, i) => (
-            <span key={i} className={cn('truncate rounded-lg px-2 py-1 text-center text-xs font-bold', readableTextOn(h.color) === 'dark' ? 'text-primary-dark' : 'text-white')} style={{ background: h.color }}>
+            <span key={i} className={cn('truncate rounded-lg px-2 py-1 text-center text-xs font-bold', readableTextOn(h.color) === 'dark' ? 'text-ink-800' : 'text-white')} style={{ background: h.color }}>
               {h.name}
             </span>
           ))}

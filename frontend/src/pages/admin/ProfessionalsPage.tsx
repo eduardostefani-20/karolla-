@@ -109,7 +109,7 @@ export default function ProfessionalsPage() {
           {data.professionals.map((p, i) => (
             <li key={p.id} className="card flex items-center gap-3 p-4" data-testid={`admin-professional-${p.name}`}>
               <ReorderButtons index={i} total={data.professionals.length} onMove={move} label={p.name} />
-              <span className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-full font-heading text-lg font-extrabold', readableTextOn(p.color) === 'dark' ? 'text-primary-dark' : 'text-white')} style={{ background: p.color }} aria-hidden>
+              <span className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-full font-heading text-lg font-extrabold', readableTextOn(p.color) === 'dark' ? 'text-ink-800' : 'text-white')} style={{ background: p.color }} aria-hidden>
                 {p.name.slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
@@ -134,7 +134,7 @@ export default function ProfessionalsPage() {
             <fieldset>
               <legend className="mb-2 text-sm font-semibold text-ink-700">Cor na agenda</legend>
               <div className="flex flex-wrap gap-2">
-                {COLORS.map((c) => (
+                {(COLORS.some((c) => c.toLowerCase() === editing.color.toLowerCase()) ? COLORS : [editing.color, ...COLORS]).map((c) => (
                   <button key={c} type="button" onClick={() => setEditing({ ...editing, color: c })} aria-label={`Cor: ${colorName(c)}`} aria-pressed={editing.color === c} className="h-9 w-9 rounded-full ring-offset-2 aria-pressed:ring-2 aria-pressed:ring-ink-800" style={{ background: c }} />
                 ))}
               </div>

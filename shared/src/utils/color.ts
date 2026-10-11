@@ -4,12 +4,12 @@
  */
 export const PROFESSIONAL_COLORS = [
   { hex: '#6A1FA0', name: 'Roxo' },
-  { hex: '#9B5FD0', name: 'Lilás' },
+  { hex: '#8239BC', name: 'Violeta' },
   { hex: '#3D0E63', name: 'Roxo profundo' },
   { hex: '#8A9A1C', name: 'Verde-oliva' },
   { hex: '#566011', name: 'Verde musgo' },
   { hex: '#F9B21D', name: 'Amarelo-ouro' },
-  { hex: '#B97C04', name: 'Dourado' },
+  { hex: '#8C5D06', name: 'Dourado' },
   { hex: '#645275', name: 'Cinza-lavanda' },
 ] as const;
 
@@ -22,13 +22,13 @@ function luminance(hex: string): number {
 }
 
 /**
- * Texto legível sobre uma cor de fundo (WCAG): 'dark' (roxo profundo) para fundos claros como amarelo
+ * Texto legível sobre uma cor de fundo (WCAG): 'dark' (roxo quase preto, --color-text) para fundos claros como amarelo
  * e verde-oliva, 'light' (branco) para os demais. Valores que não são hex retornam 'light'.
  */
 export function readableTextOn(hex: string): 'light' | 'dark' {
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return 'light';
   const bg = luminance(hex);
   const white = 1.05 / (bg + 0.05);
-  const dark = (bg + 0.05) / (luminance('#3D0E63') + 0.05);
+  const dark = (bg + 0.05) / (luminance('#2A0A45') + 0.05);
   return dark > white ? 'dark' : 'light';
 }
