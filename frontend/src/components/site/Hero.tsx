@@ -16,14 +16,14 @@ export function Hero({ top }: { top?: ReactNode }) {
       <Blob tone="accent" className="absolute -right-24 -top-24 hidden h-72 w-72 opacity-90 lg:block" />
       <Blob tone="leaf" className="absolute -bottom-12 -left-16 h-40 w-40 rotate-45 opacity-90" />
       <Blob tone="accent" className="absolute -bottom-14 -right-14 h-36 w-36 opacity-90 lg:hidden" />
-      <SparkleIcon className="absolute right-[8%] top-10 hidden h-8 w-8 text-accent sm:block lg:text-primary-dark" />
+      <SparkleIcon className="absolute right-20 top-10 hidden h-8 w-8 text-accent sm:block lg:text-primary-dark" />
       <HeartIcon className="absolute left-[46%] top-16 hidden h-6 w-6 rotate-12 text-leaf-300 lg:block" />
 
       <div className="container-page relative pt-5">{top}</div>
       <div className="container-page relative grid items-center gap-10 pb-16 pt-6 sm:pb-24 sm:pt-8 lg:grid-cols-2">
         <div className="relative animate-fade-up text-center lg:text-left">
           <span className="eyebrow">{hero.eyebrow}</span>
-          <h1 id="hero-titulo" className="title-display mt-5 text-display-hero text-white">
+          <h1 id="hero-titulo" className="title-display mt-5 text-display-hero text-white lg:text-[4rem]">
             {first},{' '}
             <span className="relative inline-block whitespace-nowrap text-accent">
               {rest.join(',').trim()}
