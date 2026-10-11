@@ -33,8 +33,8 @@ export function AppointmentCard({ a, showDate }: { a: AppointmentDetail; showDat
         <p className="truncate text-xs text-ink-500">
           {a.pet.breedName} • Tutor: {a.customer.name}
           {a.professional && (
-            <span className="ml-1 inline-flex items-center gap-1 font-semibold" style={{ color: a.professional.color }}>
-              • {a.professional.name}
+            <span className="ml-1 inline-flex items-center gap-1 font-semibold text-ink-600">
+              • <span className="h-2 w-2 rounded-full" style={{ background: a.professional.color }} aria-hidden /> {a.professional.name}
             </span>
           )}
         </p>

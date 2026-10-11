@@ -18,7 +18,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
 export const STATUS_STYLES: Record<AppointmentStatus, string> = {
   pending: 'bg-sun-200 text-sun-900',
   confirmed: 'bg-brand-100 text-brand-800',
-  in_progress: 'bg-brand-100 text-brand-800',
+  in_progress: 'bg-primary text-white',
   completed: 'bg-leaf-100 text-leaf-800',
   cancelled: 'bg-ink-900/10 text-ink-600',
   no_show: 'bg-danger-100 text-danger-700',
