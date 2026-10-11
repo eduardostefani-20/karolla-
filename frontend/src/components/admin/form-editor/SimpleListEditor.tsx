@@ -70,7 +70,7 @@ export function SimpleListEditor<T extends ListItem>({
         </Button>
         <Button
           size="sm"
-          variant="secondary"
+          variant="primary"
           loading={busy}
           icon={<Check className="h-4 w-4" />}
           onClick={() => (editingId === 'new' ? run(() => onCreate(draft), 'Opção adicionada.') : run(() => onUpdate(editingId as string, draft), 'Opção atualizada.'))}
@@ -104,7 +104,7 @@ export function SimpleListEditor<T extends ListItem>({
             </div>
             <Toggle checked={item.active} label={item.active ? 'Ativo' : 'Inativo'} onChange={(v) => run(() => onUpdate(item.id, { active: v } as Partial<T>), v ? 'Opção ativada.' : 'Opção desativada.')} />
             <Button size="sm" variant="ghost" aria-label={`Editar ${item.name}`} onClick={() => { setDraft(item); setEditingId(item.id); }} icon={<Pencil className="h-4 w-4" />} />
-            <Button size="sm" variant="ghost" aria-label={`Excluir ${item.name}`} onClick={() => setToDelete(item)} icon={<Trash2 className="h-4 w-4 text-red-500" />} />
+            <Button size="sm" variant="ghost" aria-label={`Excluir ${item.name}`} onClick={() => setToDelete(item)} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
           </div>
         ),
       )}

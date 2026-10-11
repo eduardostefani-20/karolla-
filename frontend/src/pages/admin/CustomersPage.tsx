@@ -30,7 +30,7 @@ export default function CustomersPage() {
       {data && data.length > 0 && (
         <div className="card overflow-hidden">
           <table className="w-full text-left text-sm">
-            <thead className="hidden bg-cream-50 text-xs font-bold uppercase tracking-wide text-ink-400 md:table-header-group">
+            <thead className="hidden bg-lilac-50 text-xs font-bold uppercase tracking-wide text-ink-400 md:table-header-group">
               <tr>
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">WhatsApp</th>

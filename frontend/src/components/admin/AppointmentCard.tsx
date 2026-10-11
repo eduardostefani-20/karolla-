@@ -14,7 +14,7 @@ export function AppointmentCard({ a, showDate }: { a: AppointmentDetail; showDat
     >
       <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-50 py-2 text-brand-800">
         {showDate && <span className="text-[11px] font-bold">{formatDateBR(a.date).slice(0, 5)}</span>}
-        <span className="font-display text-lg font-semibold tabular-nums">{a.time}</span>
+        <span className="font-heading text-lg font-semibold tabular-nums">{a.time}</span>
         <span className="flex items-center gap-0.5 text-[10px] text-brand-600">
           <Clock className="h-2.5 w-2.5" aria-hidden />
           {end}
@@ -22,9 +22,9 @@ export function AppointmentCard({ a, showDate }: { a: AppointmentDetail; showDat
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-display text-lg font-semibold text-ink-900 group-hover:text-brand-700">{a.pet.name}</p>
+          <p className="font-heading text-lg font-semibold text-ink-900 group-hover:text-brand-700">{a.pet.name}</p>
           <StatusBadge status={a.status} />
-          {a.inspiration && <ImageIcon className="h-4 w-4 text-coral-500" aria-label="Com foto de inspiração" />}
+          {a.inspiration && <ImageIcon className="h-4 w-4 text-brand-500" aria-label="Com foto de inspiração" />}
         </div>
         <p className="truncate text-sm font-medium text-ink-700">
           {a.services.map((s) => s.name).join(' + ')}

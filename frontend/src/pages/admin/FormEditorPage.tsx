@@ -151,12 +151,12 @@ export default function FormEditorPage() {
           {tab === 'servicos' && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Link to="/admin/servicos" className="card group p-6 hover:shadow-soft">
-                <p className="font-display text-xl font-semibold">Serviços</p>
+                <p className="font-heading text-xl font-semibold">Serviços</p>
                 <p className="mt-1 text-sm text-ink-500">Criar, editar, desativar e ordenar serviços.</p>
                 <ArrowRight className="mt-4 h-5 w-5 text-brand-600 transition-transform group-hover:translate-x-1" aria-hidden />
               </Link>
               <Link to="/admin/precos" className="card group p-6 hover:shadow-soft">
-                <p className="font-display text-xl font-semibold">Preços</p>
+                <p className="font-heading text-xl font-semibold">Preços</p>
                 <p className="mt-1 text-sm text-ink-500">Valor de cada serviço por porte.</p>
                 <ArrowRight className="mt-4 h-5 w-5 text-brand-600 transition-transform group-hover:translate-x-1" aria-hidden />
               </Link>

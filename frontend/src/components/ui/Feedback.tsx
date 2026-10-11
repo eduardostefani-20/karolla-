@@ -13,9 +13,9 @@ export function Spinner({ label = 'Carregando...', className }: { label?: string
 
 const tones = {
   info: { box: 'bg-brand-50 text-brand-900 border-brand-200', icon: Info },
-  success: { box: 'bg-emerald-50 text-emerald-900 border-emerald-200', icon: CheckCircle2 },
-  warning: { box: 'bg-sun-100 text-amber-900 border-sun-300', icon: AlertTriangle },
-  error: { box: 'bg-red-50 text-red-900 border-red-200', icon: XCircle },
+  success: { box: 'bg-leaf-50 text-leaf-900 border-leaf-200', icon: CheckCircle2 },
+  warning: { box: 'bg-sun-100 text-sun-900 border-sun-300', icon: AlertTriangle },
+  error: { box: 'bg-danger-50 text-danger-900 border-danger-200', icon: XCircle },
 };
 
 export function Alert({ tone = 'info', title, children, action, className }: { tone?: keyof typeof tones; title?: ReactNode; children?: ReactNode; action?: ReactNode; className?: string }) {
@@ -36,7 +36,7 @@ export function EmptyState({ icon, title, children }: { icon?: ReactNode; title:
   return (
     <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-ink-900/10 px-6 py-12 text-center">
       {icon && <div className="text-brand-400">{icon}</div>}
-      <p className="font-display text-lg text-ink-800">{title}</p>
+      <p className="font-heading text-lg text-ink-800">{title}</p>
       {children && <div className="max-w-sm text-sm text-ink-500">{children}</div>}
     </div>
   );

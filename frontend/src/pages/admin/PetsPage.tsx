@@ -37,7 +37,7 @@ export default function PetsPage() {
               <Link to={`/admin/pets/${p.id}`} className="card flex h-full gap-4 p-4 transition-all hover:-translate-y-0.5 hover:shadow-soft">
                 <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-50 text-2xl" aria-hidden>{speciesOf(p.speciesId)?.emoji ?? '🐾'}</span>
                 <div className="min-w-0 text-sm">
-                  <p className="font-display text-lg font-semibold">{p.name}</p>
+                  <p className="font-heading text-lg font-semibold">{p.name}</p>
                   <p className="text-ink-600">{p.breedName} • {sizeOf(p.sizeId)}</p>
                   <p className="text-ink-500">{[p.weightKg != null && `${p.weightKg} kg`, formatAge(p.ageMonths)].filter(Boolean).join(' • ') || '—'}</p>
                   <p className="mt-1 truncate text-xs text-ink-400">Tutor: {p.customerName}</p>

@@ -12,7 +12,7 @@ export function InstagramFeed({ limit = 9 }: { limit?: number }) {
   return (
     <section aria-labelledby="feed-titulo" className="mt-12">
       <h2 id="feed-titulo" className="mb-4 flex items-center gap-2 text-2xl font-semibold">
-        <Instagram className="h-6 w-6 text-coral-500" aria-hidden /> No nosso Instagram
+        <Instagram className="h-6 w-6 text-brand-600" aria-hidden /> No nosso Instagram
       </h2>
       <ul className="grid grid-cols-3 gap-1 sm:gap-3">
         {data.posts.slice(0, limit).map((post) => (

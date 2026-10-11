@@ -135,7 +135,7 @@ export default function InspirationsAdminPage() {
                 <Toggle checked={i.active} onChange={() => toggle(i)} label={i.active ? 'No site' : 'Oculta'} className="gap-2 whitespace-nowrap" />
                 <span className="flex">
                   <Button size="sm" variant="ghost" aria-label={`Editar ${i.title}`} onClick={() => setEditing({ ...i, breedId: i.breedId ?? OTHER, serviceId: i.serviceId ?? '' })} icon={<Pencil className="h-4 w-4" />} />
-                  <Button size="sm" variant="ghost" aria-label={`Excluir ${i.title}`} onClick={() => setToDelete(i)} icon={<Trash2 className="h-4 w-4 text-red-500" />} />
+                  <Button size="sm" variant="ghost" aria-label={`Excluir ${i.title}`} onClick={() => setToDelete(i)} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
                 </span>
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function InspirationsAdminPage() {
       </ul>
 
       {editing && catalog && (
-        <Modal open size="lg" onClose={() => setEditing(null)} title={editing.id ? 'Editar inspiração' : 'Nova inspiração'} footer={<><Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button><Button variant="secondary" onClick={save} loading={saving}>Salvar</Button></>}>
+        <Modal open size="lg" onClose={() => setEditing(null)} title={editing.id ? 'Editar inspiração' : 'Nova inspiração'} footer={<><Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button><Button variant="primary" onClick={save} loading={saving}>Salvar</Button></>}>
           <div className="grid gap-5 sm:grid-cols-[220px_1fr]">
             <div>
               <MediaPicker
@@ -153,7 +153,7 @@ export default function InspirationsAdminPage() {
                 value={editing.imageUrl ? { url: editing.imageUrl, mediaType: 'image' } : null}
                 onUploaded={(m) => setEditing((d) => (d ? { ...d, imageUrl: m.url, storagePath: m.path } : d))}
               />
-              {errors.imageUrl && <p className="mt-1 text-sm text-red-600">{errors.imageUrl}</p>}
+              {errors.imageUrl && <p className="mt-1 text-sm text-danger-600">{errors.imageUrl}</p>}
             </div>
             <div className="space-y-4">
               <Field label="Título" required error={errors.title}>{(p) => <Input {...p} value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} placeholder="Ex.: Tosa bebê" />}</Field>

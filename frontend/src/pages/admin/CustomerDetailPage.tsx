@@ -51,7 +51,7 @@ export default function CustomerDetailPage() {
               {c.pets.map((p) => (
                 <li key={p.id}>
                   <Link to={`/admin/pets/${p.id}`} className="block rounded-2xl border border-ink-900/5 px-4 py-3 hover:border-brand-200 hover:bg-brand-50">
-                    <p className="font-display text-lg font-semibold">{p.name}</p>
+                    <p className="font-heading text-lg font-semibold">{p.name}</p>
                     <p className="text-sm text-ink-500">{[p.breedName, p.weightKg != null && `${p.weightKg} kg`, formatAge(p.ageMonths)].filter(Boolean).join(' • ')}</p>
                   </Link>
                 </li>

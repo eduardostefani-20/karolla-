@@ -86,10 +86,10 @@ export default function StoriesAdminPage() {
             </div>
             <div className="space-y-1 p-3">
               {s.caption && <p className="line-clamp-2 text-sm">{s.caption}</p>}
-              <p className="flex items-center gap-1 text-xs font-semibold text-coral-600">
+              <p className="flex items-center gap-1 text-xs font-semibold text-brand-700">
                 <Clock className="h-3.5 w-3.5" aria-hidden /> {remaining(s.expiresAt, now)}
               </p>
-              <Button size="sm" variant="ghost" className="-ml-3" onClick={() => setToDelete(s)} icon={<Trash2 className="h-4 w-4 text-red-500" />}>
+              <Button size="sm" variant="ghost" className="-ml-3" onClick={() => setToDelete(s)} icon={<Trash2 className="h-4 w-4 text-danger-500" />}>
                 Excluir
               </Button>
             </div>
@@ -102,7 +102,7 @@ export default function StoriesAdminPage() {
           open
           onClose={() => { setPicking(false); setCreating(null); }}
           title="Novo story"
-          footer={<><Button variant="ghost" onClick={() => { setPicking(false); setCreating(null); }}>Cancelar</Button><Button variant="secondary" onClick={publish} loading={saving} disabled={!creating}>Publicar por 24 horas</Button></>}
+          footer={<><Button variant="ghost" onClick={() => { setPicking(false); setCreating(null); }}>Cancelar</Button><Button variant="primary" onClick={publish} loading={saving} disabled={!creating}>Publicar por 24 horas</Button></>}
         >
           <div className="space-y-4">
             <MediaPicker kind="story" label="Foto ou vídeo" value={creating ? { url: creating.url, mediaType: creating.mediaType } : null} onUploaded={(m) => setCreating((c) => ({ ...m, caption: c?.caption ?? '' }))} />

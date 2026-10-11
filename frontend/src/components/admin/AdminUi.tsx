@@ -16,12 +16,12 @@ export function PageHeader({ title, description, actions }: { title: string; des
 }
 
 export const STATUS_STYLES: Record<AppointmentStatus, string> = {
-  pending: 'bg-sun-200 text-amber-900',
+  pending: 'bg-sun-200 text-sun-900',
   confirmed: 'bg-brand-100 text-brand-800',
-  in_progress: 'bg-violet-100 text-violet-800',
-  completed: 'bg-emerald-100 text-emerald-800',
+  in_progress: 'bg-brand-100 text-brand-800',
+  completed: 'bg-leaf-100 text-leaf-800',
   cancelled: 'bg-ink-900/10 text-ink-600',
-  no_show: 'bg-red-100 text-red-700',
+  no_show: 'bg-danger-100 text-danger-700',
 };
 
 export function StatusBadge({ status }: { status: AppointmentStatus }) {
@@ -42,11 +42,11 @@ export function Panel({ title, actions, children, className }: { title?: ReactNo
   );
 }
 
-export function StatCard({ label, value, icon, tone = 'brand' }: { label: string; value: ReactNode; icon: ReactNode; tone?: 'brand' | 'coral' | 'sun' | 'ink' }) {
+export function StatCard({ label, value, icon, tone = 'brand' }: { label: string; value: ReactNode; icon: ReactNode; tone?: 'brand' | 'leaf' | 'sun' | 'ink' }) {
   const tones = {
     brand: 'bg-brand-100 text-brand-700',
-    coral: 'bg-coral-100 text-coral-600',
-    sun: 'bg-sun-200 text-amber-800',
+    leaf: 'bg-leaf-100 text-leaf-700',
+    sun: 'bg-sun-200 text-sun-800',
     ink: 'bg-ink-900/5 text-ink-600',
   };
   return (
@@ -54,7 +54,7 @@ export function StatCard({ label, value, icon, tone = 'brand' }: { label: string
       <span className={cn('grid h-12 w-12 shrink-0 place-items-center rounded-2xl', tones[tone])}>{icon}</span>
       <div className="min-w-0">
         <p className="truncate text-xs font-bold uppercase tracking-wide text-ink-400">{label}</p>
-        <p className="font-display text-2xl font-semibold text-ink-900">{value}</p>
+        <p className="font-heading text-2xl font-semibold text-ink-900">{value}</p>
       </div>
     </div>
   );

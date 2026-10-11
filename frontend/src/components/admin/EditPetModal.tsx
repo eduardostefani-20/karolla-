@@ -56,7 +56,7 @@ export function EditPetModal({ pet, catalog, open, onClose, onSaved }: { pet: Pe
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Editar pet" size="lg" footer={<><Button variant="ghost" onClick={onClose}>Cancelar</Button><Button variant="secondary" onClick={save} loading={saving}>Salvar</Button></>}>
+    <Modal open={open} onClose={onClose} title="Editar pet" size="lg" footer={<><Button variant="ghost" onClick={onClose}>Cancelar</Button><Button variant="primary" onClick={save} loading={saving}>Salvar</Button></>}>
       <div className="space-y-4">
         {error && <Alert tone="error">{error}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">

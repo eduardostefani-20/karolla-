@@ -41,7 +41,7 @@ export function EditCustomerModal({ customer, open, onClose, onSaved }: { custom
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Editar tutor" size="lg" footer={<><Button variant="ghost" onClick={onClose}>Cancelar</Button><Button variant="secondary" onClick={save} loading={saving}>Salvar</Button></>}>
+    <Modal open={open} onClose={onClose} title="Editar tutor" size="lg" footer={<><Button variant="ghost" onClick={onClose}>Cancelar</Button><Button variant="primary" onClick={save} loading={saving}>Salvar</Button></>}>
       <div className="space-y-4">
         {error && <Alert tone="error">{error}</Alert>}
         <Field label="Nome completo" required error={errors.name}>{(p) => <Input {...p} value={form.name} onChange={(e) => set({ name: e.target.value })} />}</Field>

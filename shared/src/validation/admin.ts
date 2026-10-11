@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ADMIN_ROLES, APPOINTMENT_STATUSES, FORM_FIELD_KEYS } from '../types/domain';
+import { DEFAULT_PROFESSIONAL_COLOR } from '../utils/color';
 import {
   centsSchema,
   dateSchema,
@@ -237,7 +238,7 @@ export const adminRoleSchema = z.enum(ADMIN_ROLES);
 export const professionalSchema = z.object({
   name: requiredText('o nome', 80),
   serviceIds: z.array(idSchema).max(100).default([]),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida.').default('#279790'),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida.').default(DEFAULT_PROFESSIONAL_COLOR),
   active: z.boolean().default(true),
   sortOrder: sortOrderSchema.default(0),
 });

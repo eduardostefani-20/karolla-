@@ -46,7 +46,7 @@ export function FieldsEditor({ fields, onSaved }: { fields: FormFieldConfig[]; o
       </p>
       {GROUPS.map((g) => (
         <section key={g.title}>
-          <h3 className="mb-3 font-display text-lg font-semibold">{g.title}</h3>
+          <h3 className="mb-3 font-heading text-lg font-semibold">{g.title}</h3>
           <div className="space-y-3">
             {g.keys.map((key) => {
               const f = draft.find((x) => x.key === key);
@@ -73,7 +73,7 @@ export function FieldsEditor({ fields, onSaved }: { fields: FormFieldConfig[]; o
         </section>
       ))}
       <div className="flex justify-end">
-        <Button variant="secondary" size="lg" onClick={save} loading={saving} icon={<Save className="h-5 w-5" />}>
+        <Button variant="primary" size="lg" onClick={save} loading={saving} icon={<Save className="h-5 w-5" />}>
           Salvar formulário
         </Button>
       </div>

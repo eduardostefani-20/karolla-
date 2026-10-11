@@ -67,7 +67,7 @@ export default function PricesPage() {
           {data.services.map((s) => (
             <section key={s.id} className="card p-5" aria-labelledby={`preco-${s.id}`}>
               <div className="mb-3 flex items-center gap-2">
-                <h2 id={`preco-${s.id}`} className="font-display text-lg font-semibold uppercase tracking-wide">{s.name}</h2>
+                <h2 id={`preco-${s.id}`} className="font-heading text-lg font-semibold uppercase tracking-wide">{s.name}</h2>
                 {!s.active && <Badge className="bg-ink-900/10 text-ink-600">Inativo</Badge>}
               </div>
               <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -99,7 +99,7 @@ export default function PricesPage() {
               </span>
             )}
           </p>
-          <Button variant="secondary" size="lg" onClick={save} loading={saving} disabled={!changed.length} icon={<Save className="h-5 w-5" />}>
+          <Button variant="primary" size="lg" onClick={save} loading={saving} disabled={!changed.length} icon={<Save className="h-5 w-5" />}>
             Salvar alterações
           </Button>
         </div>

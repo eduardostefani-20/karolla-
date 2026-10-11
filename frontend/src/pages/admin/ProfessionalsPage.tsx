@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pencil, Plus, Trash2, UserRound } from 'lucide-react';
-import type { Professional } from '@karolla/shared';
+import { PROFESSIONAL_COLORS, readableTextOn, type Professional } from '@karolla/shared';
+import { cn } from '@/utils/cn';
 import { adminApi } from '@/services/adminApi';
 import { ApiError, friendlyMessage } from '@/services/api';
 import { useAsync } from '@/hooks/useAsync';
@@ -16,7 +17,8 @@ import { PageHeader } from '@/components/admin/AdminUi';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { moveItem, ReorderButtons } from '@/components/admin/ReorderButtons';
 
-const COLORS = ['#279790', '#f65d34', '#7c3aed', '#f5ae00', '#2563eb', '#db2777', '#16a34a', '#6b7280'];
+const COLORS = PROFESSIONAL_COLORS.map((c) => c.hex);
+const colorName = (hex: string) => PROFESSIONAL_COLORS.find((c) => c.hex.toLowerCase() === hex.toLowerCase())?.name ?? hex;
 type Draft = { id?: string; name: string; color: string; serviceIds: string[]; active: boolean };
 
 /** Equipe: cada profissional atende 1 pet por vez; a agenda passa a ser por profissional. */
@@ -107,11 +109,11 @@ export default function ProfessionalsPage() {
           {data.professionals.map((p, i) => (
             <li key={p.id} className="card flex items-center gap-3 p-4" data-testid={`admin-professional-${p.name}`}>
               <ReorderButtons index={i} total={data.professionals.length} onMove={move} label={p.name} />
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full font-display text-lg font-semibold text-white" style={{ background: p.color }} aria-hidden>
+              <span className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-full font-heading text-lg font-extrabold', readableTextOn(p.color) === 'dark' ? 'text-primary-dark' : 'text-white')} style={{ background: p.color }} aria-hidden>
                 {p.name.slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="flex flex-wrap items-center gap-2 font-display text-lg font-semibold">
+                <p className="flex flex-wrap items-center gap-2 font-heading text-lg font-semibold">
                   {p.name} {!p.active && <Badge className="bg-ink-900/10 text-ink-600">Inativo</Badge>}
                 </p>
                 <p className="truncate text-sm text-ink-500">
@@ -120,20 +122,20 @@ export default function ProfessionalsPage() {
               </div>
               <Toggle checked={p.active} onChange={() => toggle(p)} label={p.active ? 'Ativo' : 'Inativo'} />
               <Button size="sm" variant="ghost" aria-label={`Editar ${p.name}`} onClick={() => setEditing({ ...p })} icon={<Pencil className="h-4 w-4" />} />
-              <Button size="sm" variant="ghost" aria-label={`Excluir ${p.name}`} onClick={() => setToDelete(p)} icon={<Trash2 className="h-4 w-4 text-red-500" />} />
+              <Button size="sm" variant="ghost" aria-label={`Excluir ${p.name}`} onClick={() => setToDelete(p)} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
             </li>
           ))}
         </ul>
       )}
       {editing && data && (
-        <Modal open onClose={() => setEditing(null)} title={editing.id ? 'Editar profissional' : 'Novo profissional'} footer={<><Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button><Button variant="secondary" onClick={save} loading={saving}>Salvar</Button></>}>
+        <Modal open onClose={() => setEditing(null)} title={editing.id ? 'Editar profissional' : 'Novo profissional'} footer={<><Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button><Button variant="primary" onClick={save} loading={saving}>Salvar</Button></>}>
           <div className="space-y-4">
             <Field label="Nome" required error={errors.name}>{(p) => <Input {...p} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Ex.: Carol" />}</Field>
             <fieldset>
               <legend className="mb-2 text-sm font-semibold text-ink-700">Cor na agenda</legend>
               <div className="flex flex-wrap gap-2">
                 {COLORS.map((c) => (
-                  <button key={c} type="button" onClick={() => setEditing({ ...editing, color: c })} aria-label={`Cor ${c}`} aria-pressed={editing.color === c} className="h-9 w-9 rounded-full ring-offset-2 aria-pressed:ring-2 aria-pressed:ring-ink-800" style={{ background: c }} />
+                  <button key={c} type="button" onClick={() => setEditing({ ...editing, color: c })} aria-label={`Cor: ${colorName(c)}`} aria-pressed={editing.color === c} className="h-9 w-9 rounded-full ring-offset-2 aria-pressed:ring-2 aria-pressed:ring-ink-800" style={{ background: c }} />
                 ))}
               </div>
             </fieldset>

@@ -140,14 +140,14 @@ function EditForm({ a, onSaved }: { a: AppointmentDetail; onSaved: (a: Appointme
       </fieldset>
       <Toggle checked={form.recalculatePrice} onChange={(v) => setForm({ ...form, recalculatePrice: v })} label="Recalcular com a tabela de preços atual" description="Por padrão o valor gravado no agendamento é mantido." />
       {preview && (
-        <p className={cn('rounded-2xl px-4 py-3 text-sm', typeof preview === 'string' ? 'bg-red-50 text-red-700' : 'bg-brand-50 text-brand-900')}>
+        <p className={cn('rounded-2xl px-4 py-3 text-sm', typeof preview === 'string' ? 'bg-danger-50 text-danger-700' : 'bg-brand-50 text-brand-900')}>
           {typeof preview === 'string' ? preview : <>Novo total: <strong>{formatCents(preview.totalCents)}</strong> • duração {preview.totalDurationMinutes} min</>}
         </p>
       )}
       <Field label="Observações internas">{(p) => <Textarea {...p} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />}</Field>
       <Field label="Observações do tutor">{(p) => <Textarea {...p} value={form.customerNotes} onChange={(e) => setForm({ ...form, customerNotes: e.target.value })} />}</Field>
       <div className="flex justify-end">
-        <Button variant="secondary" onClick={save} loading={saving}>
+        <Button variant="primary" onClick={save} loading={saving}>
           Salvar alterações
         </Button>
       </div>
@@ -239,7 +239,7 @@ export default function AppointmentDetailPage() {
 
         <div className="space-y-6">
           {a.inspiration && (
-            <Panel title={<span className="flex items-center gap-2"><ImageIcon className="h-5 w-5 text-coral-500" aria-hidden /> Inspiração escolhida pelo cliente</span>}>
+            <Panel title={<span className="flex items-center gap-2"><ImageIcon className="h-5 w-5 text-brand-500" aria-hidden /> Inspiração escolhida pelo cliente</span>}>
               <a href={a.inspiration.imageUrl} target="_blank" rel="noopener noreferrer" className="block" data-testid="appointment-inspiration">
                 <img src={a.inspiration.imageUrl} alt={a.inspiration.title} className="max-h-80 w-full rounded-2xl object-cover" />
               </a>
@@ -290,10 +290,10 @@ export default function AppointmentDetailPage() {
             {a.integrationLogs?.length ? (
               <ul className="space-y-2 text-sm">
                 {a.integrationLogs.map((l) => (
-                  <li key={l.id} className="rounded-xl bg-cream-50 px-3 py-2">
+                  <li key={l.id} className="rounded-xl bg-lilac-50 px-3 py-2">
                     <p className="flex justify-between font-semibold">
                       <span>{l.integration === 'whatsapp' ? 'WhatsApp' : 'Google Sheets'}</span>
-                      <span className={l.status === 'failed' ? 'text-red-600' : l.status === 'success' ? 'text-emerald-700' : 'text-ink-500'}>{LOG_LABEL[l.status]}</span>
+                      <span className={l.status === 'failed' ? 'text-danger-600' : l.status === 'success' ? 'text-leaf-700' : 'text-ink-500'}>{LOG_LABEL[l.status]}</span>
                     </p>
                     <p className="text-xs text-ink-500">{l.detail}</p>
                     <p className="text-[11px] text-ink-400">{new Date(l.createdAt).toLocaleString('pt-BR')}</p>
@@ -330,7 +330,7 @@ function OriginPanel({ attribution: o }: { attribution: AppointmentAttribution }
     <Panel title={<span className="flex items-center gap-2"><Megaphone className="h-5 w-5 text-brand-600" aria-hidden /> Origem do cliente</span>}>
       <p className="flex flex-wrap items-center gap-2 font-semibold" data-testid="appointment-origin">
         {channel.label}
-        {channel.paid && <span className="rounded-full bg-coral-100 px-2 py-0.5 text-xs font-bold text-coral-700">ANÚNCIO</span>}
+        {channel.paid && <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-extrabold text-primary-dark">ANÚNCIO</span>}
       </p>
       <dl className="mt-2 space-y-1 text-sm">
         {rows

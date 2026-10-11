@@ -2,7 +2,7 @@ import { siteContent } from '@/data/content';
 import { PetIllustration } from './PetIllustration';
 import { Section } from './Section';
 
-const backgrounds = ['bg-brand-100', 'bg-coral-100', 'bg-sun-100', 'bg-brand-200/60', 'bg-coral-50', 'bg-brand-50'];
+const backgrounds = ['bg-brand-100', 'bg-sun-100', 'bg-leaf-100', 'bg-brand-200/60', 'bg-sun-50', 'bg-brand-50'];
 
 export function GallerySection() {
   return (

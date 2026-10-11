@@ -12,7 +12,7 @@ export function DifferentialsSection() {
           const Icon = icons[d.icon] ?? Heart;
           return (
             <li key={d.title} className="flex gap-4">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-coral-100 text-coral-600">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-leaf-100 text-leaf-700">
                 <Icon className="h-6 w-6" aria-hidden />
               </span>
               <div>

@@ -10,6 +10,7 @@ import {
   weekdayOf,
   WEEKDAY_SHORT,
   type AppointmentDetail,
+  readableTextOn,
 } from '@karolla/shared';
 import { adminApi } from '@/services/adminApi';
 import { useAsync } from '@/hooks/useAsync';
@@ -48,7 +49,7 @@ function professionalLanes(items: AppointmentDetail[], professionals: { id: stri
     ...items.filter((a) => !unassigned.includes(a)).map((a) => ({ a, lane: professionals.findIndex((p) => p.id === a.professionalId) })),
     ...extra.map((e) => ({ a: e.a, lane: professionals.length + e.lane })),
   ];
-  const headers = [...professionals.map((p) => ({ name: p.name, color: p.color })), ...Array.from({ length: extraCount }, () => ({ name: 'Sem profissional', color: '#9ca3af' }))];
+  const headers = [...professionals.map((p) => ({ name: p.name, color: p.color })), ...Array.from({ length: extraCount }, () => ({ name: 'Sem profissional', color: 'rgb(var(--ink-400))' }))];
   return { placed, headers };
 }
 
@@ -66,7 +67,7 @@ function DayTimeline({ items, open, close, professionals }: { items: Appointment
       {byPro && (
         <div className="mb-2 ml-16 grid gap-1" style={{ gridTemplateColumns: `repeat(${laneCount}, minmax(0, 1fr))`, minWidth: laneCount * 120 }}>
           {byPro.headers.map((h, i) => (
-            <span key={i} className="truncate rounded-lg px-2 py-1 text-center text-xs font-bold text-white" style={{ background: h.color }}>
+            <span key={i} className={cn('truncate rounded-lg px-2 py-1 text-center text-xs font-bold', readableTextOn(h.color) === 'dark' ? 'text-primary-dark' : 'text-white')} style={{ background: h.color }}>
               {h.name}
             </span>
           ))}
@@ -93,7 +94,7 @@ function DayTimeline({ items, open, close, professionals }: { items: Appointment
                 width: `calc(${100 / laneCount}% - 4px)`,
               }}
             >
-              <p className="font-display text-sm font-semibold">
+              <p className="font-heading text-sm font-semibold">
                 {a.time} · {a.pet.name}
               </p>
               <p className="truncate">{a.services.map((s) => s.name).join(' + ')}</p>
@@ -172,7 +173,7 @@ export default function AgendaPage() {
         <AppointmentFilters value={filters} onChange={setFilters} services={adminCatalog?.services ?? []} professionals={adminCatalog?.professionals ?? []} />
       </div>
 
-      <h2 className="mb-3 font-display text-lg first-letter:uppercase text-ink-700">
+      <h2 className="mb-3 font-heading text-lg first-letter:uppercase text-ink-700">
         {view === 'day' ? formatDateLong(date) : `${formatDateLong(range.from)} — ${formatDateLong(range.to)}`}
       </h2>
 
@@ -188,7 +189,7 @@ export default function AgendaPage() {
                 <div key={d} className={cn('rounded-2xl p-2', d === today ? 'bg-brand-100/70' : 'bg-white shadow-card')}>
                   <button type="button" onClick={() => { setDate(d); setView('day'); }} className="mb-2 w-full rounded-xl px-2 py-1 text-left hover:bg-ink-900/5">
                     <span className="block text-xs font-bold uppercase text-ink-400">{WEEKDAY_SHORT[weekdayOf(d)]}</span>
-                    <span className="font-display text-lg font-semibold">{d.slice(8)}</span>
+                    <span className="font-heading text-lg font-semibold">{d.slice(8)}</span>
                   </button>
                   <ul className="space-y-1.5">
                     {dayItems.map((a) => (

@@ -89,7 +89,7 @@ export function InspirationViewer({
           <div className="mt-auto flex flex-col gap-2">
             <Link
               to={`/agendar?inspiracao=${encodeURIComponent(item.id)}`}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-coral-500 font-semibold text-white shadow-soft hover:bg-coral-600"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-pill bg-primary font-bold text-white shadow-soft transition-all hover:-translate-y-0.5 hover:bg-primary-dark"
               data-testid="inspiration-book"
             >
               <CalendarHeart className="h-5 w-5" aria-hidden /> Agendar com este visual
@@ -99,7 +99,7 @@ export function InspirationViewer({
                 type="button"
                 onClick={() => onToggleFavorite(item.id)}
                 aria-pressed={favorite}
-                className={cn('inline-flex h-11 items-center justify-center gap-2 rounded-full border-2 text-sm font-semibold', favorite ? 'border-coral-300 bg-coral-50 text-coral-600' : 'border-ink-900/10 text-ink-700')}
+                className={cn('inline-flex h-11 items-center justify-center gap-2 rounded-full border-2 text-sm font-semibold', favorite ? 'border-sun-400 bg-sun-50 text-sun-800' : 'border-ink-900/10 text-ink-700')}
               >
                 <Heart className={cn('h-4 w-4', favorite && 'fill-current')} aria-hidden /> {favorite ? 'Favorito' : 'Favoritar'}
               </button>

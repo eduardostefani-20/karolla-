@@ -15,7 +15,7 @@ import { PageHeader, Panel } from '@/components/admin/AdminUi';
 function StatusRow({ label, ok, detail }: { label: string; ok: boolean; detail: string }) {
   return (
     <li className="flex items-start gap-3 py-2">
-      {ok ? <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" aria-hidden /> : <CircleSlash className="mt-0.5 h-5 w-5 text-ink-400" aria-hidden />}
+      {ok ? <CheckCircle2 className="mt-0.5 h-5 w-5 text-leaf-600" aria-hidden /> : <CircleSlash className="mt-0.5 h-5 w-5 text-ink-400" aria-hidden />}
       <div>
         <p className="font-semibold">{label}</p>
         <p className="text-sm text-ink-500">{detail}</p>
@@ -105,7 +105,7 @@ export default function SettingsPage() {
             </div>
           </Panel>
           <div className="flex justify-end">
-            <Button variant="secondary" size="lg" onClick={save} loading={saving} icon={<Save className="h-5 w-5" />}>
+            <Button variant="primary" size="lg" onClick={save} loading={saving} icon={<Save className="h-5 w-5" />}>
               Salvar configurações
             </Button>
           </div>

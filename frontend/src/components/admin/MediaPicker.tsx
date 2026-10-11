@@ -39,11 +39,11 @@ export function MediaPicker({
   return (
     <div className="space-y-2">
       <label htmlFor={id} className="block text-sm font-semibold text-ink-700">
-        {label} <span className="text-coral-500" aria-hidden>*</span>
+        {label} <span className="text-brand-600" aria-hidden>*</span>
       </label>
       <label
         htmlFor={id}
-        className="relative flex aspect-[4/5] w-full max-w-[220px] cursor-pointer items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-ink-900/15 bg-cream-50 text-ink-500 hover:border-brand-300"
+        className="relative flex aspect-[4/5] w-full max-w-[220px] cursor-pointer items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-ink-900/15 bg-lilac-50 text-ink-500 hover:border-brand-300"
       >
         {value ? (
           value.mediaType === 'video' ? (
@@ -75,12 +75,12 @@ export function MediaPicker({
         data-testid={`media-input-${kind}`}
       />
       {value && !busy && (
-        <button type="button" onClick={() => input.current?.click()} className="text-sm font-semibold text-brand-700 underline">
+        <button type="button" onClick={() => input.current?.click()} className="link text-sm underline">
           Trocar arquivo
         </button>
       )}
       {error && (
-        <p role="alert" className="text-sm font-medium text-red-600">
+        <p role="alert" className="text-sm font-medium text-danger-600">
           {error}
         </p>
       )}

@@ -93,7 +93,7 @@ export function TrackingManager() {
             <p className="mt-1">
               Com a sua permissão, usamos cookies de {joinPlatforms(platforms)} para medir e melhorar nossos anúncios.
               O site e o agendamento funcionam do mesmo jeito se você recusar.{' '}
-              <Link to="/privacidade" className="font-semibold text-brand-700 underline">
+              <Link to="/privacidade" className="link underline">
                 Política de privacidade
               </Link>
             </p>

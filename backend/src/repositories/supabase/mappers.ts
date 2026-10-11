@@ -18,6 +18,7 @@ import type {
   ServicePrice,
   Species,
 } from '@karolla/shared';
+import { DEFAULT_PROFESSIONAL_COLOR } from '@karolla/shared';
 
 /**
  * Conversão entre o modelo de domínio (camelCase) e as colunas do PostgreSQL (snake_case).
@@ -374,7 +375,7 @@ export const professionalMapping: TableMapping<Professional> = {
     id: str(r.id),
     name: str(r.name),
     serviceIds: (r.service_ids as string[] | null) ?? [],
-    color: str(r.color) || '#279790',
+    color: str(r.color) || DEFAULT_PROFESSIONAL_COLOR,
     active: Boolean(r.active),
     sortOrder: Number(r.sort_order),
   }),

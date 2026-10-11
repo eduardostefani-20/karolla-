@@ -1,4 +1,4 @@
-import type { PetIllustrationProps } from '@/components/site/PetIllustration';
+import { FUR, THEME, type PetIllustrationProps } from '@/components/site/PetIllustration';
 
 export interface GalleryItem {
   caption: string;
@@ -8,12 +8,12 @@ export interface GalleryItem {
 }
 
 const gallery: GalleryItem[] = [
-  { caption: 'Banho com espuma e muito carinho', pet: { kind: 'dog', fur: '#f0c58f', furDark: '#d39a5c', bubbles: true } },
-  { caption: 'Tosa caprichada e lacinho', pet: { kind: 'dog', fur: '#fdfaf6', furDark: '#e6d7c3', accessory: 'bow', accent: 'rgb(var(--coral-400))' } },
-  { caption: 'Gatinhos também são bem-vindos', pet: { kind: 'cat', fur: '#f2a65a', furDark: '#d9823a' } },
-  { caption: 'Pronto para passear!', pet: { kind: 'dog', fur: '#5b4636', furDark: '#3f2f24', muzzle: '#c9a98b', accessory: 'bandana', accent: 'rgb(var(--brand-500))' } },
-  { caption: 'Escovação para pelos macios', pet: { kind: 'cat', fur: '#3a3f4a', furDark: '#252a33', muzzle: '#f4f6f8', accessory: 'bow', accent: 'rgb(var(--sun-400))' } },
-  { caption: 'Cheirosinho e feliz', pet: { kind: 'dog', fur: '#d9d9d9', furDark: '#9ca3af', accessory: 'bandana', accent: 'rgb(var(--coral-400))' } },
+  { caption: 'Banho com espuma e muito carinho', pet: { kind: 'dog', ...FUR.golden, bubbles: true } },
+  { caption: 'Tosa caprichada e lacinho', pet: { kind: 'dog', ...FUR.cream, accessory: 'bow', accent: THEME.primary } },
+  { caption: 'Gatinhos também são bem-vindos', pet: { kind: 'cat', ...FUR.orange } },
+  { caption: 'Pronto para passear!', pet: { kind: 'dog', ...FUR.brown, accessory: 'bandana', accent: THEME.accent } },
+  { caption: 'Escovação para pelos macios', pet: { kind: 'cat', ...FUR.black, accessory: 'bow', accent: THEME.accent } },
+  { caption: 'Cheirosinho e feliz', pet: { kind: 'dog', ...FUR.grey, accessory: 'bandana', accent: THEME.leaf } },
 ];
 
 /**

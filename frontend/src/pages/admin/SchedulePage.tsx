@@ -60,7 +60,7 @@ function SlotsPanel({ onSaved }: { onSaved: () => void }) {
           : `Cada horário aceita até ${n} pets ao mesmo tempo. Ao lotar, o horário some para os outros clientes.`}
       </p>
       <p className="mt-2 text-xs text-ink-500">Com profissionais ativos (menu Profissionais), a agenda passa a ser 1 pet por profissional e este número deixa de ser usado.</p>
-      <Button className="mt-3" variant="secondary" onClick={save} loading={saving} icon={<Save className="h-4 w-4" />}>
+      <Button className="mt-3" variant="primary" onClick={save} loading={saving} icon={<Save className="h-4 w-4" />}>
         Salvar vagas
       </Button>
     </Panel>
@@ -156,7 +156,7 @@ export default function SchedulePage() {
             {days.map((d) => (
               <div key={d.weekday} className="rounded-2xl border border-ink-900/5 p-4" data-testid={`day-${d.weekday}`}>
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-display text-lg font-semibold uppercase">{WEEKDAY_LABELS[d.weekday]?.split('-')[0]}</p>
+                  <p className="font-heading text-lg font-semibold uppercase">{WEEKDAY_LABELS[d.weekday]?.split('-')[0]}</p>
                   <Toggle checked={d.isOpen} onChange={(v) => setDay(d.weekday, { isOpen: v })} label={d.isOpen ? 'Aberto' : 'Fechado'} />
                 </div>
                 {d.isOpen && (
@@ -186,7 +186,7 @@ export default function SchedulePage() {
             ))}
           </div>
           <div className="mt-4 flex justify-end">
-            <Button variant="secondary" onClick={saveHours} loading={saving} icon={<Save className="h-4 w-4" />}>
+            <Button variant="primary" onClick={saveHours} loading={saving} icon={<Save className="h-4 w-4" />}>
               Salvar horários
             </Button>
           </div>
@@ -205,9 +205,9 @@ export default function SchedulePage() {
             <ul className="mt-4 space-y-2">
               {data?.blockedDates.length === 0 && <EmptyState icon={<CalendarOff className="h-8 w-8" />} title="Nenhuma data bloqueada" />}
               {data?.blockedDates.map((b) => (
-                <li key={b.id} className="flex items-center justify-between rounded-xl bg-cream-50 px-3 py-2 text-sm">
+                <li key={b.id} className="flex items-center justify-between rounded-xl bg-lilac-50 px-3 py-2 text-sm">
                   <span><strong>{formatDateBR(b.date)}</strong> {b.reason && `— ${b.reason}`}</span>
-                  <Button size="sm" variant="ghost" aria-label={`Remover bloqueio de ${formatDateBR(b.date)}`} onClick={() => remove(() => adminApi.removeBlockedDate(b.id))} icon={<Trash2 className="h-4 w-4 text-red-500" />} />
+                  <Button size="sm" variant="ghost" aria-label={`Remover bloqueio de ${formatDateBR(b.date)}`} onClick={() => remove(() => adminApi.removeBlockedDate(b.id))} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
                 </li>
               ))}
             </ul>
@@ -224,9 +224,9 @@ export default function SchedulePage() {
             </Button>
             <ul className="mt-4 space-y-2">
               {data?.blockedTimes.map((b) => (
-                <li key={b.id} className="flex items-center justify-between rounded-xl bg-cream-50 px-3 py-2 text-sm">
+                <li key={b.id} className="flex items-center justify-between rounded-xl bg-lilac-50 px-3 py-2 text-sm">
                   <span><strong>{formatDateBR(b.date)}</strong> {b.startTime}–{b.endTime} {b.reason && `— ${b.reason}`}</span>
-                  <Button size="sm" variant="ghost" aria-label="Remover bloqueio" onClick={() => remove(() => adminApi.removeBlockedTime(b.id))} icon={<Trash2 className="h-4 w-4 text-red-500" />} />
+                  <Button size="sm" variant="ghost" aria-label="Remover bloqueio" onClick={() => remove(() => adminApi.removeBlockedTime(b.id))} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
                 </li>
               ))}
             </ul>

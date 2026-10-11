@@ -3,7 +3,7 @@ import { AlertCircle } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 export const inputClass =
-  'block w-full rounded-2xl border-2 border-ink-900/10 bg-white px-4 py-3 text-base text-ink-900 placeholder:text-ink-400 transition-colors focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-ink-900/5 aria-[invalid=true]:border-red-400 aria-[invalid=true]:focus:ring-red-400/15';
+  'block w-full rounded-2xl border-2 border-ink-900/10 bg-white px-4 py-3 text-base text-ink-900 placeholder:text-ink-400 transition-colors focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-ink-900/5 aria-[invalid=true]:border-danger-400 aria-[invalid=true]:focus:ring-danger-400/15';
 
 interface FieldProps {
   label: ReactNode;
@@ -24,7 +24,7 @@ export function Field({ label, error, hint, required, className, children }: Fie
     <div className={cn('space-y-1.5', className)}>
       <label htmlFor={id} className="block text-sm font-semibold text-ink-700">
         {label}
-        {required ? <span className="ml-0.5 text-coral-500" aria-hidden> *</span> : <span className="ml-1 font-normal text-ink-400">(opcional)</span>}
+        {required ? <span className="ml-0.5 text-brand-600" aria-hidden> *</span> : <span className="ml-1 font-normal text-ink-400">(opcional)</span>}
       </label>
       {children({ id, 'aria-invalid': Boolean(error), 'aria-describedby': describedBy, 'aria-required': required || undefined })}
       {hint && !error && (
@@ -33,7 +33,7 @@ export function Field({ label, error, hint, required, className, children }: Fie
         </p>
       )}
       {error && (
-        <p id={errorId} role="alert" className="flex items-center gap-1.5 text-sm font-medium text-red-600">
+        <p id={errorId} role="alert" className="flex items-center gap-1.5 text-sm font-medium text-danger-600">
           <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
           {error}
         </p>

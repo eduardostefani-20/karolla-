@@ -119,7 +119,7 @@ export default function ServicesPage() {
               <ReorderButtons index={i} total={data.services.length} onMove={move} label={s.name} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-display text-lg font-semibold">{s.name}</p>
+                  <p className="font-heading text-lg font-semibold">{s.name}</p>
                   <Badge className="bg-brand-50 text-brand-700">{s.category}</Badge>
                   {!s.active && <Badge className="bg-ink-900/10 text-ink-600">Inativo</Badge>}
                 </div>
@@ -133,7 +133,7 @@ export default function ServicesPage() {
                 <Toggle checked={s.active} onChange={() => toggleActive(s)} label={s.active ? 'Ativo' : 'Inativo'} className="sm:mr-2" />
                 <div className="flex">
                   <Button size="sm" variant="ghost" aria-label={`Editar ${s.name}`} onClick={() => setEditing({ ...s, durationMinutes: String(s.durationMinutes) })} icon={<Pencil className="h-4 w-4" />} />
-                  <Button size="sm" variant="ghost" aria-label={`Excluir ${s.name}`} onClick={() => setToDelete(s)} icon={<Trash2 className="h-4 w-4 text-red-500" />} />
+                  <Button size="sm" variant="ghost" aria-label={`Excluir ${s.name}`} onClick={() => setToDelete(s)} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
                 </div>
               </div>
             </li>
@@ -146,7 +146,7 @@ export default function ServicesPage() {
           open
           onClose={() => setEditing(null)}
           title={editing.id ? 'Editar serviço' : 'Novo serviço'}
-          footer={<><Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button><Button variant="secondary" onClick={save} loading={saving}>Salvar</Button></>}
+          footer={<><Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button><Button variant="primary" onClick={save} loading={saving}>Salvar</Button></>}
         >
           <div className="space-y-4">
             {formError && <Alert tone="error">{formError}</Alert>}

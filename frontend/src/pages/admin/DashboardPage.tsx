@@ -33,8 +33,8 @@ export default function DashboardPage() {
             <StatCard label="Próximos" value={data.stats.upcoming} icon={<CalendarClock className="h-6 w-6" />} tone="ink" />
             <StatCard label="Pendentes" value={data.stats.pending} icon={<Hourglass className="h-6 w-6" />} tone="sun" />
             <StatCard label="Confirmados" value={data.stats.confirmed} icon={<CalendarCheck className="h-6 w-6" />} tone="brand" />
-            <StatCard label="Clientes" value={data.stats.customers} icon={<Users className="h-6 w-6" />} tone="coral" />
-            <StatCard label="Pets" value={data.stats.pets} icon={<PawPrint className="h-6 w-6" />} tone="coral" />
+            <StatCard label="Clientes" value={data.stats.customers} icon={<Users className="h-6 w-6" />} tone="leaf" />
+            <StatCard label="Pets" value={data.stats.pets} icon={<PawPrint className="h-6 w-6" />} tone="leaf" />
           </div>
           <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
             <Panel
@@ -80,7 +80,7 @@ export default function DashboardPage() {
                   <li key={c.key} className="flex items-center justify-between gap-3 py-2.5">
                     <span className="flex min-w-0 items-center gap-2 font-semibold">
                       <span className="truncate">{c.label}</span>
-                      {c.paid && <span className="shrink-0 rounded-full bg-coral-100 px-2 py-0.5 text-xs font-bold text-coral-700">ANÚNCIO</span>}
+                      {c.paid && <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-extrabold text-primary-dark">ANÚNCIO</span>}
                     </span>
                     <span className="shrink-0 text-right text-sm tabular-nums">
                       <strong>{c.count}</strong> {c.count === 1 ? 'agendamento' : 'agendamentos'}

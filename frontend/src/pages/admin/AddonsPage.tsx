@@ -105,17 +105,17 @@ export function AddonsManager() {
               <p className="flex flex-wrap items-center gap-2 font-semibold">
                 {a.name} {!a.active && <Badge className="bg-ink-900/10 text-ink-600">Inativo</Badge>}
               </p>
-              <p className="font-display text-lg text-brand-700">{formatCents(a.priceCents)}</p>
+              <p className="font-heading text-lg text-brand-700">{formatCents(a.priceCents)}</p>
               <p className="line-clamp-1 text-xs text-ink-500">{a.description}{a.durationMinutes ? ` • +${a.durationMinutes} min` : ''}</p>
             </div>
             <Toggle checked={a.active} onChange={() => toggle(a)} label={a.active ? 'ATIVO' : 'INATIVO'} />
             <Button size="sm" variant="ghost" aria-label={`Editar ${a.name}`} onClick={() => setEditing({ ...a, durationMinutes: String(a.durationMinutes) })} icon={<Pencil className="h-4 w-4" />} />
-            <Button size="sm" variant="ghost" aria-label={`Excluir ${a.name}`} onClick={() => setToDelete(a)} icon={<Trash2 className="h-4 w-4 text-red-500" />} />
+            <Button size="sm" variant="ghost" aria-label={`Excluir ${a.name}`} onClick={() => setToDelete(a)} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
           </li>
         ))}
       </ul>
       {editing && (
-        <Modal open onClose={() => setEditing(null)} title={editing.id ? 'Editar adicional' : 'Novo adicional'} footer={<><Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button><Button variant="secondary" onClick={save} loading={saving}>Salvar</Button></>}>
+        <Modal open onClose={() => setEditing(null)} title={editing.id ? 'Editar adicional' : 'Novo adicional'} footer={<><Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button><Button variant="primary" onClick={save} loading={saving}>Salvar</Button></>}>
           <div className="space-y-4">
             {formError && <Alert tone="error">{formError}</Alert>}
             <Field label="Nome" required error={errors.name}>{(p) => <Input {...p} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />}</Field>

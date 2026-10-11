@@ -32,7 +32,7 @@ export default function PrivacyPage() {
   return (
     <div className="container-page max-w-3xl py-12 sm:py-16">
       <span className="eyebrow">LGPD</span>
-      <h1 className="mt-4 text-3xl font-semibold sm:text-4xl">Política de privacidade</h1>
+      <h1 className="title-display mt-4 text-display-page text-primary">Política de privacidade</h1>
       <p className="mt-3 text-ink-500">
         Esta página explica quais dados a {name} recebe pelo site, para que usa e como você pode pedir acesso, correção ou exclusão.
       </p>
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
                 Essas empresas tratam os dados de acordo com as próprias políticas de privacidade.
               </p>
               <p>Se você recusar, o site e o agendamento funcionam normalmente, sem esses cookies.</p>
-              <button type="button" onClick={openConsentPreferences} className="font-semibold text-brand-700 underline">
+              <button type="button" onClick={openConsentPreferences} className="link underline">
                 Mudar minha escolha de cookies
               </button>
             </>
@@ -102,7 +102,7 @@ export default function PrivacyPage() {
             {s?.whatsappNumber && (
               <li>
                 WhatsApp:{' '}
-                <a className="font-semibold text-brand-700 underline" href={buildWhatsAppLink(s.whatsappNumber)} target="_blank" rel="noopener noreferrer">
+                <a className="link underline" href={buildWhatsAppLink(s.whatsappNumber)} target="_blank" rel="noopener noreferrer">
                   {phone}
                 </a>
               </li>
@@ -110,7 +110,7 @@ export default function PrivacyPage() {
             {s?.contactEmail && (
               <li>
                 E-mail:{' '}
-                <a className="font-semibold text-brand-700 underline" href={`mailto:${s.contactEmail}`}>
+                <a className="link underline" href={`mailto:${s.contactEmail}`}>
                   {s.contactEmail}
                 </a>
               </li>
