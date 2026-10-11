@@ -40,9 +40,11 @@ export function ServiceStep({ onBack, onNext }: { onBack: () => void; onNext: ()
                       <Clock className="h-3.5 w-3.5" aria-hidden /> ~{duration} min
                     </span>
                   </span>
-                  <span className="price-badge shrink-0 self-start text-lg">
-                    {price ? formatCents(price.priceCents) : <span className="text-sm text-ink-400">Indisponível para este porte</span>}
-                  </span>
+                  {price ? (
+                    <span className="price-badge shrink-0 self-start text-lg">{formatCents(price.priceCents)}</span>
+                  ) : (
+                    <span className="shrink-0 text-sm text-ink-500">Indisponível para este porte</span>
+                  )}
                 </span>
               </OptionCard>
             );

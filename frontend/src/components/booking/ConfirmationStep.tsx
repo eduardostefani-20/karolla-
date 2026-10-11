@@ -63,7 +63,7 @@ export function ConfirmationStep() {
         <div className="col-span-2 text-xs text-ink-400">Código: {a.id.slice(0, 8).toUpperCase()}</div>
       </dl>
 
-      <p className="mx-auto mt-6 max-w-md rounded-2xl bg-brand-50 px-4 py-3 text-brand-900">
+      <p className="mx-auto mt-6 max-w-md rounded-2xl bg-brand-100 px-4 py-3 text-brand-900">
         A Karolla Pet entrará em contato pelo WhatsApp para confirmar o atendimento.
       </p>
 

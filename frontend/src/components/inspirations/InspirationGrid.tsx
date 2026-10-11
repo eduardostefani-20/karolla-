@@ -20,7 +20,7 @@ export function InspirationGrid({ items, onOpen, isFavorite }: { items: PublicIn
               {item.breedName}
             </span>
             {isFavorite(item.id) && (
-              <Heart className={cn('absolute right-1.5 top-1.5 h-5 w-5 fill-accent text-white drop-shadow')} aria-label="Favorito" />
+              <Heart className={cn('absolute right-1.5 top-1.5 h-5 w-5 fill-primary text-white drop-shadow')} aria-label="Favorito" />
             )}
           </button>
         </li>

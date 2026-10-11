@@ -18,8 +18,8 @@ const variants: Record<Variant, string> = {
   // destaque/promoção: amarelo-ouro com texto roxo profundo (7.9:1) — nunca texto branco
   accent: `bg-accent font-extrabold text-primary-dark shadow-soft hover:bg-sun-300 ${lift}`,
   // contorno roxo, fundo transparente
-  secondary: `border-2 border-primary bg-transparent text-primary hover:bg-brand-50 ${lift}`,
-  outline: `border-2 border-primary bg-transparent text-primary hover:bg-brand-50 ${lift}`,
+  secondary: `border-2 border-primary bg-transparent text-primary hover:bg-brand-100 ${lift}`,
+  outline: `border-2 border-primary bg-transparent text-primary hover:bg-brand-100 ${lift}`,
   // contorno branco para fundos roxos (hero, faixas)
   onDark: `border-2 border-white/80 bg-transparent text-white hover:bg-white/10 ${lift}`,
   ghost: 'text-ink-600 hover:bg-ink-900/5',
