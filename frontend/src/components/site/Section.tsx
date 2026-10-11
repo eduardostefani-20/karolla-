@@ -7,7 +7,7 @@ export function Section({ id, eyebrow, title, intro, children, className }: { id
       <div className="container-page">
         <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
           {eyebrow && <span className="eyebrow">{eyebrow}</span>}
-          <h2 id={id ? `${id}-titulo` : undefined} className="mt-4 text-3xl font-semibold sm:text-4xl">
+          <h2 id={id ? `${id}-titulo` : undefined} className="title-display mt-4 text-display-section text-primary">
             {title}
           </h2>
           {intro && <p className="mt-4 text-base text-ink-500 sm:text-lg">{intro}</p>}

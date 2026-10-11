@@ -10,6 +10,7 @@ import { InspirationsSection } from '@/components/site/InspirationsSection';
 import { StoriesBar } from '@/components/stories/StoriesBar';
 import { FaqSection } from '@/components/site/FaqSection';
 import { FinalCta } from '@/components/site/FinalCta';
+import { WaveDivider } from '@/components/brand/BrandShapes';
 import { siteContent } from '@/data/content';
 import { useCatalog } from '@/context/CatalogContext';
 import { instagramProfileUrl, type PublicCatalog } from '@karolla/shared';
@@ -25,7 +26,7 @@ function structuredData(catalog: PublicCatalog | null) {
     name: s?.businessName || 'Karolla Pet',
     description: siteContent.hero.subtitle,
     url: `${__SITE_URL__}/`,
-    image: `${__SITE_URL__}/og-image.png`,
+    image: `${__SITE_URL__}/og-image.jpg`,
     ...(s?.whatsappNumber ? { telephone: `+${s.whatsappNumber}` } : {}),
     ...(s?.contactEmail ? { email: s.contactEmail } : {}),
     ...(s?.addressLine || s?.city
@@ -51,13 +52,17 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="container-page pt-4">
-        <StoriesBar />
-      </div>
-      <Hero />
+      <Hero top={<StoriesBar tone="dark" />} />
       <AboutSection />
+      <div className="bg-white" aria-hidden>
+        <WaveDivider fill="fill-bg-soft" />
+      </div>
       <ServicesSection />
+      <WaveDivider fill="fill-white" />
       <HowItWorksSection />
+      <div className="bg-white" aria-hidden>
+        <WaveDivider fill="fill-bg-soft" />
+      </div>
       <DifferentialsSection />
       <InspirationsSection />
       <FaqSection />

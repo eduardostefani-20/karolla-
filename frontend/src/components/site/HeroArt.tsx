@@ -1,11 +1,11 @@
-import { PetIllustration, THEME } from './PetIllustration';
+import { FUR, PetIllustration, THEME } from './PetIllustration';
 
 /** Composição do hero: cachorrinho no banho de espuma + gatinho, com elementos flutuantes. */
 export function HeroArt() {
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[520px]" role="img" aria-label="Ilustração de um cachorro feliz tomando banho de espuma ao lado de um gatinho com laço">
-      <div className="absolute inset-[6%] rounded-full bg-gradient-to-br from-brand-200 via-brand-100 to-sun-100" aria-hidden />
-      <div className="absolute right-[4%] top-[8%] h-20 w-20 animate-float rounded-full bg-coral-200/70 blur-[2px]" aria-hidden />
+      <div className="absolute inset-[6%] rounded-full border-[10px] border-white bg-gradient-to-br from-sun-100 via-white to-brand-100 shadow-soft" aria-hidden />
+      <div className="absolute right-[4%] top-[8%] h-20 w-20 animate-float rounded-full bg-accent/80 blur-[2px]" aria-hidden />
       <svg viewBox="0 0 400 400" className="absolute inset-0 h-full w-full" aria-hidden>
         {/* banheira */}
         <path d="M60 250 H340 Q336 330 270 338 H130 Q64 330 60 250 Z" className="fill-white stroke-brand-600" strokeWidth="6" />
@@ -16,11 +16,11 @@ export function HeroArt() {
         <g transform="translate(300 214)">
           <ellipse cx="0" cy="14" rx="22" ry="14" className="fill-sun-400" />
           <circle cx="10" cy="-2" r="11" className="fill-sun-400" />
-          <path d="M20 -2 L30 1 L20 5 Z" className="fill-coral-400" />
+          <path d="M20 -2 L30 1 L20 5 Z" className="fill-sun-500" />
           <circle cx="13" cy="-5" r="2" className="fill-ink-800" />
         </g>
       </svg>
-      <PetIllustration className="absolute left-[17%] top-[16%] w-[58%] drop-shadow-xl" fur="#f0c58f" furDark="#d39a5c" bubbles title="Cachorro no banho" />
+      <PetIllustration className="absolute left-[17%] top-[16%] w-[58%] drop-shadow-xl" {...FUR.golden} bubbles title="Cachorro no banho" />
       {/* espuma sobre a borda da banheira */}
       <svg viewBox="0 0 400 400" className="absolute inset-0 h-full w-full" aria-hidden>
         <g className="fill-white stroke-brand-200" strokeWidth="3">
@@ -34,16 +34,14 @@ export function HeroArt() {
       <PetIllustration
         kind="cat"
         className="absolute bottom-[3%] right-[0%] w-[30%] drop-shadow-lg"
-        fur="#9aa5b1"
-        furDark="#6b7684"
-        muzzle="#f4f6f8"
+        {...FUR.silver}
         accessory="bow"
-        accent={THEME.coral400}
+        accent={THEME.accent}
         title="Gatinho com laço"
       />
-      <div className="absolute bottom-[14%] left-[2%] animate-float rounded-2xl bg-white px-4 py-3 shadow-soft [animation-delay:-2s]">
-        <p className="text-xs font-semibold text-ink-500">Agendamento online</p>
-        <p className="font-display text-lg text-brand-700">em poucos passos ✨</p>
+      <div className="absolute bottom-[14%] left-[2%] animate-float rounded-card bg-white px-4 py-3 shadow-soft [animation-delay:-2s]">
+        <p className="text-xs font-bold text-ink-500">Agendamento online</p>
+        <p className="font-heading text-lg font-extrabold text-primary">em poucos passos ✨</p>
       </div>
     </div>
   );
