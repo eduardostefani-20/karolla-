@@ -1,51 +1,128 @@
 /*
- * Cores da marca Karolla Pet — FONTE ÚNICA da paleta do site.
- * Cada cor é escrita como canais RGB ("R G B") para o Tailwind aplicar transparência (ex.: bg-brand-600/20).
- *   brand  → cor principal (cabeçalho, botões secundários, links, rodapé)
- *   coral  → cor de destaque (botão principal "Agendar", selos)
- *   sun    → cor de apoio (avisos, detalhes)
- *   cream  → fundos claros
- *   ink    → textos
- * Para trocar a identidade visual, altere só os valores abaixo (e theme-color no index.html).
+ * Identidade visual KarollaPet — FONTE ÚNICA de cores, fontes, raios e sombras.
+ * Nenhum componente usa cor solta: tudo vem daqui (CSS) ou das classes do Tailwind ligadas a estas variáveis.
+ *
+ * As cores ficam como canais RGB ("R G B") para o Tailwind aplicar transparência (ex.: bg-primary/20).
+ * Em CSS puro use: rgb(var(--color-primary))  ou  rgb(var(--color-primary) / .5)
+ *
+ * Proporção: ~60% roxo, ~20% amarelo, ~15% verde, ~5% branco nos detalhes.
+ * Contraste (WCAG AA): texto branco só sobre roxo (primary/primary-dark); sobre amarelo e verde use
+ * texto roxo profundo. Verde puro (#8A9A1C) só em ícones, bordas ou texto grande — para texto use leaf-700.
  */
 :root {
-  --brand-50: 239 250 249; /* #effaf9 */
-  --brand-100: 214 242 239; /* #d6f2ef */
-  --brand-200: 173 228 223; /* #ade4df */
-  --brand-300: 121 207 200; /* #79cfc8 */
-  --brand-400: 69 178 171; /* #45b2ab */
-  --brand-500: 39 151 144; /* #279790 */
-  --brand-600: 27 122 117; /* #1b7a75 */
-  --brand-700: 25 98 95; /* #19625f */
-  --brand-800: 24 79 77; /* #184f4d */
-  --brand-900: 22 63 62; /* #163f3e */
-  --brand-950: 8 38 38; /* #082626 */
+  /* ---- Paleta oficial ---------------------------------------------------- */
+  --color-primary: 106 31 160;        /* #6A1FA0 roxo vibrante — base da marca, botões, header */
+  --color-primary-dark: 61 14 99;     /* #3D0E63 roxo profundo — fundos escuros, hover, footer, sombras */
+  --color-primary-light: 155 95 208;  /* #9B5FD0 lilás — raios do sunburst, destaques, foco */
+  --color-secondary: 138 154 28;      /* #8A9A1C verde-oliva — apoio, ícones, tags, "Pet" */
+  --color-accent: 249 178 29;         /* #F9B21D amarelo-ouro — preços, promoções, selos, CTA de destaque */
+  --color-white: 255 255 255;         /* #FFFFFF contornos e texto sobre roxo */
+  --color-text: 42 10 69;             /* #2A0A45 texto (roxo quase preto) */
+  --color-bg-soft: 246 240 251;       /* #F6F0FB fundo claro levemente lilás */
+  --color-whatsapp: 31 168 85;        /* #1FA855 verde do WhatsApp (cor da marca deles, só no botão do WhatsApp) */
+  --color-whatsapp-dark: 23 138 69;   /* #178A45 */
 
-  --coral-50: 255 244 239; /* #fff4ef */
-  --coral-100: 255 229 218; /* #ffe5da */
-  --coral-200: 255 200 179; /* #ffc8b3 */
-  --coral-300: 255 163 132; /* #ffa384 */
-  --coral-400: 255 125 87; /* #ff7d57 */
-  --coral-500: 246 93 52; /* #f65d34 */
-  --coral-600: 226 68 29; /* #e2441d */
-  --coral-700: 188 52 21; /* #bc3415 */
-  --coral-800: 149 44 23; /* #952c17 */
-  --coral-900: 121 40 22; /* #792816 */
+  /* ---- Escalas derivadas (tons para fundos, bordas e estados) ---------------- */
+  /* roxo */
+  --brand-50: var(--color-bg-soft);
+  --brand-100: 237 226 247;           /* #EDE2F7 */
+  --brand-200: 219 197 239;           /* #DBC5EF */
+  --brand-300: 194 157 227;           /* #C29DE3 */
+  --brand-400: var(--color-primary-light);
+  --brand-500: 130 57 188;            /* #8239BC */
+  --brand-600: var(--color-primary);
+  --brand-700: 85 24 130;             /* #551882 */
+  --brand-800: var(--color-primary-dark);
+  --brand-900: var(--color-text);
+  --brand-950: 27 6 45;               /* #1B062D */
 
-  --sun-100: 255 243 204; /* #fff3cc */
-  --sun-200: 255 230 153; /* #ffe699 */
-  --sun-300: 255 214 102; /* #ffd666 */
-  --sun-400: 255 197 51; /* #ffc533 */
-  --sun-500: 245 174 0; /* #f5ae00 */
+  /* verde-oliva */
+  --leaf-50: 246 248 230;             /* #F6F8E6 */
+  --leaf-100: 236 240 204;            /* #ECF0CC */
+  --leaf-200: 217 225 153;            /* #D9E199 */
+  --leaf-300: 191 203 94;             /* #BFCB5E */
+  --leaf-400: 163 180 47;             /* #A3B42F */
+  --leaf-500: var(--color-secondary);
+  --leaf-600: 111 124 21;             /* #6F7C15 — ícones sobre branco (4.6:1) */
+  --leaf-700: 86 96 17;               /* #566011 — texto verde sobre branco (6.8:1) */
+  --leaf-800: 63 71 13;               /* #3F470D */
+  --leaf-900: 44 50 9;                /* #2C3209 */
 
-  --cream-50: 255 252 248; /* #fffcf8 */
-  --cream-100: 255 247 238; /* #fff7ee */
-  --cream-200: 253 235 216; /* #fdebd8 */
+  /* amarelo-ouro */
+  --sun-50: 255 248 230;              /* #FFF8E6 */
+  --sun-100: 254 239 198;             /* #FEEFC6 */
+  --sun-200: 253 223 142;             /* #FDDF8E */
+  --sun-300: 251 203 85;              /* #FBCB55 */
+  --sun-400: var(--color-accent);
+  --sun-500: 224 154 6;               /* #E09A06 */
+  --sun-600: 185 124 4;               /* #B97C04 */
+  --sun-700: 140 93 6;                /* #8C5D06 — texto dourado sobre sun-50 (5.4:1) */
+  --sun-800: 107 71 8;                /* #6B4708 */
+  --sun-900: 74 49 5;                 /* #4A3105 */
+  --sun-950: 46 30 3;                 /* #2E1E03 */
 
-  --ink-400: 107 114 128; /* #6b7280 */
-  --ink-500: 75 85 99; /* #4b5563 */
-  --ink-600: 55 65 81; /* #374151 */
-  --ink-700: 39 49 66; /* #273142 */
-  --ink-800: 28 36 51; /* #1c2433 */
-  --ink-900: 17 24 39; /* #111827 */
+  /* fundos lilás */
+  --lilac-50: 252 250 254;            /* #FCFAFE */
+  --lilac-100: var(--color-bg-soft);
+  --lilac-200: var(--brand-100);
+
+  /* textos (neutros arroxeados) */
+  --ink-400: 110 92 128;              /* #6E5C80 — texto de apoio (≥ 5.3:1 em branco e lilás) */
+  --ink-500: 100 82 117;              /* #645275 */
+  --ink-600: 78 60 96;                /* #4E3C60 */
+  --ink-700: 59 41 80;                /* #3B2950 */
+  --ink-800: var(--color-text);
+  --ink-900: 30 7 51;                 /* #1E0733 */
+
+  /* erros e exclusões (único vermelho do site) */
+  --danger-50: 254 242 242;           /* #FEF2F2 */
+  --danger-100: 254 226 226;          /* #FEE2E2 */
+  --danger-200: 254 202 202;          /* #FECACA */
+  --danger-400: 248 113 113;          /* #F87171 */
+  --danger-500: 239 68 68;            /* #EF4444 */
+  --danger-600: 220 38 38;            /* #DC2626 */
+  --danger-700: 185 28 28;            /* #B91C1C */
+  --danger-900: 127 29 29;            /* #7F1D1D */
+
+  /* ---- Ilustrações (pelagem natural dos pets — não são cores da marca) ------- */
+  --illu-eye: var(--ink-900);
+  --illu-tongue: 242 150 132;         /* #F29684 salmão suave */
+  --illu-blush: var(--brand-300);
+  --illu-ear: 236 200 228;            /* #ECC8E4 interior da orelha */
+  --illu-bubble: var(--brand-200);
+  --fur-cream: 253 250 246;           /* #FDFAF6 */
+  --fur-cream-dark: 230 215 195;      /* #E6D7C3 */
+  --fur-caramel: 232 183 125;         /* #E8B77D */
+  --fur-caramel-dark: 201 141 79;     /* #C98D4F */
+  --fur-caramel-muzzle: 255 241 223;  /* #FFF1DF */
+  --fur-golden: 240 197 143;          /* #F0C58F */
+  --fur-golden-dark: 211 154 92;      /* #D39A5C */
+  --fur-orange: 242 166 90;           /* #F2A65A */
+  --fur-orange-dark: 217 130 58;      /* #D9823A */
+  --fur-brown: 91 70 54;              /* #5B4636 */
+  --fur-brown-dark: 63 47 36;         /* #3F2F24 */
+  --fur-brown-muzzle: 201 169 139;    /* #C9A98B */
+  --fur-black: 58 63 74;              /* #3A3F4A */
+  --fur-black-dark: 37 42 51;         /* #252A33 */
+  --fur-grey: 217 217 217;            /* #D9D9D9 */
+  --fur-grey-dark: 156 163 175;       /* #9CA3AF */
+  --fur-silver: 154 165 177;          /* #9AA5B1 */
+  --fur-silver-dark: 107 118 132;     /* #6B7684 */
+  --fur-white-muzzle: 244 246 248;    /* #F4F6F8 */
+
+  /* ---- Tipografia ------------------------------------------------------------ */
+  --font-display: 'Pacifico', 'Grand Hotel', cursive;           /* só títulos grandes (hero, seções) */
+  --font-body: 'Nunito Variable', 'Nunito', 'Quicksand', system-ui, sans-serif;
+  --text-display-hero: clamp(2.6rem, 1.6rem + 4.4vw, 4.6rem);
+  --text-display-section: clamp(2rem, 1.5rem + 2.2vw, 3.1rem);
+  --text-display-page: clamp(2.1rem, 1.6rem + 2.4vw, 3.3rem);
+
+  /* ---- Formas ---------------------------------------------------------------- */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  --shadow-card: 0 6px 20px rgb(var(--color-primary-dark) / 0.15);
+  --shadow-soft: 0 10px 30px -12px rgb(var(--color-primary-dark) / 0.35);
+  --shadow-logo: drop-shadow(0 4px 8px rgb(var(--color-primary-dark) / 0.35));
 }
