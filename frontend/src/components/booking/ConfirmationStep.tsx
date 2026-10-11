@@ -16,10 +16,10 @@ export function ConfirmationStep() {
   return (
     <div className="text-center">
       <StepHeader step={9} title="" />
-      <div className="mx-auto grid h-20 w-20 animate-pop place-items-center rounded-full bg-coral-100 text-coral-500">
+      <div className="mx-auto grid h-20 w-20 animate-pop place-items-center rounded-full bg-leaf-100 text-leaf-600">
         <PartyPopper className="h-10 w-10" aria-hidden />
       </div>
-      <h2 className="mt-5 text-3xl font-semibold" data-testid="confirmation-title">
+      <h2 className="title-display mt-5 text-display-page text-primary" data-testid="confirmation-title">
         🎉 Agendamento recebido!
       </h2>
       <p className="mx-auto mt-2 max-w-md text-ink-500">O agendamento do seu pet foi registrado.</p>
@@ -43,7 +43,7 @@ export function ConfirmationStep() {
         </div>
         <div className="col-span-2 border-t border-dashed border-ink-900/10 pt-4">
           <dt className="text-xs font-bold uppercase text-ink-400">Total</dt>
-          <dd className="font-display text-3xl font-semibold text-brand-700">{formatCents(a.totalCents)}</dd>
+          <dd><span className="price-badge px-4 py-1 text-2xl">{formatCents(a.totalCents)}</span></dd>
         </div>
         {a.professionalId && (
           <div className="col-span-2">
@@ -52,10 +52,10 @@ export function ConfirmationStep() {
           </div>
         )}
         {a.inspiration && (
-          <div className="col-span-2 flex items-center gap-3 rounded-2xl bg-coral-50 p-2.5">
+          <div className="col-span-2 flex items-center gap-3 rounded-2xl bg-sun-50 p-2.5">
             <img src={a.inspiration.imageUrl} alt={a.inspiration.title} className="h-14 w-14 rounded-xl object-cover" />
             <div>
-              <dt className="text-xs font-bold uppercase text-coral-600">Inspiração enviada</dt>
+              <dt className="text-xs font-bold uppercase text-sun-700">Inspiração enviada</dt>
               <dd className="font-semibold">{a.inspiration.title}</dd>
             </div>
           </div>

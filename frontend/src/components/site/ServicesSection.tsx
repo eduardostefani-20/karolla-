@@ -30,7 +30,7 @@ export function ServicesSection() {
               const Icon = iconFor(service);
               const from = getStartingPrice(service.id, catalog);
               return (
-                <li key={service.id} className="card group flex flex-col p-6 transition-transform hover:-translate-y-1" style={{ animationDelay: `${i * 60}ms` }}>
+                <li key={service.id} className="card card-hover group flex flex-col p-6" style={{ animationDelay: `${i * 60}ms` }}>
                   <div className="mb-4 flex items-center justify-between">
                     <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-600 group-hover:text-white">
                       <Icon className="h-6 w-6" aria-hidden />
@@ -39,11 +39,11 @@ export function ServicesSection() {
                       <Clock className="h-3.5 w-3.5" aria-hidden /> ~{service.durationMinutes} min
                     </span>
                   </div>
-                  <h3 className="text-xl font-semibold">{service.name}</h3>
+                  <h3 className="text-xl font-extrabold">{service.name}</h3>
                   <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-500">{service.description}</p>
                   {from != null && (
-                    <p className="mt-4 text-sm text-ink-500">
-                      a partir de <strong className="font-display text-xl text-brand-700">{formatCents(from)}</strong>
+                    <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-ink-500">
+                      a partir de <strong className="price-badge text-lg">{formatCents(from)}</strong>
                     </p>
                   )}
                 </li>

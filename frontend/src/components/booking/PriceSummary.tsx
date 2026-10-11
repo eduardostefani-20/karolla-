@@ -23,7 +23,7 @@ export function PriceSummary() {
         </p>
       )}
       {!price && !error && <p className="mt-4 text-sm text-ink-500">Escolha o porte e o serviço para ver o valor.</p>}
-      {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
+      {error && <p className="mt-4 text-sm font-medium text-danger-600">{error}</p>}
       {price && (
         <>
           <ul className="mt-4 space-y-2 text-sm">
@@ -39,7 +39,7 @@ export function PriceSummary() {
           </ul>
           <div className="mt-4 flex items-end justify-between border-t border-dashed border-ink-900/15 pt-4">
             <span className="text-sm font-bold uppercase tracking-wide text-ink-500">Total</span>
-            <span className="font-display text-3xl font-semibold text-brand-700 tabular-nums" data-testid="price-total">
+            <span className="price-badge px-4 py-1 text-2xl" data-testid="price-total">
               {formatCents(price.totalCents)}
             </span>
           </div>

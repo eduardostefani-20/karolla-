@@ -7,10 +7,10 @@ export function InspirationChip({ compact }: { compact?: boolean }) {
   const insp = draft.inspiration;
   if (!insp) return null;
   return (
-    <div className="mb-5 flex items-center gap-3 rounded-2xl border border-coral-200 bg-coral-50 p-2.5 pr-3" data-testid="inspiration-chip">
+    <div className="mb-5 flex items-center gap-3 rounded-2xl border border-sun-200 bg-sun-50 p-2.5 pr-3" data-testid="inspiration-chip">
       <img src={insp.imageUrl} alt={`Inspiração escolhida: ${insp.title}`} className="h-14 w-14 shrink-0 rounded-xl object-cover" />
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-coral-600">
+        <p className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-sun-700">
           <ImageIcon className="h-3.5 w-3.5" aria-hidden /> Inspiração escolhida
         </p>
         <p className="truncate font-semibold text-ink-800">{insp.title}</p>

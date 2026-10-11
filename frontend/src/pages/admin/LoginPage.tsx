@@ -37,12 +37,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-dvh place-items-center bg-gradient-to-br from-brand-100 via-cream-100 to-coral-50 px-4 py-10">
+    <div className="sunburst grid min-h-dvh place-items-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="card p-8 sm:p-10">
           <div className="mb-8 text-center">
-            <Logo className="justify-center" />
-            <h1 className="mt-6 flex items-center justify-center gap-2 text-xl font-semibold">
+            <Logo size="lg" className="mx-auto" />
+            <h1 className="mt-6 flex items-center justify-center gap-2 text-xl font-extrabold">
               <LockKeyhole className="h-5 w-5 text-brand-600" aria-hidden /> Área administrativa
             </h1>
           </div>
@@ -54,12 +54,12 @@ export default function LoginPage() {
             <Field label="Senha" required error={errors.password?.message}>
               {(p) => <Input {...p} {...register('password')} type="password" autoComplete="current-password" />}
             </Field>
-            <Button type="submit" size="lg" variant="secondary" block loading={isSubmitting}>
+            <Button type="submit" size="lg" variant="primary" block loading={isSubmitting}>
               ENTRAR
             </Button>
           </form>
         </div>
-        <p className="mt-6 text-center text-xs text-ink-500">Acesso restrito à equipe da Karolla Pet.</p>
+        <p className="mt-6 text-center text-xs text-brand-50">Acesso restrito à equipe da Karolla Pet.</p>
       </div>
     </div>
   );

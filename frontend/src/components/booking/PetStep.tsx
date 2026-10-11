@@ -81,7 +81,7 @@ export function PetStep({ onBack, onNext }: { onBack: () => void; onNext: () => 
           {(p) => <Input {...p} {...register('name')} placeholder="Ex.: Thor" autoComplete="off" />}
         </Field>
 
-        <div className="rounded-2xl bg-cream-50 px-4 py-3 text-sm text-ink-600">
+        <div className="rounded-2xl bg-lilac-50 px-4 py-3 text-sm text-ink-600">
           Espécie: <strong>{species ? `${species.emoji} ${species.name}` : '—'}</strong>
         </div>
 
@@ -122,7 +122,7 @@ export function PetStep({ onBack, onNext }: { onBack: () => void; onNext: () => 
 
         <fieldset>
           <legend className="mb-2 block text-sm font-semibold text-ink-700">
-            Porte <span className="text-coral-500" aria-hidden>*</span>
+            Porte <span className="text-brand-600" aria-hidden>*</span>
           </legend>
           <Controller
             control={control}
@@ -131,7 +131,7 @@ export function PetStep({ onBack, onNext }: { onBack: () => void; onNext: () => 
               <div role="radiogroup" aria-label="Porte" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {catalog.sizes.map((s) => (
                   <OptionCard key={s.id} selected={field.value === s.id} onClick={() => field.onChange(s.id)} className="p-4" testId={`size-${s.id}`}>
-                    <span className="block font-display text-lg font-semibold">{s.name}</span>
+                    <span className="block font-heading text-lg font-semibold">{s.name}</span>
                     <span className="block text-xs text-ink-500">{s.description}</span>
                   </OptionCard>
                 ))}
@@ -139,7 +139,7 @@ export function PetStep({ onBack, onNext }: { onBack: () => void; onNext: () => 
             )}
           />
           {errors.sizeId && (
-            <p role="alert" className="mt-2 text-sm font-medium text-red-600">
+            <p role="alert" className="mt-2 text-sm font-medium text-danger-600">
               {errors.sizeId.message}
             </p>
           )}
@@ -166,7 +166,7 @@ export function PetStep({ onBack, onNext }: { onBack: () => void; onNext: () => 
           )}
         </div>
         {suggested && suggested.id !== sizeId && (
-          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-sun-100 px-4 py-3 text-sm text-amber-950">
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-sun-100 px-4 py-3 text-sm text-sun-950">
             <Lightbulb className="h-5 w-5 shrink-0" aria-hidden />
             <span className="flex-1">
               Pelo peso informado, o porte indicado é <strong>{suggested.name}</strong>.

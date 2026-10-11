@@ -121,14 +121,14 @@ export default function BookingPage() {
   const showSummary = step >= 3 && step <= 7;
 
   return (
-    <div className="min-h-dvh bg-cream-100">
+    <div className="min-h-dvh bg-lilac-100">
       <DemoBanner />
-      <header className="border-b border-ink-900/5 bg-white/80 backdrop-blur">
+      <header className="bg-primary shadow-soft">
         <div className="container-page flex h-16 items-center justify-between">
-          <Link to="/" aria-label="Voltar para o site da Karolla Pet">
-            <Logo />
+          <Link to="/" aria-label="Voltar para o site da Karolla Pet" className="rounded-pill">
+            <Logo size="sm" shadow={false} />
           </Link>
-          <Link to="/" className="inline-flex items-center gap-1 text-sm font-semibold text-ink-500 hover:text-ink-800">
+          <Link to="/" className="inline-flex items-center gap-1 rounded-pill px-2 py-1 text-sm font-bold text-white hover:underline">
             <ArrowLeft className="h-4 w-4" aria-hidden /> Site
           </Link>
         </div>

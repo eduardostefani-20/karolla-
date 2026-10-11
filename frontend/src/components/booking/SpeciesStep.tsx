@@ -33,7 +33,7 @@ export function SpeciesStep({ onNext }: { onNext: () => void }) {
             <span className="block text-6xl" aria-hidden>
               {s.emoji}
             </span>
-            <span className="mt-3 block font-display text-xl font-semibold">{s.name}</span>
+            <span className="mt-3 block font-heading text-xl font-semibold">{s.name}</span>
           </OptionCard>
         ))}
       </div>

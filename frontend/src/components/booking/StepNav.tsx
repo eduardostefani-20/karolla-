@@ -30,7 +30,7 @@ export function StepNav({
       {price && (
         <p className="mb-2 flex items-center justify-between text-sm lg:hidden">
           <span className="text-ink-500">Total estimado</span>
-          <strong className="font-display text-lg text-brand-700" data-testid="mobile-total">
+          <strong className="price-badge text-base" data-testid="mobile-total">
             {formatCents(price.totalCents)}
           </strong>
         </p>

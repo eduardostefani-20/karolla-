@@ -12,7 +12,7 @@ export function StepHeader({ step, title, subtitle }: { step: number; title: str
         <span className="text-ink-400">{BOOKING_STEPS[step - 1]?.title}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-brand-100" role="progressbar" aria-valuemin={1} aria-valuemax={TOTAL_STEPS} aria-valuenow={step} aria-label="Progresso do agendamento">
-        <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-coral-400 transition-all duration-500" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-sun-400 transition-all duration-500" style={{ width: `${pct}%` }} />
       </div>
       <h1 className="mt-6 text-2xl font-semibold outline-none focus-visible:ring-0 sm:text-3xl" tabIndex={-1} id="etapa-titulo">
         {title}

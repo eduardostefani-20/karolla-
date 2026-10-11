@@ -27,7 +27,7 @@ export function AddonsStep({ onBack, onNext }: { onBack: () => void; onNext: () 
           <OptionCard key={a.id} multi selected={draft.addonIds.includes(a.id)} onClick={() => toggle(a.id)} testId={`addon-${a.id}`}>
             <span className="block pr-8 font-semibold">{a.name}</span>
             <span className="mt-1 block text-sm text-ink-500">{a.description}</span>
-            <span className="mt-3 block font-display text-lg font-semibold text-brand-700">+ {formatCents(a.priceCents)}</span>
+            <span className="price-badge mt-3">+ {formatCents(a.priceCents)}</span>
           </OptionCard>
         ))}
       </div>

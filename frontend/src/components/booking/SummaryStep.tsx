@@ -42,7 +42,7 @@ function Block({ icon, title, onEdit, children }: { icon: ReactNode; title: stri
           {icon} {title}
         </h2>
         {onEdit && (
-          <button type="button" onClick={onEdit} className="text-sm font-semibold text-coral-600 underline-offset-2 hover:underline">
+          <button type="button" onClick={onEdit} className="link text-sm">
             Alterar
           </button>
         )}
@@ -180,7 +180,7 @@ export function SummaryStep({
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{draft.inspiration.title}</p>
                 <p className="text-sm text-ink-500">{draft.inspiration.breedName}</p>
-                <button type="button" onClick={() => update({ inspiration: null })} className="mt-1 text-sm font-semibold text-coral-600 underline">
+                <button type="button" onClick={() => update({ inspiration: null })} className="link mt-1 text-sm underline">
                   Remover foto
                 </button>
               </div>
@@ -225,7 +225,7 @@ export function SummaryStep({
         )}
         <div className="flex items-end justify-between border-t-2 border-ink-900/10 py-5">
           <span className="font-bold uppercase tracking-wide text-ink-500">Total</span>
-          <span className="font-display text-4xl font-semibold text-brand-700" data-testid="summary-total">
+          <span className="price-badge px-5 py-1 text-3xl" data-testid="summary-total">
             {price ? formatCents(price.totalCents) : '—'}
           </span>
         </div>

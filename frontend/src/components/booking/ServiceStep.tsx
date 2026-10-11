@@ -34,13 +34,13 @@ export function ServiceStep({ onBack, onNext }: { onBack: () => void; onNext: ()
               >
                 <span className="flex flex-col gap-1 pr-8 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <span>
-                    <span className="block font-display text-lg font-semibold">{s.name}</span>
+                    <span className="block font-heading text-lg font-extrabold">{s.name}</span>
                     <span className="mt-1 block text-sm text-ink-500">{s.description}</span>
                     <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-ink-400">
                       <Clock className="h-3.5 w-3.5" aria-hidden /> ~{duration} min
                     </span>
                   </span>
-                  <span className="shrink-0 font-display text-xl font-semibold text-brand-700 sm:pt-0.5">
+                  <span className="price-badge shrink-0 self-start text-lg">
                     {price ? formatCents(price.priceCents) : <span className="text-sm text-ink-400">Indisponível para este porte</span>}
                   </span>
                 </span>

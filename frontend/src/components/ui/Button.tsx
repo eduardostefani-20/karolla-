@@ -3,19 +3,28 @@ import { Link, type LinkProps } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'whatsapp';
+type Variant = 'primary' | 'accent' | 'secondary' | 'outline' | 'onDark' | 'ghost' | 'danger' | 'whatsapp';
 type Size = 'sm' | 'md' | 'lg';
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-all duration-150 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50 select-none';
+  'inline-flex items-center justify-center gap-2 rounded-pill font-bold transition-all duration-150 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50 select-none';
+
+/** "Pulo" no hover (desligado automaticamente com prefers-reduced-motion). */
+const lift = 'hover:-translate-y-0.5';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-coral-500 text-white shadow-soft hover:bg-coral-600',
-  secondary: 'bg-brand-600 text-white hover:bg-brand-700',
-  outline: 'border-2 border-brand-600/20 bg-white text-brand-800 hover:border-brand-600/40 hover:bg-brand-50',
+  // roxo da marca, texto branco (9:1)
+  primary: `bg-primary text-white shadow-soft hover:bg-primary-dark ${lift}`,
+  // destaque/promoção: amarelo-ouro com texto roxo profundo (7.9:1) — nunca texto branco
+  accent: `bg-accent font-extrabold text-primary-dark shadow-soft hover:bg-sun-300 ${lift}`,
+  // contorno roxo, fundo transparente
+  secondary: `border-2 border-primary bg-transparent text-primary hover:bg-brand-50 ${lift}`,
+  outline: `border-2 border-primary bg-transparent text-primary hover:bg-brand-50 ${lift}`,
+  // contorno branco para fundos roxos (hero, faixas)
+  onDark: `border-2 border-white/80 bg-transparent text-white hover:bg-white/10 ${lift}`,
   ghost: 'text-ink-600 hover:bg-ink-900/5',
-  danger: 'bg-red-600 text-white hover:bg-red-700',
-  whatsapp: 'bg-[#1fa855] text-white shadow-soft hover:bg-[#178a45]',
+  danger: 'bg-danger-600 text-white hover:bg-danger-700',
+  whatsapp: `bg-whatsapp text-white shadow-soft hover:bg-whatsapp-dark ${lift}`,
 };
 
 const sizes: Record<Size, string> = {

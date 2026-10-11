@@ -50,7 +50,7 @@ export function Calendar({
         <button type="button" onClick={() => move(-1)} disabled={!canPrev} className="rounded-full p-2.5 hover:bg-ink-900/5 disabled:opacity-30" aria-label="Mês anterior">
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <h2 className="font-display text-xl font-semibold" aria-live="polite">
+        <h2 className="font-heading text-xl font-semibold" aria-live="polite">
           {MONTHS[cursor.m]} {cursor.y}
         </h2>
         <button type="button" onClick={() => move(1)} disabled={!canNext} className="rounded-full p-2.5 hover:bg-ink-900/5 disabled:opacity-30" aria-label="Próximo mês">

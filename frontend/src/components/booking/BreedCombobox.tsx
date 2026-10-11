@@ -105,7 +105,7 @@ export function BreedCombobox({
                 className={cn(
                   'flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[15px]',
                   i === active && 'bg-brand-50',
-                  isOther && 'mt-1 border-t border-ink-900/5 font-semibold text-coral-600',
+                  isOther && 'mt-1 border-t border-ink-900/5 font-semibold text-brand-600',
                 )}
               >
                 <span className="flex items-center gap-2">
