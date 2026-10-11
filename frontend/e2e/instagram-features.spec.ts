@@ -82,14 +82,25 @@ test('agenda por profissional: cliente escolhe a profissional e o painel mostra/
 
   await page.goto('/agendar');
   await fillPetAndService(page, { pet, breed: 'shih', option: 'Shih Tzu', size: 'pequeno', service: 'banho' });
-  await expect(page.getByText('Escolha a data')).toBeVisible();
-  await page.locator('button[data-date]:not([disabled])').nth(2).click();
-  await next(page);
-  const bia = page.getByRole('radio', { name: `Bia ${suffix}` });
-  await expect(bia).toBeVisible();
-  await bia.click();
-  await expect(page.getByText('Mostrando apenas os horários livres deste profissional.')).toBeVisible();
-  await page.locator('[data-testid^="slot-"]').first().click();
+  // procura uma data em que a Bia tenha horário (outros testes podem bloquear dias inteiros)
+  for (let attempt = 2; ; attempt++) {
+    expect(attempt, 'nenhuma data com horário livre para a profissional').toBeLessThan(12);
+    await expect(page.getByText('Escolha a data')).toBeVisible();
+    await page.locator('button[data-date]:not([disabled])').nth(attempt).click();
+    await next(page);
+    const bia = page.getByRole('radio', { name: `Bia ${suffix}` });
+    await expect(bia).toBeVisible();
+    if (!(await bia.isChecked())) await bia.click();
+    await expect(page.getByText('Mostrando apenas os horários livres deste profissional.')).toBeVisible();
+    const slot = page.locator('[data-testid^="slot-"]').first();
+    const empty = page.getByText('Sem horários livres nesta data');
+    await expect(slot.or(empty)).toBeVisible();
+    if (await slot.isVisible()) {
+      await slot.click();
+      break;
+    }
+    await page.getByRole('button', { name: 'Escolher outra data' }).click();
+  }
   await next(page);
   await fillTutor(page, mobile ? '11981230003' : '11981230004');
   await expect(page.getByText(`Bia ${suffix}`)).toBeVisible();
