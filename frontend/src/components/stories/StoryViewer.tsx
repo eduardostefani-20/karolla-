@@ -72,7 +72,7 @@ export function StoryViewer({ stories, start, onClose, onSeen }: { stories: Publ
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900" role="dialog" aria-modal="true" aria-label="Stories da Karolla Pet">
-      <div className="relative h-full w-full max-w-md overflow-hidden bg-black sm:h-[92dvh] sm:rounded-4xl">
+      <div className="relative h-full w-full max-w-md overflow-hidden bg-brand-950 sm:h-[92dvh] sm:rounded-4xl">
         {story.mediaType === 'video' ? (
           <video
             key={story.id}
@@ -100,7 +100,7 @@ export function StoryViewer({ stories, start, onClose, onSeen }: { stories: Publ
         </div>
         <div className="absolute inset-x-3 top-6 flex items-center justify-between">
           <span className="flex items-center gap-2 text-sm font-semibold text-white drop-shadow">
-            <Logo light className="origin-left scale-75" />
+            <Logo size="xs" />
             <span className="text-white/80">{timeAgo(story.createdAt)}</span>
           </span>
           <span className="flex gap-1">
@@ -126,7 +126,7 @@ export function StoryViewer({ stories, start, onClose, onSeen }: { stories: Publ
         />
 
         {story.caption && (
-          <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-5 pb-8 pt-12 text-center text-base font-medium text-white">{story.caption}</p>
+          <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-brand-950/80 to-transparent px-5 pb-8 pt-12 text-center text-base font-medium text-white">{story.caption}</p>
         )}
       </div>
     </div>,

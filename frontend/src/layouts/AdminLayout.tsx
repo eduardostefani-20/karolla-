@@ -81,14 +81,14 @@ function AdminLayout() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   return (
-    <div className="min-h-dvh bg-cream-50 lg:grid lg:grid-cols-[260px_1fr]">
+    <div className="min-h-dvh bg-lilac-50 lg:grid lg:grid-cols-[260px_1fr]">
       <a href="#admin-conteudo" className="sr-only-focusable absolute left-4 top-2 z-50 rounded-full bg-white px-4 py-2 font-semibold">
         Pular para o conteúdo
       </a>
       {/* Sidebar desktop */}
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-ink-900/5 bg-white px-4 py-6 lg:flex">
         <Link to="/admin" className="mb-8 px-2">
-          <Logo />
+          <Logo size="sm" />
         </Link>
         <nav aria-label="Painel administrativo" className="scroll-thin flex-1 overflow-y-auto">
           <NavItems />
@@ -110,7 +110,7 @@ function AdminLayout() {
       {/* Barra superior mobile */}
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-ink-900/5 bg-white/95 px-4 backdrop-blur lg:hidden">
         <Link to="/admin" aria-label="Dashboard">
-          <Logo className="scale-90" />
+          <Logo size="sm" />
         </Link>
         <button type="button" onClick={() => setOpen(true)} className="rounded-full p-2.5 hover:bg-ink-900/5" aria-label="Abrir menu" aria-expanded={open}>
           <Menu className="h-6 w-6" />
