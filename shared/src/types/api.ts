@@ -125,6 +125,8 @@ export interface DashboardData {
 
 export interface AuthSession {
   token: string;
+  /** Renova o acesso sem pedir a senha de novo (guardado só no navegador do usuário). */
+  refreshToken?: string;
   expiresAt: string;
   user: AdminUser;
 }

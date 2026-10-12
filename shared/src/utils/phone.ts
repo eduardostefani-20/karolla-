@@ -25,7 +25,8 @@ export function isValidBrazilianMobile(value: string): boolean {
 }
 
 /** Máscara progressiva: "11999999999" -> "(11) 99999-9999" */
-export function formatPhone(value: string): string {
+export function formatPhone(value: string | null | undefined): string {
+  if (!value) return '';
   const d = normalizeBrazilianPhone(value).slice(0, 11);
   if (d.length === 0) return '';
   if (d.length <= 2) return `(${d}`;

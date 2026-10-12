@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ADMIN_ROLES, APPOINTMENT_STATUSES, FORM_FIELD_KEYS } from '../types/domain';
+import { ASSIGNABLE_ROLES, sanitizeGrants } from '../auth/permissions';
 import { DEFAULT_PROFESSIONAL_COLOR } from '../utils/color';
 import {
   centsSchema,
@@ -23,6 +24,44 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Informe a senha.').max(200),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
+
+/** Senha nova: 8+ caracteres, com letra e número. */
+export const newPasswordSchema = z
+  .string()
+  .min(8, 'Use pelo menos 8 caracteres.')
+  .max(72, 'Use no máximo 72 caracteres.')
+  .refine((v) => /[A-Za-zÀ-ÿ]/.test(v) && /\d/.test(v), 'Use letras e números.');
+
+export const refreshSchema = z.object({ refreshToken: z.string().min(10).max(4000) });
+export const forgotPasswordSchema = z.object({ email: emailSchema });
+export const resetPasswordSchema = z.object({ token: z.string().min(10).max(4000), password: newPasswordSchema });
+export const changePasswordSchema = z.object({ currentPassword: z.string().min(1, 'Informe a senha atual.').max(200), newPassword: newPasswordSchema });
+
+const permissionSetSchema = z.object({
+  grants: z.array(z.string().max(40)).max(200).transform((g) => sanitizeGrants(g)),
+  agendaScope: z.enum(['all', 'own']).default('all'),
+});
+
+export const staffCreateSchema = z.object({
+  name: requiredText('o nome', 80),
+  email: emailSchema,
+  password: newPasswordSchema,
+  role: z.enum(ASSIGNABLE_ROLES, { errorMap: () => ({ message: 'Escolha um perfil.' }) }),
+  customPermissions: permissionSetSchema.nullable().default(null),
+  professionalId: idSchema.nullable().default(null),
+});
+export type StaffCreateInput = z.infer<typeof staffCreateSchema>;
+
+export const staffUpdateSchema = z.object({
+  name: requiredText('o nome', 80).optional(),
+  role: z.enum(ASSIGNABLE_ROLES).optional(),
+  active: z.boolean().optional(),
+  customPermissions: permissionSetSchema.nullable().optional(),
+  professionalId: idSchema.nullable().optional(),
+});
+export type StaffUpdateInput = z.infer<typeof staffUpdateSchema>;
+
+export const staffPasswordSchema = z.object({ password: newPasswordSchema });
 
 export const speciesSchema = z.object({
   name: requiredText('o nome', 40),

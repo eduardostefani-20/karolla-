@@ -7,6 +7,8 @@
  * interpretados no fuso horário configurado em `BusinessSettings.timezone`.
  */
 
+import { STAFF_ROLES, type PermissionSet, type StaffRole } from '../auth/permissions';
+
 export type ID = string;
 
 export const APPOINTMENT_STATUSES = [
@@ -22,8 +24,9 @@ export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 /** Status que NÃO ocupam a agenda (liberam o horário). */
 export const NON_BLOCKING_STATUSES: readonly AppointmentStatus[] = ['cancelled', 'no_show'];
 
-export const ADMIN_ROLES = ['owner', 'admin', 'staff'] as const;
-export type AdminRole = (typeof ADMIN_ROLES)[number];
+/** Perfis da equipe — veja shared/src/auth/permissions.ts. */
+export const ADMIN_ROLES = STAFF_ROLES;
+export type AdminRole = StaffRole;
 
 export interface Species {
   id: ID;
@@ -338,4 +341,35 @@ export interface AdminUser {
   email: string;
   name: string;
   role: AdminRole;
+  /** Permissões efetivas (perfil ou personalização). O servidor sempre revalida. */
+  permissions: PermissionSet;
+  /** Profissional vinculado à conta (agenda "somente os próprios atendimentos"). */
+  professionalId: ID | null;
+}
+
+/** Conta da equipe vista na tela "Equipe e permissões". */
+export interface StaffMember {
+  id: ID;
+  email: string;
+  name: string;
+  role: AdminRole;
+  active: boolean;
+  /** null = usa as permissões do perfil. */
+  customPermissions: PermissionSet | null;
+  permissions: PermissionSet;
+  professionalId: ID | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+/** Registro das principais ações administrativas. */
+export interface AuditLog {
+  id: ID;
+  actorId: ID | null;
+  actorEmail: string;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  status: number;
+  createdAt: string;
 }

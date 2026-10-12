@@ -1,7 +1,9 @@
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 /** 12345 -> "R$ 123,45" */
-export function formatCents(cents: number): string {
+export function formatCents(cents: number | null | undefined): string {
+  // Sem permissão financeira o servidor não envia valores: mostra um traço em vez de "NaN".
+  if (typeof cents !== 'number' || !Number.isFinite(cents)) return '—';
   // Intl usa espaço não separável; normalizamos para espaço comum (melhor para WhatsApp/planilhas).
   return brl.format(cents / 100).replace(/ /g, ' ');
 }
