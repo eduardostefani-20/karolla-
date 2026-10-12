@@ -47,7 +47,7 @@ próprios atendimentos** (é preciso vincular a conta a um profissional).
 
 1. **Authentication → URL Configuration → Redirect URLs**: adicionar
    `https://karollapet.com.br/redefinir-senha` (e o endereço do Netlify, se ainda usar,
-   ex.: `https://karolllapet.netlify.app/redefinir-senha`).
+   ex.: `https://karollapet.netlify.app/redefinir-senha`).
 2. **Authentication → SMTP**: o e-mail padrão do Supabase envia poucas mensagens por hora e serve só
    para testes. Para uso real, configure um SMTP próprio (ex.: o e-mail do domínio).
 3. A variável `PUBLIC_SITE_URL` do servidor (Netlify) precisa apontar para o endereço do site — é

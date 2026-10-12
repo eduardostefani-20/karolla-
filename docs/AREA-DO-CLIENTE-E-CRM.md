@@ -51,6 +51,6 @@ Permissões: CRM exige "CRM → Ver" + "Clientes → Ver"; chamar no WhatsApp ex
    o sistema não liga nenhuma conta automaticamente (todas ficam pendentes para a equipe confirmar).
 2. **Authentication → URL Configuration → Redirect URLs**: incluir
    `https://karollapet.com.br/minha-conta/entrar`, `https://karollapet.com.br/minha-conta` e
-   `https://karollapet.com.br/redefinir-senha` (e os equivalentes em `karolllapet.netlify.app`, se usar).
+   `https://karollapet.com.br/redefinir-senha` (e os equivalentes em `karollapet.netlify.app`, se usar).
 3. **SMTP próprio** (Authentication → SMTP): o e-mail padrão do Supabase envia poucas mensagens por hora.
 4. Migração `database/migrations/0009_portal_cliente_pets_crm.sql` aplicada (cria o bucket privado).

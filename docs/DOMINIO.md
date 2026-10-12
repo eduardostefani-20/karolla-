@@ -12,7 +12,7 @@ no compartilhamento (Open Graph), em `sitemap.xml` e `robots.txt`. Falta só reg
 
 ## 2. Apontar para o Netlify (escolha **um** caminho)
 
-Antes, no Netlify: *Projeto `karolllapet` → Domain management → Add a domain* → `karollapet.com.br`
+Antes, no Netlify: *Projeto `karollapet` → Domain management → Add a domain* → `karollapet.com.br`
 (o Netlify oferece incluir `www.karollapet.com.br` também — aceite).
 
 ### Caminho A — DNS do Netlify (mais simples, recomendado)
@@ -29,7 +29,7 @@ No Registro.br: *DNS → Editar zona* (modo avançado) e crie:
 | Tipo | Nome | Valor |
 |---|---|---|
 | A | (vazio / `karollapet.com.br`) | `75.2.60.5` |
-| CNAME | `www` | `karolllapet.netlify.app` |
+| CNAME | `www` | `karollapet.netlify.app` |
 
 (`75.2.60.5` é o endereço do balanceador do Netlify para domínio raiz — confira na
 [documentação do Netlify](https://docs.netlify.com/domains-https/custom-domains/configure-external-dns/) no dia.)
