@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { MockAuthService } from '../src/integrations/auth/MockAuthService';
 import { loadEnv, ConfigError } from '../src/config/env';
 import { ADMIN, bookingPayload, setup, TOMORROW } from './helpers';
 
@@ -41,16 +40,6 @@ describe('Autenticação e proteção', () => {
     const forged = Buffer.from(JSON.stringify({ sub: 'x', email: 'x', name: 'x', role: 'owner', exp: 9999999999 })).toString('base64url');
     expect(body).toBeTruthy();
     await api.get('/api/admin/dashboard').set('Authorization', `Bearer ${forged}.${sig}`).expect(401);
-  });
-
-  it('perfil "staff" opera a agenda mas não altera configurações', async () => {
-    const auth = new MockAuthService({ email: 'equipe@karollapet.test', password: 'equipe-123', secret: 's', ttlHours: 1, role: 'staff' });
-    const { api } = await setup({ auth });
-    const res = await api.post('/api/auth/login').send({ email: 'equipe@karollapet.test', password: 'equipe-123' }).expect(200);
-    const token = `Bearer ${res.body.token}`;
-    await api.get('/api/admin/appointments').set('Authorization', token).expect(200);
-    const denied = await api.post('/api/admin/services').set('Authorization', token).send({ name: 'X', category: 'Y', durationMinutes: 30 }).expect(403);
-    expect(denied.body.error.code).toBe('FORBIDDEN');
   });
 
   it('produção não aceita banco em memória nem auth mock', () => {

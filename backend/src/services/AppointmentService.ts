@@ -157,14 +157,17 @@ export class AppointmentService {
     return this.get(id);
   }
 
-  async dashboard(): Promise<DashboardData> {
+  /** `onlyProfessionalId` = conta com agenda "só os próprios atendimentos" (não vê totais da loja). */
+  async dashboard(onlyProfessionalId?: string | null): Promise<DashboardData> {
     const settings = await this.db.settings.get();
     const today = nowInTimezone(this.clock.now(), settings.timezone).date;
-    const [recentRaw, customers, pets] = await Promise.all([
+    const own = onlyProfessionalId !== undefined;
+    const [allRecent, customers, pets] = await Promise.all([
       this.db.appointments.list({ from: addDays(today, -30), to: addDays(today, 365) }),
-      this.db.customers.list(),
-      this.db.pets.list(),
+      own ? Promise.resolve([]) : this.db.customers.list(),
+      own ? Promise.resolve([]) : this.db.pets.list(),
     ]);
+    const recentRaw = own ? allRecent.filter((a) => onlyProfessionalId !== null && a.professionalId === onlyProfessionalId) : allRecent;
     const upcomingRaw = recentRaw.filter((a) => a.date >= today);
     const todayRows = upcomingRaw.filter((a) => a.date === today && a.status !== 'cancelled');
     const future = upcomingRaw.filter((a) => a.status === 'pending' || a.status === 'confirmed');
@@ -185,7 +188,7 @@ export class AppointmentService {
       },
       todayAgenda,
       nextAppointments,
-      channels: this.channels(recentRaw),
+      channels: own ? [] : this.channels(recentRaw),
     };
   }
 

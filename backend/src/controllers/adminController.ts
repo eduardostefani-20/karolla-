@@ -25,9 +25,17 @@ import {
 import { z } from 'zod';
 import type { Container } from '../container';
 import { parse } from '../middleware/validate';
+import { ForbiddenError, NotFoundError } from '../utils/errors';
 import { idParamSchema, searchQuerySchema } from '../validators/query';
 
 const id = (req: Request) => parse(idParamSchema, req.params).id;
+
+/**
+ * Agenda "somente os próprios atendimentos": devolve o profissional vinculado à conta (null = conta sem
+ * profissional vinculado, que então não vê nenhum atendimento). `undefined` = vê a agenda inteira.
+ */
+const ownProfessional = (req: Request): string | null | undefined =>
+  req.admin?.permissions.agendaScope === 'own' ? (req.admin.professionalId ?? null) : undefined;
 
 /** Para PATCH: o schema base com todos os campos opcionais (sem defaults que sobrescrevam valores). */
 const partialOf = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
@@ -39,10 +47,32 @@ const unwrap = <T extends z.ZodRawShape>(s: z.ZodObject<T> | z.ZodEffects<z.ZodO
   s instanceof z.ZodEffects ? (s.innerType() as z.ZodObject<T>) : s;
 
 export function adminController(c: Container) {
+  /** Confere se o atendimento está no escopo da conta; fora dele responde "não encontrado". */
+  async function scopedAppointment(req: Request): Promise<string> {
+    const appointmentId = id(req);
+    const own = ownProfessional(req);
+    if (own === undefined) return appointmentId;
+    const appointment = await c.db.appointments.findById(appointmentId);
+    if (!appointment || own === null || appointment.professionalId !== own) throw new NotFoundError('Agendamento não encontrado.');
+    return appointmentId;
+  }
+
+  /** Para agenda "só os próprios": clientes, pets e atendimentos que a conta pode ver. null = sem restrição. */
+  async function ownIds(req: Request) {
+    const own = ownProfessional(req);
+    if (own === undefined) return null;
+    const rows = own === null ? [] : await c.db.appointments.list({ professionalId: own });
+    return {
+      appointments: new Set(rows.map((a) => a.id)),
+      customers: new Set(rows.map((a) => a.customerId)),
+      pets: new Set(rows.map((a) => a.petId)),
+    };
+  }
+
   return {
     // ----- Dashboard / sistema -----
-    async dashboard(_req: Request, res: Response) {
-      res.json(await c.appointments.dashboard());
+    async dashboard(req: Request, res: Response) {
+      res.json(await c.appointments.dashboard(ownProfessional(req)));
     },
     async systemStatus(_req: Request, res: Response) {
       const status: SystemStatus = {
@@ -58,37 +88,57 @@ export function adminController(c: Container) {
 
     // ----- Agendamentos -----
     async listAppointments(req: Request, res: Response) {
-      res.json(await c.appointments.list(parse(appointmentListQuerySchema, req.query)));
+      const query = parse(appointmentListQuerySchema, req.query);
+      const own = ownProfessional(req);
+      if (own === null) return void res.json([]);
+      res.json(await c.appointments.list(own === undefined ? query : { ...query, professionalId: own }));
     },
     async getAppointment(req: Request, res: Response) {
-      res.json(await c.appointments.get(id(req)));
+      res.json(await c.appointments.get(await scopedAppointment(req)));
     },
     async updateAppointment(req: Request, res: Response) {
-      res.json(await c.appointments.update(id(req), parse(appointmentUpdateSchema, req.body)));
+      const input = parse(appointmentUpdateSchema, req.body);
+      const appointmentId = await scopedAppointment(req);
+      const own = ownProfessional(req);
+      if (own !== undefined && input.professionalId !== undefined && input.professionalId !== own) {
+        throw new ForbiddenError('Você só pode cuidar dos seus próprios atendimentos.');
+      }
+      // Sem permissão financeira não altera valores (o preço é recalculado só por quem vê valores).
+      res.json(await c.appointments.update(appointmentId, input));
     },
     async updateAppointmentStatus(req: Request, res: Response) {
       const { status } = parse(z.object({ status: appointmentStatusSchema }), req.body);
-      res.json(await c.appointments.update(id(req), { status }));
+      res.json(await c.appointments.update(await scopedAppointment(req), { status }));
     },
     async resendNotifications(req: Request, res: Response) {
-      res.json(await c.appointments.resendNotifications(id(req)));
+      res.json(await c.appointments.resendNotifications(await scopedAppointment(req)));
     },
 
     // ----- Clientes e pets -----
     async listCustomers(req: Request, res: Response) {
-      res.json(await c.customers.listCustomers(parse(searchQuerySchema, req.query).search));
+      const rows = await c.customers.listCustomers(parse(searchQuerySchema, req.query).search);
+      const allowed = await ownIds(req);
+      res.json(allowed ? rows.filter((r) => allowed.customers.has(r.id)) : rows);
     },
     async getCustomer(req: Request, res: Response) {
-      res.json(await c.customers.getCustomer(id(req)));
+      const allowed = await ownIds(req);
+      if (allowed && !allowed.customers.has(id(req))) throw new NotFoundError('Cliente não encontrado.');
+      const detail = await c.customers.getCustomer(id(req));
+      res.json(allowed ? { ...detail, appointments: detail.appointments.filter((a) => allowed.appointments.has(a.id)) } : detail);
     },
     async updateCustomer(req: Request, res: Response) {
       res.json(await c.customers.updateCustomer(id(req), parse(customerUpdateSchema, req.body)));
     },
     async listPets(req: Request, res: Response) {
-      res.json(await c.customers.listPets(parse(searchQuerySchema, req.query).search));
+      const rows = await c.customers.listPets(parse(searchQuerySchema, req.query).search);
+      const allowed = await ownIds(req);
+      res.json(allowed ? rows.filter((r) => allowed.pets.has(r.id)) : rows);
     },
     async getPet(req: Request, res: Response) {
-      res.json(await c.customers.getPet(id(req)));
+      const allowed = await ownIds(req);
+      if (allowed && !allowed.pets.has(id(req))) throw new NotFoundError('Pet não encontrado.');
+      const detail = await c.customers.getPet(id(req));
+      res.json(allowed ? { ...detail, appointments: detail.appointments.filter((a) => allowed.appointments.has(a.id)) } : detail);
     },
     async updatePet(req: Request, res: Response) {
       res.json(await c.customers.updatePet(id(req), parse(petUpdateSchema, req.body)));

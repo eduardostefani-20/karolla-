@@ -14,6 +14,7 @@ import { DisabledGoogleSheetsService, WebhookGoogleSheetsService } from './integ
 import type { MediaStorage } from './integrations/storage/MediaStorage';
 import { MemoryMediaStorage, SupabaseMediaStorage } from './integrations/storage/providers';
 import { DisabledInstagramFeed, GraphInstagramFeed, type InstagramFeedService } from './integrations/instagram/InstagramFeedService';
+import { StaffService } from './services/StaffService';
 import { MediaService } from './services/MediaService';
 import { CatalogService } from './services/CatalogService';
 import { ScheduleService } from './services/ScheduleService';
@@ -44,6 +45,7 @@ export interface Container {
   storage: MediaStorage;
   instagram: InstagramFeedService;
   media: MediaService;
+  staff: StaffService;
 }
 
 export interface ContainerOverrides {
@@ -73,7 +75,7 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
   let auth = overrides.auth;
   if (!auth) {
     if (env.AUTH_PROVIDER === 'supabase') {
-      auth = new SupabaseAuthService(env.SUPABASE_URL!, env.SUPABASE_ANON_KEY!, db.admins);
+      auth = new SupabaseAuthService(env.SUPABASE_URL!, env.SUPABASE_ANON_KEY!, env.SUPABASE_SERVICE_ROLE_KEY!);
     } else {
       const email = env.DEMO_ADMIN_EMAIL ?? 'admin@karollapet.demo';
       // Sem senha no código: se não definida no .env, gera uma aleatória e mostra no console.
@@ -82,8 +84,7 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
         logger.warn(`[DEMO] DEMO_ADMIN_PASSWORD não definida. Login temporário: ${email} / ${password}`);
       }
       auth = new MockAuthService({
-        email,
-        password,
+        owner: { email, password },
         secret: env.AUTH_TOKEN_SECRET ?? randomBytes(32).toString('hex'),
         ttlHours: env.AUTH_TOKEN_TTL_HOURS,
       });
@@ -129,6 +130,7 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
   const customers = new CustomerService(db);
 
   const media = new MediaService(db, storage, clock);
+  const staff = new StaffService(db, auth, clock);
 
-  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media };
+  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media, staff };
 }

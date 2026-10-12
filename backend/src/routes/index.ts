@@ -2,17 +2,19 @@ import express, { Router } from 'express';
 import { MemoryMediaStorage } from '../integrations/storage/providers';
 import type { Container } from '../container';
 import { asyncHandler as h } from '../utils/asyncHandler';
-import { requireAuth, requireRole } from '../middleware/auth';
+import { auditTrail, can, canAny, redactResponses, requireStaff } from '../middleware/auth';
 import { rateLimit } from '../middleware/rateLimit';
 import { publicController } from '../controllers/publicController';
 import { authController } from '../controllers/authController';
 import { adminController } from '../controllers/adminController';
+import { teamController } from '../controllers/teamController';
 
 export function buildRoutes(c: Container): Router {
   const router = Router();
   const pub = publicController(c);
   const auth = authController(c);
   const admin = adminController(c);
+  const team = teamController(c);
   const isTest = c.env.NODE_ENV === 'test';
 
   router.get('/health', (_req, res) => {
@@ -32,80 +34,91 @@ export function buildRoutes(c: Container): Router {
     h(pub.createAppointment),
   );
 
-  // ---------------- Autenticação ----------------
-  router.post(
-    '/auth/login',
-    rateLimit({ keyPrefix: 'login', windowMs: 15 * 60 * 1000, max: isTest ? 10_000 : 10 }),
-    h(auth.login),
-  );
-  router.get('/auth/me', requireAuth(c.auth), h(auth.me));
+  // ---------------- Autenticação (equipe) ----------------
+  const loginLimit = rateLimit({ keyPrefix: 'login', windowMs: 15 * 60 * 1000, max: isTest ? 10_000 : 10 });
+  const resetLimit = rateLimit({ keyPrefix: 'pwreset', windowMs: 60 * 60 * 1000, max: isTest ? 10_000 : 5, message: 'Muitos pedidos de redefinição. Tente de novo mais tarde.' });
+  const staffOnly = requireStaff(c.auth, c.staff);
+  router.post('/auth/login', loginLimit, h(auth.login));
+  router.post('/auth/refresh', rateLimit({ keyPrefix: 'refresh', windowMs: 15 * 60 * 1000, max: isTest ? 10_000 : 60 }), h(auth.refresh));
+  router.get('/auth/me', staffOnly, h(auth.me));
   router.post('/auth/logout', h(auth.logout));
+  router.post('/auth/forgot-password', resetLimit, h(auth.forgotPassword));
+  router.post('/auth/reset-password', resetLimit, h(auth.resetPassword));
+  router.post('/auth/change-password', loginLimit, staffOnly, auditTrail(c.db), h(auth.changePassword));
 
-  // ---------------- Administrativo (sempre autenticado) ----------------
+  // ---------------- Administrativo (sempre autenticado; permissão conferida em cada rota) ----------------
   const a = Router();
-  a.use(requireAuth(c.auth));
-  const manage = requireRole('admin'); // configurações: owner/admin. Equipe (staff) opera a agenda.
+  a.use(staffOnly, redactResponses(), auditTrail(c.db));
 
-  a.get('/dashboard', h(admin.dashboard));
-  a.get('/system-status', h(admin.systemStatus));
+  a.get('/dashboard', can('dashboard.view'), h(admin.dashboard));
+  a.get('/system-status', can('settings.view'), h(admin.systemStatus));
 
-  a.get('/appointments', h(admin.listAppointments));
-  a.get('/appointments/:id', h(admin.getAppointment));
-  a.patch('/appointments/:id', h(admin.updateAppointment));
-  a.patch('/appointments/:id/status', h(admin.updateAppointmentStatus));
-  a.post('/appointments/:id/resend-notifications', h(admin.resendNotifications));
+  a.get('/appointments', can('agenda.view'), h(admin.listAppointments));
+  a.get('/appointments/:id', can('agenda.view'), h(admin.getAppointment));
+  a.patch('/appointments/:id', can('agenda.edit'), h(admin.updateAppointment));
+  a.patch('/appointments/:id/status', can('agenda.confirm'), h(admin.updateAppointmentStatus));
+  a.post('/appointments/:id/resend-notifications', can('agenda.edit'), h(admin.resendNotifications));
 
-  a.get('/customers', h(admin.listCustomers));
-  a.get('/customers/:id', h(admin.getCustomer));
-  a.patch('/customers/:id', h(admin.updateCustomer));
-  a.get('/pets', h(admin.listPets));
-  a.get('/pets/:id', h(admin.getPet));
-  a.patch('/pets/:id', h(admin.updatePet));
+  a.get('/customers', can('customers.view'), h(admin.listCustomers));
+  a.get('/customers/:id', can('customers.view'), h(admin.getCustomer));
+  a.patch('/customers/:id', can('customers.edit'), h(admin.updateCustomer));
+  a.get('/pets', can('pets.view'), h(admin.listPets));
+  a.get('/pets/:id', can('pets.view'), h(admin.getPet));
+  a.patch('/pets/:id', can('pets.edit'), h(admin.updatePet));
 
-  a.get('/catalog', h(admin.catalog));
-  a.post('/services', manage, h(admin.createService));
-  a.post('/services/reorder', manage, h(admin.reorder('services')));
-  a.patch('/services/:id', manage, h(admin.updateService));
-  a.delete('/services/:id', manage, h(admin.deleteService));
-  a.put('/prices', manage, h(admin.savePrices));
-  a.post('/addons', manage, h(admin.createAddon));
-  a.post('/addons/reorder', manage, h(admin.reorder('addons')));
-  a.patch('/addons/:id', manage, h(admin.updateAddon));
-  a.delete('/addons/:id', manage, h(admin.deleteAddon));
-  a.post('/species', manage, h(admin.createSpecies));
-  a.patch('/species/:id', manage, h(admin.updateSpecies));
-  a.delete('/species/:id', manage, h(admin.deleteSpecies));
-  a.post('/breeds', manage, h(admin.createBreed));
-  a.patch('/breeds/:id', manage, h(admin.updateBreed));
-  a.delete('/breeds/:id', manage, h(admin.deleteBreed));
-  a.post('/sizes', manage, h(admin.createSize));
-  a.post('/sizes/reorder', manage, h(admin.reorder('sizes')));
-  a.patch('/sizes/:id', manage, h(admin.updateSize));
-  a.delete('/sizes/:id', manage, h(admin.deleteSize));
-  a.put('/form-fields', manage, h(admin.saveFormFields));
+  // Catálogo: leitura liberada para quem usa a agenda (nomes de serviços/portes). Valores saem sem "finance.view".
+  a.get('/catalog', canAny('services.view', 'agenda.view', 'professionals.view'), h(admin.catalog));
+  a.post('/services', can('services.create'), h(admin.createService));
+  a.post('/services/reorder', can('services.edit'), h(admin.reorder('services')));
+  a.patch('/services/:id', can('services.edit'), h(admin.updateService));
+  a.delete('/services/:id', can('services.delete'), h(admin.deleteService));
+  a.put('/prices', can('services.edit', 'finance.edit'), h(admin.savePrices));
+  a.post('/addons', can('services.create'), h(admin.createAddon));
+  a.post('/addons/reorder', can('services.edit'), h(admin.reorder('addons')));
+  a.patch('/addons/:id', can('services.edit'), h(admin.updateAddon));
+  a.delete('/addons/:id', can('services.delete'), h(admin.deleteAddon));
+  a.post('/species', can('services.create'), h(admin.createSpecies));
+  a.patch('/species/:id', can('services.edit'), h(admin.updateSpecies));
+  a.delete('/species/:id', can('services.delete'), h(admin.deleteSpecies));
+  a.post('/breeds', can('services.create'), h(admin.createBreed));
+  a.patch('/breeds/:id', can('services.edit'), h(admin.updateBreed));
+  a.delete('/breeds/:id', can('services.delete'), h(admin.deleteBreed));
+  a.post('/sizes', can('services.create'), h(admin.createSize));
+  a.post('/sizes/reorder', can('services.edit'), h(admin.reorder('sizes')));
+  a.patch('/sizes/:id', can('services.edit'), h(admin.updateSize));
+  a.delete('/sizes/:id', can('services.delete'), h(admin.deleteSize));
+  a.put('/form-fields', can('services.edit'), h(admin.saveFormFields));
 
-  a.post('/professionals', manage, h(admin.createProfessional));
-  a.post('/professionals/reorder', manage, h(admin.reorder('professionals')));
-  a.patch('/professionals/:id', manage, h(admin.updateProfessional));
-  a.delete('/professionals/:id', manage, h(admin.deleteProfessional));
+  a.post('/professionals', can('professionals.create'), h(admin.createProfessional));
+  a.post('/professionals/reorder', can('professionals.edit'), h(admin.reorder('professionals')));
+  a.patch('/professionals/:id', can('professionals.edit'), h(admin.updateProfessional));
+  a.delete('/professionals/:id', can('professionals.delete'), h(admin.deleteProfessional));
 
-  a.post('/media/upload-ticket', manage, h(admin.uploadTicket));
-  a.get('/inspirations', h(admin.listInspirations));
-  a.post('/inspirations', manage, h(admin.createInspiration));
-  a.patch('/inspirations/:id', manage, h(admin.updateInspiration));
-  a.delete('/inspirations/:id', manage, h(admin.deleteInspiration));
-  a.get('/stories', h(admin.listStories));
-  a.post('/stories', manage, h(admin.createStory));
-  a.delete('/stories/:id', manage, h(admin.deleteStory));
+  a.post('/media/upload-ticket', canAny('inspirations.create', 'inspirations.edit'), h(admin.uploadTicket));
+  a.get('/inspirations', can('inspirations.view'), h(admin.listInspirations));
+  a.post('/inspirations', can('inspirations.create'), h(admin.createInspiration));
+  a.patch('/inspirations/:id', can('inspirations.edit'), h(admin.updateInspiration));
+  a.delete('/inspirations/:id', can('inspirations.delete'), h(admin.deleteInspiration));
+  a.get('/stories', can('inspirations.view'), h(admin.listStories));
+  a.post('/stories', can('inspirations.create'), h(admin.createStory));
+  a.delete('/stories/:id', can('inspirations.delete'), h(admin.deleteStory));
 
-  a.get('/schedule', h(admin.getSchedule));
-  a.put('/business-hours', manage, h(admin.saveBusinessHours));
-  a.post('/blocked-dates', manage, h(admin.addBlockedDate));
-  a.delete('/blocked-dates/:id', manage, h(admin.removeBlockedDate));
-  a.post('/blocked-times', manage, h(admin.addBlockedTime));
-  a.delete('/blocked-times/:id', manage, h(admin.removeBlockedTime));
-  a.get('/settings', h(admin.getSettings));
-  a.put('/settings', manage, h(admin.updateSettings));
+  a.get('/schedule', canAny('settings.view', 'agenda.view'), h(admin.getSchedule));
+  a.put('/business-hours', can('settings.edit'), h(admin.saveBusinessHours));
+  a.post('/blocked-dates', can('settings.edit'), h(admin.addBlockedDate));
+  a.delete('/blocked-dates/:id', can('settings.edit'), h(admin.removeBlockedDate));
+  a.post('/blocked-times', can('settings.edit'), h(admin.addBlockedTime));
+  a.delete('/blocked-times/:id', can('settings.edit'), h(admin.removeBlockedTime));
+  a.get('/settings', canAny('settings.view', 'agenda.view'), h(admin.getSettings));
+  a.put('/settings', can('settings.edit'), h(admin.updateSettings));
+
+  // Equipe e permissões
+  a.get('/team', can('team.view'), h(team.list));
+  a.post('/team', can('team.admin'), h(team.create));
+  a.patch('/team/:id', can('team.admin'), h(team.update));
+  a.put('/team/:id/password', can('team.admin'), h(team.setPassword));
+  a.post('/team/:id/send-reset', can('team.admin'), h(team.sendReset));
+  a.get('/audit', can('team.admin'), h(team.audit));
 
   router.use('/admin', a);
 

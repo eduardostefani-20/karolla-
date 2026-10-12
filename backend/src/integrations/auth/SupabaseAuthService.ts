@@ -1,58 +1,167 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { AdminUser, AuthSession } from '@karolla/shared';
-import { UnauthorizedError } from '../../utils/errors';
-import type { AdminRepository } from '../../repositories/types';
-import type { AuthService } from './AuthService';
+import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
+import { UnauthorizedError, ValidationError } from '../../utils/errors';
+import { errorMeta, logger } from '../../utils/logger';
+import type { AuthIdentity, AuthService, AuthTokens, SignUpResult } from './AuthService';
 
 /**
- * PRODUÇÃO — Supabase Auth.
- *  1. Login com e-mail/senha no Supabase Auth (chave ANON, no servidor).
- *  2. Autorização: o usuário precisa existir em `public.admins` com `active = true`.
- *  3. Cada requisição valida o access token no Supabase (`auth.getUser`).
- * Veja docs/SUPABASE.md → "Como criar administrador".
+ * PRODUÇÃO — Supabase Auth (senhas com hash bcrypt no Supabase; o servidor nunca guarda senhas).
+ *  - Chave ANON: login, cadastro, renovação, envio do link de redefinição.
+ *  - Chave SERVICE ROLE (só no servidor): contas criadas pela administradora, troca de senha, encerrar sessão.
  */
 export class SupabaseAuthService implements AuthService {
   readonly provider = 'supabase' as const;
-  private readonly client: SupabaseClient;
-  private cache = new Map<string, { user: AdminUser; until: number }>();
+  private readonly anon: SupabaseClient;
+  private readonly admin: SupabaseClient;
+  private cache = new Map<string, { identity: AuthIdentity; until: number }>();
 
   constructor(
-    url: string,
-    anonKey: string,
-    private readonly admins: AdminRepository,
+    private readonly url: string,
+    private readonly anonKey: string,
+    serviceRoleKey: string,
   ) {
-    this.client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const opts = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
+    this.anon = createClient(url, anonKey, opts);
+    this.admin = createClient(url, serviceRoleKey, opts);
   }
 
-  private async toAdmin(userId: string): Promise<AdminUser | null> {
-    const record = await this.admins.findByUserId(userId);
-    if (!record || !record.active) return null;
-    return { id: record.userId, email: record.email, name: record.name, role: record.role };
+  private identity(user: User): AuthIdentity {
+    return { userId: user.id, email: user.email ?? '', name: String(user.user_metadata?.name ?? '') };
   }
 
-  async signIn(email: string, password: string): Promise<AuthSession> {
-    const { data, error } = await this.client.auth.signInWithPassword({ email, password });
-    if (error || !data.session || !data.user) throw new UnauthorizedError('E-mail ou senha incorretos.');
-    const admin = await this.toAdmin(data.user.id);
-    if (!admin) throw new UnauthorizedError('Este usuário não tem acesso ao painel administrativo.');
+  private tokens(session: { access_token: string; refresh_token: string; expires_at?: number }): AuthTokens {
     return {
-      token: data.session.access_token,
-      expiresAt: new Date((data.session.expires_at ?? 0) * 1000).toISOString(),
-      user: admin,
+      token: session.access_token,
+      refreshToken: session.refresh_token,
+      expiresAt: new Date((session.expires_at ?? Math.floor(Date.now() / 1000) + 3600) * 1000).toISOString(),
     };
   }
 
-  async verify(token: string): Promise<AdminUser | null> {
-    const cached = this.cache.get(token);
-    if (cached && cached.until > Date.now()) return cached.user;
-    const { data, error } = await this.client.auth.getUser(token);
-    if (error || !data.user) return null;
-    const admin = await this.toAdmin(data.user.id);
-    if (admin) this.cache.set(token, { user: admin, until: Date.now() + 60_000 });
-    return admin;
+  async signIn(email: string, password: string) {
+    const { data, error } = await this.anon.auth.signInWithPassword({ email, password });
+    if (error?.message?.toLowerCase().includes('not confirmed')) {
+      throw new UnauthorizedError('Confirme seu e-mail pelo link que enviamos antes de entrar.');
+    }
+    if (error || !data.session || !data.user) throw new UnauthorizedError('E-mail ou senha incorretos.');
+    return { identity: this.identity(data.user), tokens: this.tokens(data.session) };
   }
 
-  async signOut(token: string): Promise<void> {
+  async verify(token: string): Promise<AuthIdentity | null> {
+    const cached = this.cache.get(token);
+    if (cached && cached.until > Date.now()) return cached.identity;
+    const { data, error } = await this.anon.auth.getUser(token);
+    if (error || !data.user) return null;
+    const identity = this.identity(data.user);
+    this.cache.set(token, { identity, until: Date.now() + 60_000 });
+    if (this.cache.size > 5000) this.cache.clear();
+    return identity;
+  }
+
+  async refresh(refreshToken: string) {
+    const { data, error } = await this.anon.auth.refreshSession({ refresh_token: refreshToken });
+    if (error || !data.session || !data.user) throw new UnauthorizedError('Sessão expirada. Entre novamente.');
+    return { identity: this.identity(data.user), tokens: this.tokens(data.session) };
+  }
+
+  async signOut(token: string) {
     this.cache.delete(token);
+    const { error } = await this.admin.auth.admin.signOut(token, 'local');
+    if (error) logger.warn('Falha ao encerrar sessão no Supabase', errorMeta(error));
+  }
+
+  async signUp(input: { email: string; password: string; name: string; metadata?: Record<string, string>; redirectTo: string }): Promise<SignUpResult> {
+    const { data, error } = await this.anon.auth.signUp({
+      email: input.email,
+      password: input.password,
+      options: { data: { name: input.name, ...(input.metadata ?? {}) }, emailRedirectTo: input.redirectTo },
+    });
+    if (error) {
+      if (error.message?.toLowerCase().includes('registered')) {
+        throw new ValidationError('Este e-mail já tem cadastro. Entre ou recupere a senha.', { email: 'E-mail já cadastrado.' });
+      }
+      if (error.message?.toLowerCase().includes('password')) throw new ValidationError('Senha fraca. Use pelo menos 8 caracteres, com letras e números.', { password: 'Senha fraca.' });
+      throw new ValidationError('Não foi possível criar a conta agora. Tente novamente.');
+    }
+    if (!data.user) throw new ValidationError('Não foi possível criar a conta agora. Tente novamente.');
+    return {
+      identity: this.identity(data.user),
+      needsConfirmation: !data.session,
+      tokens: data.session ? this.tokens(data.session) : null,
+    };
+  }
+
+  async createUser(input: { email: string; password: string; name: string }) {
+    const { data, error } = await this.admin.auth.admin.createUser({
+      email: input.email,
+      password: input.password,
+      email_confirm: true,
+      user_metadata: { name: input.name },
+    });
+    if (error || !data.user) {
+      if (error?.message?.toLowerCase().includes('already')) throw new ValidationError('Já existe uma conta com este e-mail.', { email: 'E-mail já cadastrado.' });
+      throw new ValidationError('Não foi possível criar a conta. Confira o e-mail e a senha.');
+    }
+    return this.identity(data.user);
+  }
+
+  async findUserByEmail(email: string) {
+    const { data, error } = await this.admin.from('users').select('id, email, name').ilike('email', email.trim()).maybeSingle();
+    if (error || !data) return null;
+    return { userId: String(data.id), email: String(data.email), name: String(data.name ?? '') };
+  }
+
+  async setPassword(userId: string, password: string) {
+    const { error } = await this.admin.auth.admin.updateUserById(userId, { password });
+    if (error) throw new ValidationError('Não foi possível trocar a senha. Use letras e números (8+ caracteres).', { password: 'Senha recusada.' });
+  }
+
+  async checkPassword(email: string, password: string) {
+    const probe = createClient(this.url, this.anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await probe.auth.signInWithPassword({ email, password });
+    if (data.session) await this.admin.auth.admin.signOut(data.session.access_token, 'local').catch(() => undefined);
+    return !error && Boolean(data.user);
+  }
+
+  async requestPasswordReset(email: string, redirectTo: string) {
+    const { error } = await this.anon.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) logger.warn('Falha ao pedir redefinição de senha', errorMeta(error));
+  }
+
+  async completePasswordReset(recoveryToken: string, newPassword: string) {
+    const { data, error } = await this.anon.auth.getUser(recoveryToken);
+    if (error || !data.user || !isRecoveryToken(recoveryToken)) {
+      throw new UnauthorizedError('O link de redefinição expirou ou já foi usado. Peça um novo.');
+    }
+    await this.setPassword(data.user.id, newPassword);
+    await this.admin.auth.admin.signOut(recoveryToken, 'global').catch(() => undefined);
+  }
+
+  async revokeSessions(userId: string) {
+    // Contas desativadas já são recusadas em toda requisição (tabela admins). Limpa o cache local.
+    for (const [token, entry] of this.cache) if (entry.identity.userId === userId) this.cache.delete(token);
+  }
+
+  async updateProfile(userId: string, data: { name?: string; email?: string }) {
+    const { error } = await this.admin.auth.admin.updateUserById(userId, {
+      ...(data.email ? { email: data.email } : {}),
+      ...(data.name ? { user_metadata: { name: data.name } } : {}),
+    });
+    if (error) throw new ValidationError('Não foi possível atualizar a conta.');
+    const patch: Record<string, string> = {};
+    if (data.name) patch.name = data.name;
+    if (data.email) patch.email = data.email;
+    if (Object.keys(patch).length) await this.admin.from('users').update(patch).eq('id', userId);
+  }
+}
+
+/**
+ * O token do link de redefinição tem `amr` = recovery/otp. Isso impede que um token de sessão comum
+ * (de um login normal) seja usado para trocar a senha sem a senha atual.
+ */
+function isRecoveryToken(token: string): boolean {
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8')) as { amr?: { method?: string }[] };
+    return Boolean(payload.amr?.some((a) => a.method === 'recovery' || a.method === 'otp' || a.method === 'magiclink'));
+  } catch {
+    return false;
   }
 }

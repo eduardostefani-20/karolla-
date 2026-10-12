@@ -1,5 +1,7 @@
 import type {
   AdminRole,
+  AuditLog,
+  PermissionSet,
   Addon,
   Appointment,
   AppointmentAddonItem,
@@ -126,10 +128,26 @@ export interface AdminRecord {
   name: string;
   role: AdminRole;
   active: boolean;
+  /** null = permissões do perfil. */
+  customPermissions: PermissionSet | null;
+  professionalId: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
 }
+
+export type AdminPatch = Partial<Pick<AdminRecord, 'name' | 'role' | 'active' | 'customPermissions' | 'professionalId'>>;
 
 export interface AdminRepository {
   findByUserId(userId: string): Promise<AdminRecord | null>;
+  list(): Promise<AdminRecord[]>;
+  create(record: Omit<AdminRecord, 'createdAt' | 'lastLoginAt'>): Promise<AdminRecord>;
+  update(userId: string, patch: AdminPatch): Promise<AdminRecord>;
+  touchLogin(userId: string, at: string): Promise<void>;
+}
+
+export interface AuditRepository {
+  create(entry: Omit<AuditLog, 'id' | 'createdAt'>): Promise<void>;
+  list(filter: { limit: number; actorId?: string; entity?: string }): Promise<AuditLog[]>;
 }
 
 export interface DatabaseService {
@@ -153,5 +171,6 @@ export interface DatabaseService {
   inspirations: TableRepository<Inspiration>;
   stories: StoryRepository;
   admins: AdminRepository;
+  audit: AuditRepository;
   healthCheck(): Promise<boolean>;
 }

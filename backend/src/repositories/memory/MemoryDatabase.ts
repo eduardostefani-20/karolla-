@@ -4,6 +4,7 @@ import {
   maxConcurrentInInterval,
   timeToMinutes,
   type Appointment,
+  type AuditLog,
   type BusinessSettings,
   type Customer,
   type FormFieldConfig,
@@ -11,6 +12,7 @@ import {
 } from '@karolla/shared';
 import { NotFoundError, SlotConflictError } from '../../utils/errors';
 import type {
+  AdminPatch,
   AdminRecord,
   AppointmentFilter,
   AppointmentPatch,
@@ -231,10 +233,42 @@ export class MemoryDatabase implements DatabaseService {
 
   admins = {
     findByUserId: async (userId: string) => clone(this.adminRows.get(userId) ?? null),
+    list: async () => clone([...this.adminRows.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt))),
+    create: async (record: Omit<AdminRecord, 'createdAt' | 'lastLoginAt'>) => {
+      const row: AdminRecord = { ...record, createdAt: nowIso(), lastLoginAt: null };
+      this.adminRows.set(row.userId, clone(row));
+      return clone(row);
+    },
+    update: async (userId: string, patch: AdminPatch) => {
+      const current = this.adminRows.get(userId);
+      if (!current) throw new NotFoundError('Conta não encontrada.');
+      const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+      const row = { ...current, ...defined };
+      this.adminRows.set(userId, clone(row));
+      return clone(row);
+    },
+    touchLogin: async (userId: string, at: string) => {
+      const current = this.adminRows.get(userId);
+      if (current) current.lastLoginAt = at;
+    },
   };
 
-  addAdmin(record: AdminRecord) {
-    this.adminRows.set(record.userId, record);
+  private auditRows: AuditLog[] = [];
+  audit = {
+    create: async (entry: Omit<AuditLog, 'id' | 'createdAt'>) => {
+      this.auditRows.push({ ...entry, id: randomUUID(), createdAt: nowIso() });
+    },
+    list: async (filter: { limit: number; actorId?: string; entity?: string }) =>
+      clone(
+        this.auditRows
+          .filter((r) => (!filter.actorId || r.actorId === filter.actorId) && (!filter.entity || r.entity === filter.entity))
+          .slice(-filter.limit)
+          .reverse(),
+      ),
+  };
+
+  addAdmin(record: Omit<AdminRecord, 'createdAt' | 'lastLoginAt' | 'customPermissions' | 'professionalId'> & Partial<AdminRecord>) {
+    this.adminRows.set(record.userId, { customPermissions: null, professionalId: null, lastLoginAt: null, createdAt: nowIso(), ...record });
   }
 
   async healthCheck() {

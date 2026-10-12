@@ -1,7 +1,8 @@
 import { createClient, type PostgrestError, type SupabaseClient } from '@supabase/supabase-js';
-import { isBlockingStatus, NON_BLOCKING_STATUSES, type Customer, type Story } from '@karolla/shared';
+import { isBlockingStatus, NON_BLOCKING_STATUSES, type AuditLog, type Customer, type PermissionSet, type Story } from '@karolla/shared';
 import { InfrastructureError, NotFoundError, SlotConflictError, ConflictError } from '../../utils/errors';
 import type {
+  AdminPatch,
   AdminRecord,
   AppointmentFilter,
   AppointmentPatch,
@@ -314,23 +315,100 @@ export class SupabaseDatabase implements DatabaseService {
     },
   };
 
+  private adminFromRow(r: Row & { users?: Row | null }): AdminRecord {
+    const perms = r.permissions as PermissionSet | null;
+    return {
+      userId: String(r.user_id),
+      role: r.role as AdminRecord['role'],
+      active: Boolean(r.active),
+      email: String(r.users?.email ?? ''),
+      name: String(r.users?.name ?? ''),
+      customPermissions: perms && Array.isArray(perms.grants) ? perms : null,
+      professionalId: (r.professional_id as string | null) ?? null,
+      lastLoginAt: (r.last_login_at as string | null) ?? null,
+      createdAt: String(r.created_at ?? ''),
+    };
+  }
+
   admins = {
     findByUserId: async (userId: string): Promise<AdminRecord | null> => {
+      const { data, error } = await this.client.from('admins').select('*, users(email, name)').eq('user_id', userId).maybeSingle();
+      if (error) fail(error, 'find admin');
+      return data ? this.adminFromRow(data as Row) : null;
+    },
+    list: async (): Promise<AdminRecord[]> => {
+      const { data, error } = await this.client.from('admins').select('*, users(email, name)').order('created_at');
+      if (error) fail(error, 'list admins');
+      return (data as Row[]).map((r) => this.adminFromRow(r));
+    },
+    create: async (record: Omit<AdminRecord, 'createdAt' | 'lastLoginAt'>): Promise<AdminRecord> => {
+      // public.users é criado pelo gatilho on_auth_user_created; garante o nome atualizado
+      await this.client.from('users').update({ name: record.name }).eq('id', record.userId);
       const { data, error } = await this.client
         .from('admins')
-        .select('user_id, role, active, users(email, name)')
-        .eq('user_id', userId)
-        .maybeSingle();
-      if (error) fail(error, 'find admin');
-      if (!data) return null;
-      const r = data as unknown as Row & { users: Row | null };
-      return {
-        userId: String(r.user_id),
-        role: r.role as AdminRecord['role'],
-        active: Boolean(r.active),
-        email: String(r.users?.email ?? ''),
-        name: String(r.users?.name ?? ''),
-      };
+        .insert({
+          user_id: record.userId,
+          role: record.role,
+          active: record.active,
+          permissions: record.customPermissions,
+          professional_id: record.professionalId,
+        })
+        .select('*, users(email, name)')
+        .single();
+      if (error) fail(error, 'insert admin');
+      return this.adminFromRow(data as Row);
+    },
+    update: async (userId: string, patch: AdminPatch): Promise<AdminRecord> => {
+      if (patch.name !== undefined) {
+        const { error } = await this.client.from('users').update({ name: patch.name }).eq('id', userId);
+        if (error) fail(error, 'update user name');
+      }
+      const row: Row = {};
+      if (patch.role !== undefined) row.role = patch.role;
+      if (patch.active !== undefined) row.active = patch.active;
+      if (patch.customPermissions !== undefined) row.permissions = patch.customPermissions;
+      if (patch.professionalId !== undefined) row.professional_id = patch.professionalId;
+      const query = Object.keys(row).length
+        ? this.client.from('admins').update(row).eq('user_id', userId).select('*, users(email, name)').maybeSingle()
+        : this.client.from('admins').select('*, users(email, name)').eq('user_id', userId).maybeSingle();
+      const { data, error } = await query;
+      if (error) fail(error, 'update admin');
+      if (!data) throw new NotFoundError('Conta não encontrada.');
+      return this.adminFromRow(data as Row);
+    },
+    touchLogin: async (userId: string, at: string) => {
+      await this.client.from('admins').update({ last_login_at: at }).eq('user_id', userId);
+    },
+  };
+
+  audit = {
+    create: async (entry: Omit<AuditLog, 'id' | 'createdAt'>) => {
+      const { error } = await this.client.from('audit_logs').insert({
+        actor_id: entry.actorId,
+        actor_email: entry.actorEmail,
+        action: entry.action,
+        entity: entry.entity,
+        entity_id: entry.entityId,
+        status: entry.status,
+      });
+      if (error) fail(error, 'insert audit');
+    },
+    list: async (filter: { limit: number; actorId?: string; entity?: string }): Promise<AuditLog[]> => {
+      let query = this.client.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(filter.limit);
+      if (filter.actorId) query = query.eq('actor_id', filter.actorId);
+      if (filter.entity) query = query.eq('entity', filter.entity);
+      const { data, error } = await query;
+      if (error) fail(error, 'list audit');
+      return (data as Row[]).map((r) => ({
+        id: String(r.id),
+        actorId: (r.actor_id as string | null) ?? null,
+        actorEmail: String(r.actor_email ?? ''),
+        action: String(r.action),
+        entity: String(r.entity),
+        entityId: (r.entity_id as string | null) ?? null,
+        status: Number(r.status),
+        createdAt: String(r.created_at),
+      }));
     },
   };
 
