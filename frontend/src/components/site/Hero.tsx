@@ -21,9 +21,9 @@ export function Hero({ top }: { top?: ReactNode }) {
 
       <div className="container-page relative pt-5">{top}</div>
       <div className="container-page relative grid items-center gap-10 pb-16 pt-6 sm:pb-24 sm:pt-8 lg:grid-cols-2">
-        <div className="relative animate-fade-up text-center lg:text-left">
+        <div className="relative min-w-0 animate-fade-up text-center lg:text-left">
           <span className="eyebrow">{hero.eyebrow}</span>
-          <h1 id="hero-titulo" className="title-display mt-5 text-display-hero text-white lg:text-[4rem]">
+          <h1 id="hero-titulo" className="title-display mt-5 text-[2.25rem] text-white min-[360px]:text-display-hero lg:text-[4rem]">
             {first},{' '}
             <span className="relative inline-block whitespace-nowrap text-accent">
               {rest.join(',').trim()}

@@ -160,7 +160,7 @@ export default function AgendaPage() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => setDate(addDays(date, -step))} aria-label="Período anterior" icon={<ChevronLeft className="h-5 w-5" />} />
           <Input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} className="w-auto py-2" aria-label="Data" />
           <Button variant="ghost" size="sm" onClick={() => setDate(addDays(date, step))} aria-label="Próximo período" icon={<ChevronRight className="h-5 w-5" />} />

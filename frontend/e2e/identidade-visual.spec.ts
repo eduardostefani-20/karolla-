@@ -14,6 +14,18 @@ async function checkPage(page: Page, path: string) {
   expect(overflow, `${path} tem rolagem horizontal`).toBeLessThanOrEqual(0);
 }
 
+test('celular de 320px: título do hero e agenda do painel cabem na tela', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 760 });
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  const right = await page.evaluate(() => Math.max(...[...document.querySelectorAll('#hero-titulo, #hero-titulo span, #hero-titulo ~ p, #hero-titulo ~ div a')].map((e) => e.getBoundingClientRect().right)));
+  expect(right).toBeLessThanOrEqual(320);
+  await loginAsAdmin(page);
+  await page.goto('/admin/agenda');
+  await page.waitForLoadState('networkidle');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+});
+
 for (const path of ['/', '/inspiracoes', '/agendar', '/privacidade', '/pagina-que-nao-existe']) {
   test(`contraste AA e sem rolagem horizontal: ${path}`, async ({ page }) => {
     await checkPage(page, path);
