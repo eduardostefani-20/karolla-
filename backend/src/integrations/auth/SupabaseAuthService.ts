@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
-import { UnauthorizedError, ValidationError } from '../../utils/errors';
+import { AppError, UnauthorizedError, ValidationError } from '../../utils/errors';
 import { errorMeta, logger } from '../../utils/logger';
 import type { AuthIdentity, AuthService, AuthTokens, SignUpResult } from './AuthService';
 
@@ -82,10 +82,17 @@ export class SupabaseAuthService implements AuthService {
       options: { data: { name: input.name, ...(input.metadata ?? {}) }, emailRedirectTo: input.redirectTo },
     });
     if (error) {
-      if (error.message?.toLowerCase().includes('registered')) {
+      const msg = error.message?.toLowerCase() ?? '';
+      if (msg.includes('registered')) {
         throw new ValidationError('Este e-mail já tem cadastro. Entre ou recupere a senha.', { email: 'E-mail já cadastrado.' });
       }
-      if (error.message?.toLowerCase().includes('password')) throw new ValidationError('Senha fraca. Use pelo menos 8 caracteres, com letras e números.', { password: 'Senha fraca.' });
+      if (msg.includes('password')) throw new ValidationError('Senha fraca. Use pelo menos 8 caracteres, com letras e números.', { password: 'Senha fraca.' });
+      // Ex.: SMTP não configurado no Supabase (o envio padrão só aceita e-mails da equipe do projeto) ou limite de envios.
+      logger.warn('Cadastro de cliente recusado pelo Supabase Auth', { status: error.status, code: error.code, message: error.message });
+      if (msg.includes('rate limit')) throw new AppError(429, 'EMAIL_RATE_LIMIT', 'Muitos cadastros em pouco tempo. Aguarde alguns minutos e tente de novo.');
+      if (msg.includes('email') && (msg.includes('send') || msg.includes('authorized') || msg.includes('smtp'))) {
+        throw new AppError(503, 'EMAIL_NOT_SENT', 'Não conseguimos enviar o e-mail de confirmação agora. Tente mais tarde ou fale com a gente pelo WhatsApp.');
+      }
       throw new ValidationError('Não foi possível criar a conta agora. Tente novamente.');
     }
     if (!data.user) throw new ValidationError('Não foi possível criar a conta agora. Tente novamente.');
