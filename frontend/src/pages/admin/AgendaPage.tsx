@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Scissors } from 'lucide-react';
 import {
   addDays,
   formatDateLong,
@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
 import { PageHeader, STATUS_STYLES } from '@/components/admin/AdminUi';
 import { NewAppointmentButton } from '@/components/admin/NewAppointmentButton';
-import { AppointmentCard } from '@/components/admin/AppointmentCard';
+import { AppointmentCard, hasGroomingStyle } from '@/components/admin/AppointmentCard';
 import { AppointmentFilters, type FilterState } from '@/components/admin/AppointmentFilters';
 import { cn } from '@/utils/cn';
 
@@ -95,8 +95,9 @@ function DayTimeline({ items, open, close, professionals }: { items: Appointment
                 width: `calc(${100 / laneCount}% - 4px)`,
               }}
             >
-              <p className="font-heading text-sm font-semibold">
+              <p className="flex items-center gap-1 font-heading text-sm font-semibold">
                 {a.time} · {a.pet.name}
+                {hasGroomingStyle(a) && <Scissors className="h-3.5 w-3.5 shrink-0" aria-label="Tem estilo de tosa escolhido" />}
               </p>
               <p className="truncate">{a.services.map((s) => s.name).join(' + ')}</p>
               <p className="truncate opacity-75">{a.customer.name}</p>

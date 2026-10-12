@@ -92,7 +92,7 @@ export function adminController(c: Container) {
         storage: { provider: c.storage.provider },
         instagramFeed: { configured: c.instagram.configured },
         ...c.notifications.status(),
-        schema: { portalCrm: await c.db.featuresReady(9), agendaPlans: await c.db.featuresReady(10) },
+        schema: { portalCrm: await c.db.featuresReady(9), agendaPlans: await c.db.featuresReady(10), inspirationsTaxi: await c.db.featuresReady(11) },
       };
       res.json(status);
     },

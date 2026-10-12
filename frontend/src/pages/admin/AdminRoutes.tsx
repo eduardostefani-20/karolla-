@@ -25,6 +25,8 @@ const StoriesAdminPage = lazy(() => import('./StoriesAdminPage'));
 const TeamPage = lazy(() => import('./TeamPage'));
 const CrmPage = lazy(() => import('./CrmPage'));
 const PlansPage = lazy(() => import('./PlansPage'));
+const TaxiPage = lazy(() => import('./TaxiPage'));
+const CommentsPage = lazy(() => import('./CommentsPage'));
 
 const guard = (permission: Permission, page: ReactElement) => <RequirePermission permission={permission}>{page}</RequirePermission>;
 
@@ -52,6 +54,8 @@ export default function AdminRoutes() {
         <Route path="stories" element={guard('inspirations.view', <StoriesAdminPage />)} />
         <Route path="planos" element={guard('plans.view', <PlansPage />)} />
         <Route path="crm" element={guard('crm.view', <CrmPage />)} />
+        <Route path="taxi-dog" element={guard('taxidog.view', <TaxiPage />)} />
+        <Route path="comentarios" element={guard('comments.view', <CommentsPage />)} />
         <Route path="equipe" element={guard('team.view', <TeamPage />)} />
         <Route path="*" element={guard('dashboard.view', <DashboardPage />)} />
       </Route>

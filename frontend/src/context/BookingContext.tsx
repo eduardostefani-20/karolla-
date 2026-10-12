@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { AppointmentInspiration, BookingResult } from '@karolla/shared';
+import type { AppointmentInspiration, BookingResult, TaxiDirection } from '@karolla/shared';
 
 /**
  * Rascunho do agendamento. Fica salvo no sessionStorage enquanto o cliente navega pelas
@@ -24,6 +24,12 @@ export interface BookingDraft {
   professionalId: string | null;
   /** Foto escolhida no catálogo de inspirações (só a referência vai para o agendamento). */
   inspiration: AppointmentInspiration | null;
+  /** Como o tutor quer a tosa (texto). */
+  groomingNotes: string;
+  /** Foto de referência enviada (armazenamento privado). */
+  groomingReference: { path: string; description: string } | null;
+  /** Taxi Dog pedido (a disponibilidade é conferida no servidor). */
+  taxi: { direction: TaxiDirection; notes: string } | null;
   tutor: {
     name: string;
     whatsapp: string;
@@ -43,6 +49,9 @@ export const emptyDraft = (): BookingDraft => ({
   time: null,
   professionalId: null,
   inspiration: null,
+  groomingNotes: '',
+  groomingReference: null,
+  taxi: null,
   tutor: { name: '', whatsapp: '', email: '', address: { street: '', number: '', complement: '', neighborhood: '', city: '' }, notes: '' },
   result: null,
 });

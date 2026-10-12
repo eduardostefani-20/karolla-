@@ -133,6 +133,8 @@ export const FINANCE_FIELDS = [
   'servicePrices',
   'amountCents',
   'feeCents',
+  'feeOneWayCents',
+  'feeRoundTripCents',
   'monthlyPriceCents',
   'paidCents',
   'balanceCents',

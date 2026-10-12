@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Clock, ImageIcon } from 'lucide-react';
+import { Clock, ImageIcon, Scissors } from 'lucide-react';
 import { formatCents, formatDateBR, minutesToTime, timeToMinutes, type AppointmentDetail } from '@karolla/shared';
 import { StatusBadge } from './AdminUi';
+
+/** O tutor escolheu estilo de tosa (texto ou foto de referência) no agendamento. */
+export const hasGroomingStyle = (a: Pick<AppointmentDetail, 'customerNotes'>) => /(^|\n)Tosa: /.test(a.customerNotes ?? '');
 
 /** Linha de agendamento usada no dashboard, agenda e listas (responsiva). */
 export function AppointmentCard({ a, showDate }: { a: AppointmentDetail; showDate?: boolean }) {
@@ -25,6 +28,7 @@ export function AppointmentCard({ a, showDate }: { a: AppointmentDetail; showDat
           <p className="font-heading text-lg font-semibold text-ink-900 group-hover:text-brand-700">{a.pet.name}</p>
           <StatusBadge status={a.status} />
           {a.inspiration && <ImageIcon className="h-4 w-4 text-brand-500" aria-label="Com foto de inspiração" />}
+          {hasGroomingStyle(a) && <Scissors className="h-4 w-4 text-brand-500" aria-label="Com estilo de tosa escolhido" />}
         </div>
         <p className="truncate text-sm font-medium text-ink-700">
           {a.services.map((s) => s.name).join(' + ')}

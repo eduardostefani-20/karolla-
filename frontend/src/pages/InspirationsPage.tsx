@@ -9,6 +9,7 @@ import { useCatalog } from '@/context/CatalogContext';
 import { Alert, EmptyState, Spinner } from '@/components/ui/Feedback';
 import { Input } from '@/components/ui/Field';
 import { InspirationGrid } from '@/components/inspirations/InspirationGrid';
+import { GROOMING_TYPES, GROOMING_TYPE_LABELS } from '@karolla/shared';
 import { InspirationViewer } from '@/components/inspirations/InspirationViewer';
 import { InstagramButton } from '@/components/inspirations/InstagramButton';
 import { InstagramFeed } from '@/components/inspirations/InstagramFeed';
@@ -30,6 +31,8 @@ export default function InspirationsPage() {
   const [query, setQuery] = useState(params.get('raca') ?? '');
   const [species, setSpecies] = useState<string>('');
   const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [sizeId, setSizeId] = useState('');
+  const [groomingType, setGroomingType] = useState('');
 
   const all = data ?? [];
   const items = useMemo(() => {
@@ -38,9 +41,14 @@ export default function InspirationsPage() {
       (i) =>
         (!species || i.speciesId === species) &&
         (!q || normalize(i.breedName).includes(q) || normalize(i.title).includes(q)) &&
+        (!sizeId || i.sizeId === sizeId) &&
+        (!groomingType || i.groomingType === groomingType) &&
         (!onlyFavorites || favoriteIds.includes(i.id)),
     );
-  }, [all, query, species, onlyFavorites, favoriteIds]);
+  }, [all, query, species, sizeId, groomingType, onlyFavorites, favoriteIds]);
+  // Só mostra filtros de etiquetas que existem nas fotos (nada inventado)
+  const sizesUsed = catalog?.sizes.filter((s) => all.some((i) => i.sizeId === s.id)) ?? [];
+  const typesUsed = GROOMING_TYPES.filter((t) => all.some((i) => i.groomingType === t));
 
   const breeds = useMemo(() => [...new Set(all.filter((i) => !species || i.speciesId === species).map((i) => i.breedName))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [all, species]);
   const speciesWithPhotos = catalog?.species.filter((s) => all.some((i) => i.speciesId === s.id)) ?? [];
@@ -111,6 +119,32 @@ export default function InspirationsPage() {
             </button>
           ))}
         </div>
+        {(sizesUsed.length > 0 || typesUsed.length > 0) && (
+          <div className="flex flex-wrap gap-3">
+            {sizesUsed.length > 0 && (
+              <label className="flex items-center gap-2 text-sm font-semibold text-ink-700">
+                Porte
+                <select className="rounded-full border border-ink-900/10 bg-white px-3 py-1.5" value={sizeId} onChange={(e) => setSizeId(e.target.value)}>
+                  <option value="">Todos</option>
+                  {sizesUsed.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {typesUsed.length > 0 && (
+              <label className="flex items-center gap-2 text-sm font-semibold text-ink-700">
+                Tipo de tosa
+                <select className="rounded-full border border-ink-900/10 bg-white px-3 py-1.5" value={groomingType} onChange={(e) => setGroomingType(e.target.value)}>
+                  <option value="">Todos</option>
+                  {typesUsed.map((t) => (
+                    <option key={t} value={t}>{GROOMING_TYPE_LABELS[t]}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+        )}
       </div>
 
       {loading && <Spinner label="Carregando inspirações..." />}

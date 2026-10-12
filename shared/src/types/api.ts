@@ -208,7 +208,7 @@ export interface SystemStatus {
   whatsapp: { provider: string; configured: boolean };
   googleSheets: { provider: string; configured: boolean };
   /** Atualizações do banco aplicadas (false = recursos novos ainda "em ativação"). */
-  schema: { portalCrm: boolean; agendaPlans: boolean };
+  schema: { portalCrm: boolean; agendaPlans: boolean; inspirationsTaxi: boolean };
 }
 
 // ---------------------------------------------------------------- Portal do cliente

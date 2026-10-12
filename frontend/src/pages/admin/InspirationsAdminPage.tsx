@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ExternalLink, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
-import type { Inspiration } from '@karolla/shared';
+import { GROOMING_TYPES, GROOMING_TYPE_LABELS, type Inspiration } from '@karolla/shared';
 import { adminApi } from '@/services/adminApi';
 import { ApiError, friendlyMessage } from '@/services/api';
 import { useAsync } from '@/hooks/useAsync';
@@ -24,6 +24,8 @@ type Draft = {
   breedId: string;
   breedName: string;
   serviceId: string;
+  sizeId: string;
+  groomingType: string;
   imageUrl: string;
   storagePath: string;
   active: boolean;
@@ -53,6 +55,8 @@ export default function InspirationsAdminPage() {
       breedId: isOther ? null : editing.breedId,
       breedName: isOther ? editing.breedName : '',
       serviceId: editing.serviceId || null,
+      sizeId: editing.sizeId || null,
+      groomingType: editing.groomingType || null,
       imageUrl: editing.imageUrl,
       storagePath: editing.storagePath,
       active: editing.active,
@@ -108,7 +112,7 @@ export default function InspirationsAdminPage() {
               <ExternalLink className="h-4 w-4" aria-hidden /> Ver no site
             </a>
             <Button
-              onClick={() => setEditing({ title: '', description: '', speciesId: catalog?.species[0]?.id ?? 'dog', breedId: '', breedName: '', serviceId: '', imageUrl: '', storagePath: '', active: true })}
+              onClick={() => setEditing({ title: '', description: '', speciesId: catalog?.species[0]?.id ?? 'dog', breedId: '', breedName: '', serviceId: '', sizeId: '', groomingType: '', imageUrl: '', storagePath: '', active: true })}
               icon={<Plus className="h-4 w-4" />}
               disabled={!catalog}
             >
@@ -134,7 +138,7 @@ export default function InspirationsAdminPage() {
               <div className="flex items-center justify-between">
                 <Toggle checked={i.active} onChange={() => toggle(i)} label={i.active ? 'No site' : 'Oculta'} className="gap-2 whitespace-nowrap" />
                 <span className="flex">
-                  <Button size="sm" variant="ghost" aria-label={`Editar ${i.title}`} onClick={() => setEditing({ ...i, breedId: i.breedId ?? OTHER, serviceId: i.serviceId ?? '' })} icon={<Pencil className="h-4 w-4" />} />
+                  <Button size="sm" variant="ghost" aria-label={`Editar ${i.title}`} onClick={() => setEditing({ ...i, breedId: i.breedId ?? OTHER, serviceId: i.serviceId ?? '', sizeId: i.sizeId ?? '', groomingType: i.groomingType ?? '' })} icon={<Pencil className="h-4 w-4" />} />
                   <Button size="sm" variant="ghost" aria-label={`Excluir ${i.title}`} onClick={() => setToDelete(i)} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
                 </span>
               </div>
@@ -186,6 +190,24 @@ export default function InspirationsAdminPage() {
                   </Select>
                 )}
               </Field>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Etiqueta de porte" error={errors.sizeId}>
+                  {(p) => (
+                    <Select {...p} value={editing.sizeId} onChange={(e) => setEditing({ ...editing, sizeId: e.target.value })}>
+                      <option value="">Sem etiqueta</option>
+                      {catalog.sizes.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </Select>
+                  )}
+                </Field>
+                <Field label="Tipo de tosa" error={errors.groomingType}>
+                  {(p) => (
+                    <Select {...p} value={editing.groomingType} onChange={(e) => setEditing({ ...editing, groomingType: e.target.value })}>
+                      <option value="">Sem etiqueta</option>
+                      {GROOMING_TYPES.map((t) => <option key={t} value={t}>{GROOMING_TYPE_LABELS[t]}</option>)}
+                    </Select>
+                  )}
+                </Field>
+              </div>
               <Field label="Descrição" error={errors.description}>{(p) => <Textarea {...p} value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} placeholder="Ex.: pelagem curtinha, orelhas arredondadas" />}</Field>
               <Toggle checked={editing.active} onChange={(v) => setEditing({ ...editing, active: v })} label="Mostrar no site" />
             </div>

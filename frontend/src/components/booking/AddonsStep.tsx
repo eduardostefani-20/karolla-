@@ -4,6 +4,7 @@ import { useBooking } from '@/context/BookingContext';
 import { OptionCard } from './OptionCard';
 import { StepHeader } from './StepHeader';
 import { StepNav } from './StepNav';
+import { GroomingStyle } from './GroomingStyle';
 
 export function AddonsStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const { catalog } = useCatalog();
@@ -31,6 +32,7 @@ export function AddonsStep({ onBack, onNext }: { onBack: () => void; onNext: () 
           </OptionCard>
         ))}
       </div>
+      {catalog.services.find((sv) => sv.id === draft.serviceId)?.includesGrooming && <GroomingStyle />}
       <StepNav onBack={onBack} onNext={onNext} nextLabel={draft.addonIds.length ? 'Continuar' : 'Continuar sem adicionais'} />
     </div>
   );

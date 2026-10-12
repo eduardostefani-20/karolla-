@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ImageIcon, Megaphone, MessageCircle, Pencil, RefreshCw, UserRound } from 'lucide-react';
+import { ArrowLeft, Camera, Car, ImageIcon, Megaphone, MessageCircle, Pencil, RefreshCw, UserRound } from 'lucide-react';
 import {
   APPOINTMENT_ORIGIN_LABELS,
   SUBSCRIPTION_STATUS_LABELS,
@@ -32,6 +32,7 @@ import { PageHeader, Panel, StatusBadge, STATUS_STYLES } from '@/components/admi
 import { EditCustomerModal } from '@/components/admin/EditCustomerModal';
 import { EditPetModal } from '@/components/admin/EditPetModal';
 import { ContactButton } from '@/components/admin/ContactButton';
+import { TransportCard } from '@/components/admin/TaxiTransportCard';
 import { cn } from '@/utils/cn';
 
 const LOG_LABEL: Record<string, string> = { success: 'Enviado', failed: 'Falhou', skipped: 'Não configurado', link_generated: 'Link gerado' };
@@ -266,6 +267,8 @@ export default function AppointmentDetailPage() {
               <p className="text-sm text-ink-500">{a.inspiration.breedName} • toque na foto para ampliar</p>
             </Panel>
           )}
+          {can('pets.view') && <GroomingReferencesPanel appointment={a} />}
+          {can('taxidog.view') && <TaxiPanel appointmentId={a.id} />}
           {a.professional && (
             <Panel title={<span className="flex items-center gap-2"><UserRound className="h-5 w-5 text-brand-600" aria-hidden /> Profissional</span>}>
               <p className="flex items-center gap-2 font-semibold">
@@ -443,6 +446,48 @@ function PlansPanel({ appointment: a, canUse }: { appointment: AppointmentDetail
           ))}
         </ul>
       )}
+    </Panel>
+  );
+}
+
+/** Fotos de referência que o tutor enviou para ESTE atendimento (links temporários, armazenamento privado). */
+function GroomingReferencesPanel({ appointment: a }: { appointment: AppointmentDetail }) {
+  const { data } = useAsync(() => adminApi.pet(a.pet.id).catch(() => null), [a.pet.id]);
+  const refs = (data?.references ?? []).filter((r) => r.appointmentId === a.id);
+  if (!refs.length) return null;
+  return (
+    <Panel title={<span className="flex items-center gap-2"><Camera className="h-5 w-5 text-brand-500" aria-hidden /> Referência de tosa enviada pelo tutor</span>}>
+      <ul className="space-y-3" data-testid="appointment-grooming-references">
+        {refs.map((r) => (
+          <li key={r.id}>
+            <a href={r.url} target="_blank" rel="noopener noreferrer" className="block">
+              <img src={r.url} alt={r.description || 'Foto de referência'} className="max-h-80 w-full rounded-2xl object-cover" />
+            </a>
+            {r.description && <p className="mt-2 text-sm text-ink-700">{r.description}</p>}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-ink-400">Foto privada: o link expira em alguns minutos (recarregue a página para ver de novo).</p>
+    </Panel>
+  );
+}
+
+/** Transporte do Taxi Dog deste atendimento (status próprio). */
+function TaxiPanel({ appointmentId }: { appointmentId: string }) {
+  const { data, reload } = useAsync(
+    () => Promise.all([adminApi.taxiTransports({ appointmentId }), adminApi.taxi()]).catch(() => null),
+    [appointmentId],
+  );
+  if (!data || data[0].length === 0) return null;
+  const [transports, overview] = data;
+  return (
+    <Panel title={<span className="flex items-center gap-2"><Car className="h-5 w-5 text-brand-600" aria-hidden /> Taxi Dog</span>}>
+      <ul className="space-y-4">
+        {transports.map((t) => (
+          <TransportCard key={t.id} transport={t} drivers={overview.drivers} onSaved={() => void reload()} compact />
+        ))}
+      </ul>
+      <Link to="/admin/taxi-dog" className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:underline">Ver todos os transportes</Link>
     </Panel>
   );
 }

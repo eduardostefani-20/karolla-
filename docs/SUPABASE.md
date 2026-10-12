@@ -6,7 +6,7 @@
 |---|---|
 | Projeto | `karolla pet` (ref `sffxgcsokfglsxwiaoer`, região us-east-1) |
 | URL | `https://sffxgcsokfglsxwiaoer.supabase.co` |
-| Migrations aplicadas | `0000_backup_rascunho_anterior`, `0001_schema`, `0002_functions`, `0003_rls`, `0004_hardening`, `0005a`–`0005e` (profissionais, inspirações, Stories, bucket de mídia), `0006a`–`0006b` (pixels de anúncio e origem dos agendamentos) |
+| Migrations aplicadas | `0000_backup_rascunho_anterior`, `0001_schema`, `0002_functions`, `0003_rls`, `0004_hardening`, `0005a`–`0005e` (profissionais, inspirações, Stories, bucket de mídia), `0006a`–`0006b` (pixels de anúncio e origem dos agendamentos), `0007`, `0008` (aplicada manualmente pelo SQL Editor). **Pendentes:** `0009`, `0010`, `0011` — aplicar nessa ordem pelo SQL Editor |
 | Storage | bucket público `karolla-media` (fotos e vídeos de inspirações e Stories; até 50 MB; só imagem/vídeo) |
 | Dados carregados | catálogo (2 espécies, 5 portes, 47 raças, 7 serviços, 7 adicionais, horários, campos) + **35 preços de demonstração** |
 
@@ -35,6 +35,11 @@ No *SQL Editor* do projeto, execute **em ordem**:
 | `database/migrations/0004_hardening.sql` | move `is_admin()`/`is_owner()` para o schema `private` (fora da API) |
 | `database/migrations/0005_profissionais_inspiracoes_stories.sql` | tabelas `professionals`, `inspirations`, `stories`; colunas `professional_id`, `inspiration_id`, `inspiration_snapshot` em `appointments`; função `create_appointment_v2` (uma profissional atende um pet por vez); bucket `karolla-media` |
 | `database/migrations/0006_anuncios_origem.sql` | IDs dos pixels em `business_settings`; `appointments.attribution` (origem: UTM/anúncio); `create_appointment_v2` grava a origem |
+| `database/migrations/0007_cor_padrao_profissional.sql` | cor padrão de novos profissionais na paleta da marca |
+| `database/migrations/0008_equipe_permissoes_auditoria.sql` | contas da equipe com perfis e permissões personalizadas; registro de auditoria |
+| `database/migrations/0009_portal_cliente_pets_crm.sql` | conta do cliente (Minha conta), ficha ampliada do pet, fotos privadas (bucket `karolla-private`), registro de contatos do CRM |
+| `database/migrations/0010_status_agenda_planos.sql` | novos status do atendimento, origem do agendamento manual, horário/folgas/capacidade por profissional, limites por horário e por serviço, planos e mensalidades |
+| `database/migrations/0011_inspiracoes_taxi_dog.sql` | etiquetas e comentários das inspirações, serviço “inclui tosa”, referências de tosa no agendamento, Taxi Dog (regiões, motoristas, bloqueios, transportes) |
 | `database/seed/0001_catalog.sql` | espécies, portes, ~47 raças, serviços, adicionais, horários, campos do formulário |
 | `database/seed/0002_demo_prices.sql` | ⚠️ preços **fictícios** (opcional — substitua no painel) |
 | `database/seed/0003_demo_customers.sql` | ⚠️ clientes/agendamentos **fictícios** (somente para testes) |

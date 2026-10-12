@@ -168,7 +168,13 @@ export class BookingService {
       });
       if (!taxiQuote.available) throw new ConflictError('TAXI_UNAVAILABLE', taxiQuote.message ?? 'Taxi Dog indisponível.');
     }
-    const customerNotes = [request.tutor.notes, request.groomingNotes && `Tosa: ${request.groomingNotes}`].filter(Boolean).join('\n');
+    const customerNotes = [
+      request.tutor.notes,
+      request.groomingNotes && `Tosa: ${request.groomingNotes}`,
+      reference && 'Tosa: foto de referência enviada (veja no agendamento).',
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     // 6. Cliente e pet (reaproveita cadastro existente pelo WhatsApp)
     const customer = await this.upsertCustomer(request.tutor);

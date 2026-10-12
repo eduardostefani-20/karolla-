@@ -1,5 +1,11 @@
 import type {
   AdminCatalog,
+  AdminComment,
+  TaxiBlock,
+  TaxiDriver,
+  TaxiOverview,
+  TaxiRegion,
+  TaxiTransportDetail,
   Addon,
   AppointmentDetail,
   AppointmentListQuery,
@@ -159,4 +165,18 @@ export const adminApi = {
   setPetPhoto: (petId: string, path: string) => apiRequest<PetDetail>('PUT', `/admin/pets/${petId}/photo`, { ...auth, body: { path } }),
   addPetReference: (petId: string, body: { path: string; description: string }) => apiRequest<PetDetail>('POST', `/admin/pets/${petId}/references`, { ...auth, body }),
   removePetReference: (petId: string, refId: string) => apiRequest<PetDetail>('DELETE', `/admin/pets/${petId}/references/${refId}`, auth),
+
+  comments: () => apiRequest<AdminComment[]>('GET', '/admin/comments', auth),
+  removeComment: (id: string) => apiRequest<void>('DELETE', `/admin/comments/${id}`, auth),
+
+  taxi: () => apiRequest<TaxiOverview>('GET', '/admin/taxi', auth),
+  updateTaxiSettings: (body: Body) => apiRequest<TaxiOverview>('PUT', '/admin/taxi/settings', { ...auth, body }),
+  createTaxiRegion: (body: Body) => apiRequest<TaxiRegion>('POST', '/admin/taxi/regions', { ...auth, body }),
+  updateTaxiRegion: (id: string, body: Body) => apiRequest<TaxiRegion>('PATCH', `/admin/taxi/regions/${id}`, { ...auth, body }),
+  createTaxiDriver: (body: Body) => apiRequest<TaxiDriver>('POST', '/admin/taxi/drivers', { ...auth, body }),
+  updateTaxiDriver: (id: string, body: Body) => apiRequest<TaxiDriver>('PATCH', `/admin/taxi/drivers/${id}`, { ...auth, body }),
+  addTaxiBlock: (body: Body) => apiRequest<TaxiBlock>('POST', '/admin/taxi/blocks', { ...auth, body }),
+  removeTaxiBlock: (id: string) => apiRequest<void>('DELETE', `/admin/taxi/blocks/${id}`, auth),
+  taxiTransports: (query: { date?: string; appointmentId?: string }) => apiRequest<TaxiTransportDetail[]>('GET', '/admin/taxi/transports', { ...auth, query }),
+  updateTaxiTransport: (id: string, body: Body) => apiRequest<TaxiTransportDetail>('PATCH', `/admin/taxi/transports/${id}`, { ...auth, body }),
 };

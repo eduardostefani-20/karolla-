@@ -6,10 +6,11 @@ import { Alert } from '@/components/ui/Feedback';
 /** Aviso honesto quando o painel está em modo DEMO (dados fictícios, integrações não conectadas). */
 export function SystemModeNotice() {
   const { data } = useAsync(() => adminApi.systemStatus(), []);
-  if (data && data.mode !== 'demo' && data.schema && (!data.schema.portalCrm || !data.schema.agendaPlans)) {
+  if (data && data.mode !== 'demo' && data.schema && (!data.schema.portalCrm || !data.schema.agendaPlans || !data.schema.inspirationsTaxi)) {
     const pending = [
       !data.schema.portalCrm && 'Minha conta do cliente, fotos dos pets e CRM (migração 0009)',
       !data.schema.agendaPlans && 'novos status, agenda por profissional e planos (migração 0010)',
+      !data.schema.inspirationsTaxi && 'Taxi Dog, etiquetas e comentários das inspirações, estilo de tosa no agendamento (migração 0011)',
     ].filter(Boolean);
     return (
       <Alert tone="warning" className="mb-6" title="Atualização do banco pendente">

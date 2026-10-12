@@ -253,7 +253,7 @@ describe('Painel administrativo', () => {
       instagramFeed: { configured: false },
       whatsapp: { provider: 'link', configured: true },
       googleSheets: { provider: 'disabled', configured: false },
-      schema: { portalCrm: true, agendaPlans: true },
+      schema: { portalCrm: true, agendaPlans: true, inspirationsTaxi: true },
     });
   });
 

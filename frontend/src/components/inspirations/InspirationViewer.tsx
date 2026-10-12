@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { CalendarHeart, ChevronLeft, ChevronRight, Heart, Share2, X } from 'lucide-react';
-import type { PublicInspiration } from '@karolla/shared';
+import { GROOMING_TYPE_LABELS, type PublicInspiration } from '@karolla/shared';
+import { InspirationComments } from './InspirationComments';
 import { useCatalog } from '@/context/CatalogContext';
 import { useToast } from '@/components/ui/Toast';
 import { shareLink } from '@/utils/share';
@@ -49,6 +50,7 @@ export function InspirationViewer({
 
   if (!item) return null;
   const service = catalog?.services.find((s) => s.id === item.serviceId);
+  const size = catalog?.sizes.find((s) => s.id === item.sizeId);
   const favorite = isFavorite(item.id);
 
   const share = async () => {
@@ -74,7 +76,7 @@ export function InspirationViewer({
             </button>
           )}
         </div>
-        <div className="flex flex-col gap-4 p-5 sm:w-80 sm:p-6">
+        <div className="flex flex-col gap-4 overflow-y-auto p-5 sm:w-80 sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-brand-600">{item.breedName}</p>
@@ -86,6 +88,13 @@ export function InspirationViewer({
           </div>
           {item.description && <p className="text-sm text-ink-600">{item.description}</p>}
           {service && <p className="text-sm text-ink-500">Serviço sugerido: <strong>{service.name}</strong></p>}
+          {(size || item.groomingType) && (
+            <p className="flex flex-wrap gap-1.5">
+              {size && <span className="tag">{size.name}</span>}
+              {item.groomingType && <span className="tag">{GROOMING_TYPE_LABELS[item.groomingType]}</span>}
+            </p>
+          )}
+          <InspirationComments inspirationId={item.id} />
           <div className="mt-auto flex flex-col gap-2">
             <Link
               to={`/agendar?inspiracao=${encodeURIComponent(item.id)}`}

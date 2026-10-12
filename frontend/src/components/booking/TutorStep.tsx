@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { formatPhone, resolveFormConfig } from '@karolla/shared';
@@ -8,14 +8,19 @@ import { Field, Input, Textarea } from '@/components/ui/Field';
 import { tutorFormSchema, type TutorFormInput, type TutorFormOutput } from '@/validations/bookingForms';
 import { StepHeader } from './StepHeader';
 import { StepNav } from './StepNav';
+import { TaxiOption } from './TaxiOption';
+import { Alert } from '@/components/ui/Feedback';
 
 export function TutorStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const { catalog } = useCatalog();
   const { draft, update } = useBooking();
   const config = useMemo(() => resolveFormConfig(catalog?.formFields ?? []), [catalog]);
+  const [taxiOk, setTaxiOk] = useState(true);
+  const [taxiError, setTaxiError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<TutorFormInput, unknown, TutorFormOutput>({
     resolver: zodResolver(tutorFormSchema(config)),
@@ -23,6 +28,11 @@ export function TutorStep({ onBack, onNext }: { onBack: () => void; onNext: () =
   });
 
   const onSubmit = (v: TutorFormOutput) => {
+    if (draft.taxi && (!taxiOk || !v.address.street || !v.address.neighborhood)) {
+      setTaxiError(!v.address.street || !v.address.neighborhood ? 'Para o Taxi Dog, informe o endereço com bairro.' : 'O Taxi Dog não está disponível para este bairro/horário. Desmarque para continuar.');
+      return;
+    }
+    setTaxiError(null);
     update({ tutor: { ...v, whatsapp: formatPhone(v.whatsapp) } });
     onNext();
   };
@@ -93,6 +103,12 @@ export function TutorStep({ onBack, onNext }: { onBack: () => void; onNext: () =
           <Field label={f['tutor.notes'].label} required={f['tutor.notes'].required} error={errors.notes?.message} hint={f['tutor.notes'].helpText}>
             {(p) => <Textarea {...p} {...register('notes')} placeholder="Algo que a equipe precisa saber?" />}
           </Field>
+        )}
+        {catalog?.features.taxi && f['tutor.address'].enabled && (
+          <>
+            <TaxiOption neighborhood={watch('address.neighborhood') ?? ''} onStatus={setTaxiOk} />
+            {taxiError && <Alert tone="error">{taxiError}</Alert>}
+          </>
         )}
       </div>
       <StepNav onBack={onBack} formId="form-tutor" />

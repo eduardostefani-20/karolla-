@@ -25,6 +25,8 @@ import {
   Users,
   X,
   type LucideIcon,
+  Car,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Logo } from '@/components/site/Logo';
@@ -42,12 +44,14 @@ export const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean; 
   { to: '/admin/pets', label: 'Pets', icon: PawPrint, permission: 'pets.view' },
   { to: '/admin/crm', label: 'CRM', icon: HeartHandshake, permission: 'crm.view' },
   { to: '/admin/planos', label: 'Planos', icon: Repeat, permission: 'plans.view' },
+  { to: '/admin/taxi-dog', label: 'Taxi Dog', icon: Car, permission: 'taxidog.view' },
   { to: '/admin/profissionais', label: 'Profissionais', icon: IdCard, permission: 'professionals.view' },
   { to: '/admin/servicos', label: 'Serviços', icon: Scissors, permission: 'services.view' },
   { to: '/admin/precos', label: 'Preços', icon: Tags, permission: 'finance.view' },
   { to: '/admin/adicionais', label: 'Adicionais', icon: PlusCircle, permission: 'services.view' },
   { to: '/admin/inspiracoes', label: 'Inspirações', icon: Images, permission: 'inspirations.view' },
   { to: '/admin/stories', label: 'Stories', icon: Clapperboard, permission: 'inspirations.view' },
+  { to: '/admin/comentarios', label: 'Comentários', icon: MessageCircle, permission: 'comments.view' },
   { to: '/admin/formulario', label: 'Formulário', icon: ClipboardPen, permission: 'services.edit' },
   { to: '/admin/horarios', label: 'Horários', icon: Clock, permission: 'settings.view' },
   { to: '/admin/configuracoes', label: 'Configurações', icon: Settings, permission: 'settings.view' },

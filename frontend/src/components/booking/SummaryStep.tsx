@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { CalendarDays, Clock, ImageIcon, MapPin, PawPrint, Plus, Scissors, User, UserRound } from 'lucide-react';
-import { formatAge, formatCents, formatDateBR, formatDateLong, normalizeBrazilianPhone, type BookingRequestInput } from '@karolla/shared';
+import { CalendarDays, Car, Clock, ImageIcon, MapPin, PawPrint, Plus, Scissors, User, UserRound } from 'lucide-react';
+import { formatAge, formatCents, formatDateBR, formatDateLong, normalizeBrazilianPhone, TAXI_DIRECTION_LABELS, type BookingRequestInput } from '@karolla/shared';
 import { useCatalog } from '@/context/CatalogContext';
 import { useBooking } from '@/context/BookingContext';
 import { publicApi } from '@/services/publicApi';
@@ -22,6 +22,8 @@ const FIELD_INFO: Record<string, { label: string; step: number }> = {
   'pet.ageMonths': { label: 'Idade do pet', step: 2 },
   'pet.notes': { label: 'Observações do pet', step: 2 },
   inspirationId: { label: 'Inspiração', step: 8 },
+  groomingReference: { label: 'Foto de referência', step: 4 },
+  groomingNotes: { label: 'Estilo de tosa', step: 4 },
   serviceIds: { label: 'Serviço', step: 3 },
   addonIds: { label: 'Adicionais', step: 4 },
   date: { label: 'Data', step: 5 },
@@ -93,6 +95,9 @@ export function SummaryStep({
       tutor: { ...t, whatsapp: normalizeBrazilianPhone(t.whatsapp) },
       professionalId: draft.professionalId,
       inspirationId: draft.inspiration?.id ?? null,
+      groomingNotes: draft.groomingNotes,
+      groomingReference: draft.groomingReference,
+      taxi: draft.taxi,
       attribution: getAttribution(),
       expectedTotalCents: price.totalCents,
       website: honeypot,
@@ -104,6 +109,11 @@ export function SummaryStep({
       update({ result });
       onConfirmed();
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'TAXI_UNAVAILABLE') {
+        setFieldErrors([{ path: 'taxi', label: 'Taxi Dog', step: 7, message: err.message }]);
+        setError(err.message);
+        return;
+      }
       if (err instanceof ApiError && err.code === 'SLOT_UNAVAILABLE') {
         update({ time: null });
         onSlotTaken(err.message);
@@ -187,6 +197,12 @@ export function SummaryStep({
             </div>
           </Block>
         )}
+        {(draft.groomingNotes || draft.groomingReference) && (
+          <Block icon={<Scissors className="h-4 w-4" aria-hidden />} title="Estilo de tosa" onEdit={() => goTo(4)}>
+            {draft.groomingNotes && <p>{draft.groomingNotes}</p>}
+            {draft.groomingReference && <p className="text-sm text-ink-500">Foto de referência enviada (só a equipe vê)</p>}
+          </Block>
+        )}
         <Block icon={<Plus className="h-4 w-4" aria-hidden />} title="Adicionais" onEdit={() => goTo(4)}>
           {addons.length ? <ul className="list-inside list-disc">{addons.map((a) => <li key={a.id}>{a.name}</li>)}</ul> : <p className="text-ink-500">Nenhum</p>}
         </Block>
@@ -221,6 +237,12 @@ export function SummaryStep({
         {address && (
           <Block icon={<MapPin className="h-4 w-4" aria-hidden />} title="Endereço">
             <p>{address}</p>
+          </Block>
+        )}
+        {draft.taxi && (
+          <Block icon={<Car className="h-4 w-4" aria-hidden />} title="Taxi Dog" onEdit={() => goTo(7)}>
+            <p className="font-semibold">{TAXI_DIRECTION_LABELS[draft.taxi.direction]}</p>
+            <p className="text-sm text-ink-500">Taxa cobrada à parte. A equipe confirma o motorista.</p>
           </Block>
         )}
         <div className="flex items-end justify-between border-t-2 border-ink-900/10 py-5">

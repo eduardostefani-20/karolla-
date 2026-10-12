@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CalendarOff, Pencil, Plus, Trash2, UserRound } from 'lucide-react';
-import { formatDateBR, PROFESSIONAL_COLORS, readableTextOn, WEEKDAY_LABELS, type Professional, type ProfessionalWorkHours } from '@karolla/shared';
+import { formatDateBR, PROFESSIONAL_COLORS, readableTextOn, type Professional, type ProfessionalWorkHours } from '@karolla/shared';
 import { cn } from '@/utils/cn';
 import { adminApi } from '@/services/adminApi';
 import { ApiError, friendlyMessage } from '@/services/api';
@@ -14,6 +14,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Toggle } from '@/components/ui/Toggle';
 import { useToast } from '@/components/ui/Toast';
 import { PageHeader } from '@/components/admin/AdminUi';
+import { WorkHoursEditor } from '@/components/admin/WorkHoursEditor';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { moveItem, ReorderButtons } from '@/components/admin/ReorderButtons';
 
@@ -170,60 +171,6 @@ export default function ProfessionalsPage() {
       {timeOffFor && <TimeOffModal professional={timeOffFor} onClose={() => setTimeOffFor(null)} />}
       <ConfirmDialog open={Boolean(toDelete)} title="Excluir profissional?" message={`"${toDelete?.name}" será removido. Se já tiver agendamentos, desative em vez de excluir.`} confirmLabel="Excluir" danger onConfirm={remove} onClose={() => setToDelete(null)} />
     </div>
-  );
-}
-
-/** Horário próprio por dia da semana. Vazio = segue o funcionamento da loja; dia desmarcado = folga. */
-function WorkHoursEditor({ value, onChange, error }: { value: ProfessionalWorkHours[]; onChange: (v: ProfessionalWorkHours[]) => void; error?: string }) {
-  const custom = value.length > 0;
-  const day = (w: number) => value.find((d) => d.weekday === w);
-  const set = (w: number, patch: Partial<ProfessionalWorkHours> | null) => {
-    const others = value.filter((d) => d.weekday !== w);
-    if (patch === null) return onChange(others);
-    const current = day(w) ?? { weekday: w, startTime: '08:00', endTime: '18:00', breakStart: null, breakEnd: null };
-    onChange([...others, { ...current, ...patch }].sort((a, b) => a.weekday - b.weekday));
-  };
-  return (
-    <fieldset className="rounded-2xl border border-ink-900/10 p-3">
-      <legend className="px-1 text-sm font-semibold text-ink-700">Horário de trabalho</legend>
-      <label className="flex cursor-pointer items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          className="h-5 w-5 accent-brand-600"
-          checked={custom}
-          onChange={(e) => onChange(e.target.checked ? [1, 2, 3, 4, 5, 6].map((w) => ({ weekday: w, startTime: '08:00', endTime: '18:00', breakStart: null, breakEnd: null })) : [])}
-        />
-        Horário diferente do funcionamento da loja
-      </label>
-      {custom && (
-        <ul className="mt-3 space-y-2">
-          {WEEKDAY_LABELS.map((label, w) => {
-            const d = day(w);
-            return (
-              <li key={w} className="flex flex-wrap items-center gap-2 text-sm">
-                <label className="flex w-36 items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={Boolean(d)} onChange={(e) => set(w, e.target.checked ? {} : null)} />
-                  {label}
-                </label>
-                {d ? (
-                  <>
-                    <Input type="time" aria-label={`${label}: início`} className="w-auto py-1.5" value={d.startTime} onChange={(e) => set(w, { startTime: e.target.value })} />
-                    <span>às</span>
-                    <Input type="time" aria-label={`${label}: fim`} className="w-auto py-1.5" value={d.endTime} onChange={(e) => set(w, { endTime: e.target.value })} />
-                    <span className="text-ink-500">intervalo</span>
-                    <Input type="time" aria-label={`${label}: início do intervalo`} className="w-auto py-1.5" value={d.breakStart ?? ''} onChange={(e) => set(w, { breakStart: e.target.value || null })} />
-                    <Input type="time" aria-label={`${label}: fim do intervalo`} className="w-auto py-1.5" value={d.breakEnd ?? ''} onChange={(e) => set(w, { breakEnd: e.target.value || null })} />
-                  </>
-                ) : (
-                  <span className="text-ink-400">Folga</span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {error && <p className="mt-2 text-sm font-semibold text-danger-600">{error}</p>}
-    </fieldset>
   );
 }
 

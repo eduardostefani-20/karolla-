@@ -16,8 +16,8 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { moveItem, ReorderButtons } from '@/components/admin/ReorderButtons';
 import { useCatalog } from '@/context/CatalogContext';
 
-type Draft = { id?: string; name: string; description: string; category: string; durationMinutes: string; active: boolean; speciesIds: string[]; maxConcurrent: string };
-const empty: Draft = { name: '', description: '', category: 'Banho', durationMinutes: '60', active: true, speciesIds: [], maxConcurrent: '' };
+type Draft = { id?: string; name: string; description: string; category: string; durationMinutes: string; active: boolean; speciesIds: string[]; maxConcurrent: string; includesGrooming: boolean };
+const empty: Draft = { name: '', description: '', category: 'Banho', durationMinutes: '60', active: true, speciesIds: [], maxConcurrent: '', includesGrooming: false };
 
 export default function ServicesPage() {
   useDocumentMeta({ title: 'Serviços — Karolla Pet', noindex: true });
@@ -47,6 +47,7 @@ export default function ServicesPage() {
       category: editing.category,
       durationMinutes: Number(editing.durationMinutes),
       maxConcurrent: editing.maxConcurrent ? Number(editing.maxConcurrent) : null,
+      includesGrooming: editing.includesGrooming,
       active: editing.active,
       speciesIds: editing.speciesIds,
     };
@@ -172,6 +173,12 @@ export default function ServicesPage() {
                 ))}
               </div>
             </fieldset>
+            <Toggle
+              checked={editing.includesGrooming}
+              onChange={(v) => setEditing({ ...editing, includesGrooming: v })}
+              label="Inclui tosa"
+              description="No agendamento, mostra a etapa “Estilo de tosa” com sugestões da raça e envio de foto de referência."
+            />
             <Toggle checked={editing.active} onChange={(v) => setEditing({ ...editing, active: v })} label="Ativo (aparece no site)" />
           </div>
         </Modal>

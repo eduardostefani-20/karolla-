@@ -57,6 +57,7 @@ describe('Sugestão de tosa no agendamento', () => {
       .send(bookingPayload({ serviceIds: ['banho-tosa'], groomingNotes: 'Orelhas redondas', groomingReference: { path: ticket.path, description: 'Igual à foto' } }))
       .expect(201);
     expect(res.body.appointment.customerNotes).toContain('Tosa: Orelhas redondas');
+    expect(res.body.appointment.customerNotes).toContain('foto de referência enviada');
 
     const admin = await login();
     const pet = (await api.get(`/api/admin/pets/${res.body.pet.id}`).set('Authorization', admin).expect(200)).body;
@@ -123,6 +124,19 @@ describe('Taxi Dog', () => {
     // status do atendimento continua independente
     const appt = (await api.get(`/api/admin/appointments/${res.body.appointment.id}`).set('Authorization', admin)).body;
     expect(appt.status).toBe('pending');
+  });
+
+  it('gerente opera o Taxi Dog sem ver taxas (permissão financeira)', async () => {
+    const { api, admin } = await withTaxi();
+    await api.post('/api/public/appointments').send(bookingPayload({ taxi: { direction: 'pickup' } })).expect(201);
+    await api.post('/api/admin/team').set('Authorization', admin).send({ name: 'Ger', email: 'ger2@karollapet.test', password: 'Equipe2026', role: 'manager' }).expect(201);
+    const token = `Bearer ${(await api.post('/api/auth/login').send({ email: 'ger2@karollapet.test', password: 'Equipe2026' })).body.token}`;
+    const overview = (await api.get('/api/admin/taxi').set('Authorization', token).expect(200)).body;
+    expect(overview.regions[0].name).toBe('Zona Norte');
+    expect(overview.regions[0]).not.toHaveProperty('feeOneWayCents');
+    expect(overview.regions[0]).not.toHaveProperty('feeRoundTripCents');
+    const transports = (await api.get('/api/admin/taxi/transports').set('Authorization', token).query({ date: TOMORROW }).expect(200)).body;
+    expect(transports[0]).not.toHaveProperty('feeCents');
   });
 
   it('sem permissão de Taxi Dog não vê os transportes', async () => {

@@ -60,6 +60,16 @@ export function ConfirmationStep() {
             </div>
           </div>
         )}
+        {result.taxi && (
+          <div className="col-span-2 rounded-2xl bg-lilac-50 p-2.5 text-sm">
+            <dt className="text-xs font-bold uppercase text-brand-700">Taxi Dog solicitado</dt>
+            <dd>
+              {result.taxi.pickupTime && `Busca por volta das ${result.taxi.pickupTime}. `}
+              {result.taxi.dropoffTime && `Entrega por volta das ${result.taxi.dropoffTime}. `}
+              Taxa {formatCents(result.taxi.feeCents)} (à parte). A equipe confirma o motorista.
+            </dd>
+          </div>
+        )}
         <div className="col-span-2 text-xs text-ink-400">Código: {a.id.slice(0, 8).toUpperCase()}</div>
       </dl>
 
