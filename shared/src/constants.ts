@@ -4,9 +4,12 @@ export const BRAND_NAME = 'Karolla Pet';
 
 export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
   pending: 'Pendente',
-  confirmed: 'Confirmado',
+  confirmed: 'Agendado',
+  waiting: 'Aguardando atendimento',
   in_progress: 'Em atendimento',
-  completed: 'Concluído',
+  completed: 'Finalizado',
+  ready: 'Pronto para retirada',
+  delivered: 'Entregue ao tutor',
   cancelled: 'Cancelado',
   no_show: 'Não compareceu',
 };

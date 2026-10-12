@@ -4,6 +4,7 @@ import {
   CUSTOMER_DEFAULTS,
   DEFAULT_CRM_INACTIVE_DAYS,
   DEFAULT_CRM_REACTIVATION_MESSAGE,
+  DEFAULT_PICKUP_MESSAGE,
   DEFAULT_FORM_FIELDS,
   PET_DEFAULTS,
   nowInTimezone,
@@ -41,6 +42,8 @@ export function demoSettings(env: { WHATSAPP_NUMBER?: string; TIMEZONE: string }
     tiktokPixelId: '',
     crmInactiveDays: DEFAULT_CRM_INACTIVE_DAYS,
     crmReactivationMessage: DEFAULT_CRM_REACTIVATION_MESSAGE,
+    pickupMessage: DEFAULT_PICKUP_MESSAGE,
+    slotCapacityLimit: null,
   };
 }
 
@@ -102,7 +105,7 @@ export async function seedDemoData(db: MemoryDatabase, opts: { now: Date; timezo
     ['escovacao', 'Escovação', 'Escovação completa para remover pelos mortos e evitar nós.', 'Estética', 30, []],
   ] as const;
   for (const [i, [id, name, description, category, durationMinutes, speciesIds]] of services.entries()) {
-    await db.services.create({ id, name, description, category, durationMinutes, active: true, sortOrder: i + 1, speciesIds: [...speciesIds] });
+    await db.services.create({ id, name, description, category, durationMinutes, active: true, sortOrder: i + 1, speciesIds: [...speciesIds], maxConcurrent: null });
   }
 
   // ⚠️ Tabela de preços FICTÍCIA (centavos) — substituir pelos valores reais no painel.
@@ -253,6 +256,8 @@ export async function seedDemoData(db: MemoryDatabase, opts: { now: Date; timezo
         professionalId: null,
         inspiration: null,
         attribution: null,
+        origin: 'site',
+        createdByName: '',
         services: price.lines.filter((l) => l.kind === 'service').map((l) => ({ serviceId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
         addons: price.lines.filter((l) => l.kind === 'addon').map((l) => ({ addonId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
       },

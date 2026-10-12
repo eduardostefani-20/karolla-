@@ -17,6 +17,7 @@ import { DisabledInstagramFeed, GraphInstagramFeed, type InstagramFeedService } 
 import { StaffService } from './services/StaffService';
 import { CustomerAccountService } from './services/CustomerAccountService';
 import { CrmService } from './services/CrmService';
+import { PlanService } from './services/PlanService';
 import { MemoryPrivateStorage, SupabasePrivateStorage, type PrivateStorage } from './integrations/storage/PrivateStorage';
 import { MediaService } from './services/MediaService';
 import { CatalogService } from './services/CatalogService';
@@ -52,6 +53,7 @@ export interface Container {
   privateStorage: PrivateStorage;
   account: CustomerAccountService;
   crm: CrmService;
+  plans: PlanService;
 }
 
 export interface ContainerOverrides {
@@ -143,9 +145,10 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
   const customers = new CustomerService(db, auth, privateStorage, clock);
   const account = new CustomerAccountService(db, auth, privateStorage, clock);
   const crm = new CrmService(db, clock);
+  const plans = new PlanService(db, clock);
 
   const media = new MediaService(db, storage, clock);
   const staff = new StaffService(db, auth, clock);
 
-  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media, staff, privateStorage, account, crm };
+  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media, staff, privateStorage, account, crm, plans };
 }

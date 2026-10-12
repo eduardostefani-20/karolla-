@@ -127,3 +127,57 @@ describe('agenda por profissional', () => {
     expect(checkSlot(ctx({ professionals: [] }), '2026-10-08', '09:00', 60)).toEqual({ ok: true });
   });
 });
+
+describe('agenda por profissional: horário próprio, folgas e capacidade', () => {
+  const ana = { id: 'ana', serviceIds: [] as string[] };
+  // 2026-10-08 é quinta-feira (weekday 4)
+  const day = '2026-10-08';
+
+  it('só oferece o profissional que trabalha naquele horário', () => {
+    const bia = { id: 'bia', serviceIds: [], workHours: [{ weekday: 4, startTime: '13:00', endTime: '18:00', breakStart: null, breakEnd: null }] };
+    const c = ctx({ professionals: [ana, bia], appointments: [{ id: 'a1', date: day, time: '09:00', durationMinutes: 60, status: 'confirmed', professionalId: 'ana' }] });
+    // de manhã só a Ana trabalha, e está ocupada
+    expect(checkSlot(c, day, '09:00', 60)).toEqual({ ok: false, reason: 'FULL' });
+    // à tarde a Bia está livre
+    expect(checkSlot(c, day, '14:00', 60)).toEqual({ ok: true, professionalId: 'bia' }); // o menos ocupado no dia
+    expect(checkSlot(c, day, '14:00', 60, { professionalId: 'bia' })).toEqual({ ok: true, professionalId: 'bia' });
+    expect(checkSlot(c, day, '10:00', 60, { professionalId: 'bia' })).toEqual({ ok: false, reason: 'FULL' });
+  });
+
+  it('dia sem horário cadastrado é folga do profissional', () => {
+    const fds = { id: 'fds', serviceIds: [], workHours: [{ weekday: 6, startTime: '08:00', endTime: '12:00', breakStart: null, breakEnd: null }] };
+    expect(checkSlot(ctx({ professionals: [fds] }), day, '09:00', 60)).toEqual({ ok: false, reason: 'FULL' });
+  });
+
+  it('folga (dia inteiro ou período) tira o profissional da agenda, sem apagar o histórico', () => {
+    const off = { ...ana, timeOff: [{ dateFrom: day, dateTo: day, startTime: '13:00', endTime: '15:00' }] };
+    expect(checkSlot(ctx({ professionals: [off] }), day, '09:00', 60)).toEqual({ ok: true, professionalId: 'ana' });
+    expect(checkSlot(ctx({ professionals: [off] }), day, '14:00', 60)).toEqual({ ok: false, reason: 'FULL' });
+    const ferias = { ...ana, timeOff: [{ dateFrom: '2026-10-05', dateTo: '2026-10-10', startTime: null, endTime: null }] };
+    expect(checkSlot(ctx({ professionals: [ferias] }), day, '09:00', 60)).toEqual({ ok: false, reason: 'FULL' });
+  });
+
+  it('profissional com capacidade 2 atende dois pets ao mesmo tempo', () => {
+    const dupla = { id: 'dupla', serviceIds: [], capacity: 2 };
+    const one = [{ id: 'a1', date: day, time: '09:00', durationMinutes: 60, status: 'confirmed' as const, professionalId: 'dupla' }];
+    expect(checkSlot(ctx({ professionals: [dupla], appointments: one }), day, '09:00', 60)).toEqual({ ok: true, professionalId: 'dupla' });
+    const two = [...one, { ...one[0]!, id: 'a2' }];
+    expect(checkSlot(ctx({ professionals: [dupla], appointments: two }), day, '09:00', 60)).toEqual({ ok: false, reason: 'FULL' });
+  });
+
+  it('limite geral opcional por horário vale mesmo com vários profissionais', () => {
+    const pros = [ana, { id: 'bia', serviceIds: [] }];
+    const appts = [{ id: 'a1', date: day, time: '09:00', durationMinutes: 60, status: 'confirmed' as const, professionalId: 'ana' }];
+    const base = ctx({ professionals: pros, appointments: appts });
+    expect(checkSlot(base, day, '09:00', 60)).toEqual({ ok: true, professionalId: 'bia' });
+    const limited = { ...base, settings: { ...base.settings, slotCapacityLimit: 1 } };
+    expect(checkSlot(limited, day, '09:00', 60)).toEqual({ ok: false, reason: 'FULL' });
+  });
+
+  it('limite opcional por tipo de serviço (ex.: uma mesa de tosa)', () => {
+    const appts = [{ id: 'a1', date: day, time: '09:00', durationMinutes: 60, status: 'confirmed' as const, professionalId: null, serviceIds: ['tosa'] }];
+    const c = ctx({ settings: { slotIntervalMinutes: 30, capacity: 3, minAdvanceMinutes: 60, maxAdvanceDays: 60, timezone: 'America/Sao_Paulo' }, appointments: appts, serviceLimits: { tosa: 1 } });
+    expect(checkSlot(c, day, '09:00', 60, { serviceIds: ['tosa'] })).toEqual({ ok: false, reason: 'SERVICE_FULL' });
+    expect(checkSlot(c, day, '09:00', 60, { serviceIds: ['banho'] })).toEqual({ ok: true });
+  });
+});

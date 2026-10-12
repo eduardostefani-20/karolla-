@@ -33,6 +33,12 @@ import {
   inspirationMapping,
   petMapping,
   professionalMapping,
+  professionalTimeOffMapping,
+  planMapping,
+  customerPlanMapping,
+  planPaymentMapping,
+  planUsageMapping,
+  planEventMapping,
   storyMapping,
   serviceItemsToJson,
   serviceMapping,
@@ -201,7 +207,7 @@ class SupabaseAppointments implements AppointmentRepository {
   async listOccupying(from: string, to: string) {
     const { data, error } = await this.client
       .from('appointments')
-      .select('id, date, start_time, duration_minutes, status, professional_id')
+      .select('id, date, start_time, duration_minutes, status, professional_id, appointment_services(service_id)')
       .gte('date', from)
       .lte('date', to)
       .not('status', 'in', `(${NON_BLOCKING_STATUSES.join(',')})`);
@@ -214,6 +220,7 @@ class SupabaseAppointments implements AppointmentRepository {
         durationMinutes: Number(r.duration_minutes),
         status: r.status as NewAppointment['status'],
         professionalId: (r.professional_id as string | null) ?? null,
+        serviceIds: ((r.appointment_services as Row[] | null) ?? []).map((s) => String(s.service_id)),
       }))
       .filter((a) => isBlockingStatus(a.status));
   }
@@ -228,6 +235,13 @@ class SupabaseAppointments implements AppointmentRepository {
       p_professional_id: guard.professionalId ?? null,
     });
     if (error) fail(error, 'create appointment');
+    if (input.origin || input.createdByName) {
+      const { error: originError } = await this.client
+        .from('appointments')
+        .update({ origin: input.origin, created_by_name: input.createdByName })
+        .eq('id', String(data));
+      if (originError && !isMissingColumn(originError)) fail(originError, 'set appointment origin');
+    }
     const created = await this.findById(String(data));
     if (!created) throw new InfrastructureError('Agendamento criado mas não encontrado.');
     return created;
@@ -303,6 +317,12 @@ export class SupabaseDatabase implements DatabaseService {
   blockedTimes;
   integrationLogs;
   professionals;
+  professionalTimeOff;
+  plans;
+  customerPlans;
+  planPayments;
+  planUsages;
+  planEvents;
   inspirations;
   stories;
 
@@ -326,6 +346,12 @@ export class SupabaseDatabase implements DatabaseService {
     this.blockedTimes = new SupabaseTable(this.client, blockedTimeMapping);
     this.integrationLogs = new SupabaseTable(this.client, integrationLogMapping);
     this.professionals = new SupabaseTable(this.client, professionalMapping);
+    this.professionalTimeOff = new SupabaseTable(this.client, professionalTimeOffMapping);
+    this.plans = new SupabaseTable(this.client, planMapping);
+    this.customerPlans = new SupabaseTable(this.client, customerPlanMapping);
+    this.planPayments = new SupabaseTable(this.client, planPaymentMapping);
+    this.planUsages = new SupabaseTable(this.client, planUsageMapping);
+    this.planEvents = new SupabaseTable(this.client, planEventMapping);
     this.inspirations = new SupabaseTable(this.client, inspirationMapping);
     this.stories = new SupabaseStories(this.client, storyMapping);
   }
@@ -463,20 +489,21 @@ export class SupabaseDatabase implements DatabaseService {
     },
   };
 
-  private featuresOk = false;
-  private featuresCheckedAt = 0;
+  private features = new Map<number, { ok: boolean; at: number }>();
 
-  /** A migração mais recente (0009) já foi aplicada? Fica em cache; enquanto não, reconfere a cada minuto. */
-  async featuresReady(): Promise<boolean> {
-    if (this.featuresOk || Date.now() - this.featuresCheckedAt < 60_000) return this.featuresOk;
-    this.featuresCheckedAt = Date.now();
-    const [settings, contacts] = await Promise.all([
-      this.client.from('business_settings').select('crm_inactive_days').limit(1),
-      this.client.from('contact_logs').select('id').limit(1),
-    ]);
-    this.featuresOk = !settings.error && !contacts.error;
-    if (!this.featuresOk) warnPending('0009');
-    return this.featuresOk;
+  /** A migração indicada já foi aplicada? Fica em cache; enquanto não, reconfere a cada minuto. */
+  async featuresReady(level: 9 | 10 = 9): Promise<boolean> {
+    const cached = this.features.get(level);
+    if (cached && (cached.ok || Date.now() - cached.at < 60_000)) return cached.ok;
+    const probes =
+      level === 9
+        ? [this.client.from('business_settings').select('crm_inactive_days').limit(1), this.client.from('contact_logs').select('id').limit(1)]
+        : [this.client.from('business_settings').select('pickup_message').limit(1), this.client.from('plans').select('id').limit(1)];
+    const results = await Promise.all(probes);
+    const ok = results.every((r) => !r.error) && (level === 9 || (await this.featuresReady(9)));
+    this.features.set(level, { ok, at: Date.now() });
+    if (!ok) warnPending(`migração ${level === 9 ? '0009' : '0010'}`);
+    return ok;
   }
 
   async healthCheck() {

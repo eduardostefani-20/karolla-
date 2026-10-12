@@ -4,6 +4,8 @@ import type {
   BlockedTime,
   BusinessHours,
   BusinessSettings,
+  ProfessionalTimeOff,
+  ProfessionalWorkHours,
 } from '../types/domain';
 import { NON_BLOCKING_STATUSES } from '../types/domain';
 import { diffInDays, minutesToTime, nowInTimezone, timeToMinutes, weekdayOf } from '../utils/date';
@@ -25,18 +27,27 @@ export interface OccupiedSlot {
   durationMinutes: number;
   status: AppointmentStatus;
   professionalId?: string | null;
+  /** Serviços do atendimento (para o limite opcional por tipo de serviço). */
+  serviceIds?: string[];
 }
 
-/** Profissional ativo, como o motor de agenda precisa (cada um atende 1 pet por vez). */
+/** Profissional ativo, como o motor de agenda precisa. */
 export interface SchedulingProfessional {
   id: string;
   serviceIds: string[];
+  /** Pets ao mesmo tempo (padrão 1). */
+  capacity?: number;
+  /** Horário próprio. Vazio/ausente = segue o funcionamento da loja. */
+  workHours?: ProfessionalWorkHours[];
+  /** Folgas e indisponibilidades. */
+  timeOff?: Pick<ProfessionalTimeOff, 'dateFrom' | 'dateTo' | 'startTime' | 'endTime'>[];
 }
 
 export type SchedulingSettings = Pick<
   BusinessSettings,
   'slotIntervalMinutes' | 'capacity' | 'minAdvanceMinutes' | 'maxAdvanceDays' | 'timezone'
->;
+> &
+  Partial<Pick<BusinessSettings, 'slotCapacityLimit'>>;
 
 export interface AvailabilityContext {
   businessHours: BusinessHours[];
@@ -51,6 +62,8 @@ export interface AvailabilityContext {
    * Vazio/ausente = regra de vagas por horário (settings.capacity).
    */
   professionals?: SchedulingProfessional[];
+  /** Limite opcional de atendimentos simultâneos por serviço (id → máximo). */
+  serviceLimits?: Record<string, number>;
 }
 
 export type SlotUnavailableReason =
@@ -64,6 +77,7 @@ export type SlotUnavailableReason =
   | 'BREAK'
   | 'BLOCKED_TIME'
   | 'FULL'
+  | 'SERVICE_FULL'
   | 'NO_PROFESSIONAL';
 
 export const SLOT_REASON_MESSAGES: Record<SlotUnavailableReason, string> = {
@@ -77,6 +91,7 @@ export const SLOT_REASON_MESSAGES: Record<SlotUnavailableReason, string> = {
   BREAK: 'Este horário coincide com o intervalo da equipe.',
   BLOCKED_TIME: 'Este horário está bloqueado.',
   FULL: 'Este horário acabou de ser ocupado. Escolha outro horário.',
+  SERVICE_FULL: 'Este serviço já está no limite de atendimentos simultâneos neste horário. Escolha outro horário.',
   NO_PROFESSIONAL: 'Nenhum profissional disponível realiza este serviço. Fale com a Karolla Pet.',
 };
 
@@ -177,13 +192,53 @@ export function checkSlot(
     if (blockedTime) return { ok: false, reason: 'BLOCKED_TIME' };
   }
 
+  // Limite opcional por tipo de serviço (ex.: uma única mesa de tosa)
+  for (const serviceId of options.serviceIds ?? []) {
+    const limit = ctx.serviceLimits?.[serviceId];
+    if (!limit) continue;
+    const same = ctx.appointments.filter((a) => a.serviceIds?.includes(serviceId));
+    if (maxConcurrentInInterval(same, date, start, end, options.excludeAppointmentId) >= limit) return { ok: false, reason: 'SERVICE_FULL' };
+  }
+
   const pros = ctx.professionals ?? [];
   if (pros.length > 0) return checkProfessionals(ctx, pros, date, start, end, options);
 
   const concurrent = maxConcurrentInInterval(ctx.appointments, date, start, end, options.excludeAppointmentId);
-  if (concurrent >= Math.max(1, ctx.settings.capacity)) return { ok: false, reason: 'FULL' };
+  if (concurrent >= capacityAt(ctx, date, start, end)) return { ok: false, reason: 'FULL' };
 
   return { ok: true };
+}
+
+/** O profissional trabalha no intervalo inteiro (horário próprio, intervalo e folgas)? */
+export function professionalAvailable(p: SchedulingProfessional, date: string, start: number, end: number): boolean {
+  const off = (p.timeOff ?? []).some((t) => {
+    if (date < t.dateFrom || date > t.dateTo) return false;
+    if (!t.startTime || !t.endTime) return true; // dia inteiro
+    return overlaps(start, end, timeToMinutes(t.startTime), timeToMinutes(t.endTime));
+  });
+  if (off) return false;
+  const hours = p.workHours ?? [];
+  if (hours.length === 0) return true; // segue o funcionamento da loja (já conferido)
+  const day = hours.find((h) => h.weekday === weekdayOf(date));
+  if (!day) return false; // dia de folga
+  if (start < timeToMinutes(day.startTime) || end > timeToMinutes(day.endTime)) return false;
+  if (day.breakStart && day.breakEnd && overlaps(start, end, timeToMinutes(day.breakStart), timeToMinutes(day.breakEnd))) return false;
+  return true;
+}
+
+/**
+ * Pets atendidos ao mesmo tempo no intervalo: soma da capacidade dos profissionais ATIVOS e DISPONÍVEIS
+ * naquele horário (agenda por profissional) ou "vagas por horário"; nos dois casos respeita o limite
+ * geral opcional.
+ */
+export function capacityAt(ctx: Pick<AvailabilityContext, 'professionals' | 'settings'>, date: string, start: number, end: number): number {
+  const pros = ctx.professionals ?? [];
+  const base =
+    pros.length > 0
+      ? pros.filter((p) => professionalAvailable(p, date, start, end)).reduce((sum, p) => sum + Math.max(1, p.capacity ?? 1), 0)
+      : Math.max(1, ctx.settings.capacity);
+  const limit = ctx.settings.slotCapacityLimit;
+  return limit && limit > 0 ? Math.min(base, limit) : base;
 }
 
 /**
@@ -200,15 +255,18 @@ function checkProfessionals(
   options: SlotCheckOptions,
 ): SlotCheckResult {
   const qualified = qualifiedProfessionals(pros, options.serviceIds);
-  const candidates = options.professionalId ? qualified.filter((p) => p.id === options.professionalId) : qualified;
-  if (candidates.length === 0) return { ok: false, reason: 'NO_PROFESSIONAL' };
+  const chosenOnly = options.professionalId ? qualified.filter((p) => p.id === options.professionalId) : qualified;
+  if (chosenOnly.length === 0) return { ok: false, reason: 'NO_PROFESSIONAL' };
+  // Só quem trabalha naquele horário (folga, horário próprio e intervalo do profissional)
+  const candidates = chosenOnly.filter((p) => professionalAvailable(p, date, start, end));
+  if (candidates.length === 0) return { ok: false, reason: 'FULL' };
 
   const exclude = options.excludeAppointmentId;
   const free = candidates.filter(
-    (p) => maxConcurrentInInterval(ctx.appointments.filter((a) => a.professionalId === p.id), date, start, end, exclude) === 0,
+    (p) => maxConcurrentInInterval(ctx.appointments.filter((a) => a.professionalId === p.id), date, start, end, exclude) < Math.max(1, p.capacity ?? 1),
   );
   if (free.length === 0) return { ok: false, reason: 'FULL' };
-  if (maxConcurrentInInterval(ctx.appointments, date, start, end, exclude) >= pros.length) return { ok: false, reason: 'FULL' };
+  if (maxConcurrentInInterval(ctx.appointments, date, start, end, exclude) >= capacityAt(ctx, date, start, end)) return { ok: false, reason: 'FULL' };
 
   const busyMinutes = (id: string) =>
     ctx.appointments
@@ -260,8 +318,20 @@ export function getDayAvailability(
   return { date, closedReason: anyAvailable || slots.length ? null : 'OUTSIDE_HOURS', slots };
 }
 
-/** Limite de atendimentos simultâneos: nº de profissionais ativos (agenda por profissional) ou vagas por horário. */
-export function effectiveCapacity(ctx: Pick<AvailabilityContext, 'professionals' | 'settings'>): number {
-  const pros = ctx.professionals?.length ?? 0;
-  return pros > 0 ? pros : Math.max(1, ctx.settings.capacity);
+/**
+ * Limite de atendimentos simultâneos para a trava atômica do banco. Com data/horário, considera só os
+ * profissionais disponíveis naquele intervalo; sem, o total (compatível com chamadas antigas).
+ */
+export function effectiveCapacity(
+  ctx: Pick<AvailabilityContext, 'professionals' | 'settings'>,
+  at?: { date: string; time: string; durationMinutes: number },
+): number {
+  if (at) {
+    const start = timeToMinutes(at.time);
+    return capacityAt(ctx, at.date, start, start + at.durationMinutes);
+  }
+  const pros = ctx.professionals ?? [];
+  const base = pros.length > 0 ? pros.reduce((sum, p) => sum + Math.max(1, p.capacity ?? 1), 0) : Math.max(1, ctx.settings.capacity);
+  const limit = ctx.settings.slotCapacityLimit;
+  return limit && limit > 0 ? Math.min(base, limit) : base;
 }

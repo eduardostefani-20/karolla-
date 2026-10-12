@@ -74,6 +74,9 @@ export function accountController(c: Container) {
       await c.account.removeReference(req.customer!, id(req));
       res.status(204).end();
     },
+    async plans(req: Request, res: Response) {
+      res.json(await c.plans.forCustomer(req.customer!.id));
+    },
     async appointments(req: Request, res: Response) {
       res.json(await c.account.appointments(req.customer!));
     },

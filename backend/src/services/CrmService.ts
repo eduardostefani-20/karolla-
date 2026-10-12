@@ -3,6 +3,7 @@ import {
   crmSegment,
   daysBetween,
   fillMessageTemplate,
+  isDoneStatus,
   nowInTimezone,
   type AdminUser,
   type ContactKind,
@@ -42,9 +43,9 @@ export class CrmService {
 
     const rows: CrmCustomer[] = customers.map((c) => {
       const own = appointments.filter((a) => a.customerId === c.id);
-      const done = own.filter((a) => a.status === 'completed').map((a) => a.date).sort();
+      const done = own.filter((a) => isDoneStatus(a.status)).map((a) => a.date).sort();
       const upcoming = own
-        .filter((a) => a.date >= today && (a.status === 'pending' || a.status === 'confirmed' || a.status === 'in_progress'))
+        .filter((a) => a.date >= today && ['pending', 'confirmed', 'waiting', 'in_progress'].includes(a.status))
         .map((a) => a.date)
         .sort();
       const lastVisit = done.at(-1) ?? null;
@@ -99,16 +100,16 @@ export class CrmService {
     if (input.kind === 'reactivation' && customer.marketingOptOut) {
       throw new ConflictError('OPT_OUT', 'Este cliente pediu para não receber mensagens de lembrete ou promoção.');
     }
-    if (input.appointmentId) {
-      const appointment = await this.db.appointments.findById(input.appointmentId);
-      if (!appointment || appointment.customerId !== customer.id) throw new NotFoundError('Agendamento não encontrado.');
-    }
+    const appointment = input.appointmentId ? await this.db.appointments.findById(input.appointmentId) : null;
+    if (input.appointmentId && (!appointment || appointment.customerId !== customer.id)) throw new NotFoundError('Agendamento não encontrado.');
+    if (input.kind === 'pickup' && !appointment) throw new NotFoundError('Informe o agendamento do aviso de retirada.');
     const settings = await this.db.settings.get();
     const today = nowInTimezone(this.clock.now(), settings.timezone).date;
     const [pets, appointments] = await Promise.all([this.db.pets.list({ customerId }), this.db.appointments.list({ customerId })]);
-    const done = appointments.filter((a) => a.status === 'completed').sort((a, b) => a.date.localeCompare(b.date));
+    const done = appointments.filter((a) => isDoneStatus(a.status)).sort((a, b) => a.date.localeCompare(b.date));
     const last = done.at(-1);
-    const petName = (last && pets.find((p) => p.id === last.petId)?.name) || pets[0]?.name || 'seu pet';
+    const petOf = (petId: string | undefined) => (petId && pets.find((p) => p.id === petId)?.name) || undefined;
+    const petName = petOf(appointment?.petId) || petOf(last?.petId) || pets[0]?.name || 'seu pet';
     const message =
       input.kind === 'reactivation'
         ? fillMessageTemplate(settings.crmReactivationMessage, {
@@ -116,7 +117,9 @@ export class CrmService {
             pet: petName,
             dias: last ? daysBetween(last.date, today) : settings.crmInactiveDays,
           })
-        : `Oi, ${firstName(customer.name)}! Aqui é da Karolla Pet 🐾`;
+        : input.kind === 'pickup'
+          ? fillMessageTemplate(settings.pickupMessage, { tutor: firstName(customer.name), pet: petName })
+          : `Oi, ${firstName(customer.name)}! Aqui é da Karolla Pet 🐾`;
     const contact = await this.db.contacts.create({
       customerId,
       appointmentId: input.appointmentId,

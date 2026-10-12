@@ -9,6 +9,12 @@ import type {
   BusinessHours,
   BusinessSettings,
   ContactLog,
+  CustomerPlan,
+  EffectiveSubscriptionStatus,
+  Plan,
+  PlanEvent,
+  PlanPayment,
+  PlanUsage,
   Customer,
   FormFieldConfig,
   IntegrationLog,
@@ -64,6 +70,8 @@ export interface PublicCatalog {
   closedDates: string[];
   settings: PublicSettings;
   mode: AppMode;
+  /** Recursos que dependem de atualização do banco (o site esconde o que ainda não está ativo). */
+  features: { customerAccounts: boolean };
 }
 
 export type AppMode = 'demo' | 'production';
@@ -191,6 +199,8 @@ export interface SystemStatus {
   auth: { provider: string };
   whatsapp: { provider: string; configured: boolean };
   googleSheets: { provider: string; configured: boolean };
+  /** Atualizações do banco aplicadas (false = recursos novos ainda "em ativação"). */
+  schema: { portalCrm: boolean; agendaPlans: boolean };
 }
 
 // ---------------------------------------------------------------- Portal do cliente
@@ -274,3 +284,22 @@ export interface ContactResult {
   /** Conversa do WhatsApp com a mensagem pronta (o envio é feito pela pessoa, não pelo sistema). */
   whatsappLink: string;
 }
+
+// ---------------------------------------------------------------- Planos
+
+export interface CustomerPlanDetail extends CustomerPlan {
+  plan: Pick<Plan, 'id' | 'name' | 'periodicity' | 'serviceIds' | 'usesPerPeriod' | 'rules'>;
+  customerName: string;
+  petName: string | null;
+  effectiveStatus: EffectiveSubscriptionStatus;
+  /** Período atual (usos contam a partir daqui até nextDueDate). */
+  periodStart: string;
+  usesInPeriod: number;
+  usesLeft: number;
+  payments: PlanPayment[];
+  usages: PlanUsage[];
+  events: PlanEvent[];
+}
+
+/** Plano como o tutor vê na conta (sem histórico interno). */
+export type PortalCustomerPlan = Omit<CustomerPlanDetail, 'events' | 'notes' | 'customerName'>;

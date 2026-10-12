@@ -2,14 +2,19 @@ import {
   blockedDateSchema,
   blockedTimeSchema,
   businessHoursSchema,
+  professionalTimeOffSchema,
   settingsSchema,
+  DEFAULT_CRM_INACTIVE_DAYS,
+  DEFAULT_CRM_REACTIVATION_MESSAGE,
+  DEFAULT_PICKUP_MESSAGE,
   type AvailabilityContext,
   type BusinessSettings,
 } from '@karolla/shared';
 import type { z } from 'zod';
 import type { DatabaseService } from '../repositories/types';
-import { ConflictError } from '../utils/errors';
+import { ConflictError, NotFoundError } from '../utils/errors';
 import type { Clock } from '../utils/clock';
+import { assertSchemaFor } from './schemaGuard';
 
 /** Horários de funcionamento, bloqueios e configurações gerais do negócio. */
 export class ScheduleService {
@@ -19,26 +24,48 @@ export class ScheduleService {
   ) {}
 
   async getSchedule() {
-    const [businessHours, blockedDates, blockedTimes] = await Promise.all([
+    const [businessHours, blockedDates, blockedTimes, professionalTimeOff] = await Promise.all([
       this.db.businessHours.list(),
       this.db.blockedDates.list(),
       this.db.blockedTimes.list(),
+      this.db.professionalTimeOff.list(),
     ]);
-    return { businessHours, blockedDates, blockedTimes };
+    return { businessHours, blockedDates, blockedTimes, professionalTimeOff };
+  }
+
+  async addProfessionalTimeOff(input: z.output<typeof professionalTimeOffSchema>) {
+    if (!(await this.db.professionals.findById(input.professionalId))) throw new NotFoundError('Profissional não encontrado.');
+    return this.db.professionalTimeOff.create(input);
+  }
+
+  async removeProfessionalTimeOff(id: string) {
+    await this.db.professionalTimeOff.delete(id);
   }
 
   /** Contexto completo para o motor de disponibilidade. */
   async getAvailabilityContext(from: string, to: string): Promise<AvailabilityContext> {
-    const [businessHours, blockedDates, blockedTimes, appointments, settings, professionals] = await Promise.all([
+    const [businessHours, blockedDates, blockedTimes, appointments, settings, professionals, timeOff, services] = await Promise.all([
       this.db.businessHours.list(),
       this.db.blockedDates.list(),
       this.db.blockedTimes.list(),
       this.db.appointments.listOccupying(from, to),
       this.db.settings.get(),
       this.db.professionals.list({ active: true }),
+      this.db.professionalTimeOff.list(),
+      this.db.services.list(),
     ]);
+    const relevantOff = timeOff.filter((t) => t.dateTo >= from && t.dateFrom <= to);
+    const serviceLimits = Object.fromEntries(services.filter((s) => s.maxConcurrent).map((s) => [s.id, s.maxConcurrent!]));
     return {
-      professionals: professionals.map(({ id, serviceIds }) => ({ id, serviceIds })),
+      // Só profissionais ATIVOS; desativar tira o profissional dos horários futuros (histórico fica).
+      professionals: professionals.map(({ id, serviceIds, capacity, workHours }) => ({
+        id,
+        serviceIds,
+        capacity,
+        workHours,
+        timeOff: relevantOff.filter((t) => t.professionalId === id),
+      })),
+      serviceLimits,
       businessHours,
       blockedDates,
       blockedTimes,
@@ -88,7 +115,14 @@ export class ScheduleService {
     return this.db.settings.get();
   }
 
-  updateSettings(input: z.output<typeof settingsSchema>) {
+  async updateSettings(input: z.output<typeof settingsSchema>) {
+    await assertSchemaFor(
+      this.db,
+      9,
+      input.crmInactiveDays !== DEFAULT_CRM_INACTIVE_DAYS || input.crmReactivationMessage !== DEFAULT_CRM_REACTIVATION_MESSAGE,
+      'A configuração do CRM',
+    );
+    await assertSchemaFor(this.db, 10, input.slotCapacityLimit != null || input.pickupMessage !== DEFAULT_PICKUP_MESSAGE, 'O limite geral por horário e a mensagem de retirada');
     return this.db.settings.update(input);
   }
 }

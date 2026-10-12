@@ -9,6 +9,7 @@ import { authController } from '../controllers/authController';
 import { adminController } from '../controllers/adminController';
 import { teamController } from '../controllers/teamController';
 import { accountController } from '../controllers/accountController';
+import { planController } from '../controllers/planController';
 import { MemoryPrivateStorage } from '../integrations/storage/PrivateStorage';
 
 /** Dados pessoais: o navegador/proxy não guarda cópia. */
@@ -24,8 +25,10 @@ export function buildRoutes(c: Container): Router {
   const admin = adminController(c);
   const team = teamController(c);
   const acc = accountController(c);
+  const plan = planController(c);
   const isTest = c.env.NODE_ENV === 'test';
   const ready = requireFeatures(c.db); // recursos que dependem da migração 0009
+  const ready10 = requireFeatures(c.db, 10); // novos status, agenda por profissional e planos (0010)
 
   router.get('/health', (_req, res) => {
     res.json({ ok: true, mode: c.env.APP_MODE });
@@ -64,6 +67,8 @@ export function buildRoutes(c: Container): Router {
   a.get('/system-status', can('settings.view'), h(admin.systemStatus));
 
   a.get('/appointments', can('agenda.view'), h(admin.listAppointments));
+  a.post('/appointments', can('agenda.create'), h(admin.createAppointment));
+  a.post('/appointments/:id/notify-pickup', ready, can('agenda.confirm', 'customers.view'), h(admin.notifyPickup));
   a.get('/appointments/:id', can('agenda.view'), h(admin.getAppointment));
   a.patch('/appointments/:id', can('agenda.edit'), h(admin.updateAppointment));
   a.patch('/appointments/:id/status', can('agenda.confirm'), h(admin.updateAppointmentStatus));
@@ -114,6 +119,8 @@ export function buildRoutes(c: Container): Router {
   a.post('/professionals/reorder', can('professionals.edit'), h(admin.reorder('professionals')));
   a.patch('/professionals/:id', can('professionals.edit'), h(admin.updateProfessional));
   a.delete('/professionals/:id', can('professionals.delete'), h(admin.deleteProfessional));
+  a.post('/professional-time-off', ready10, can('professionals.edit'), h(admin.addProfessionalTimeOff));
+  a.delete('/professional-time-off/:id', ready10, can('professionals.edit'), h(admin.removeProfessionalTimeOff));
 
   a.post('/media/upload-ticket', canAny('inspirations.create', 'inspirations.edit'), h(admin.uploadTicket));
   a.get('/inspirations', can('inspirations.view'), h(admin.listInspirations));
@@ -132,6 +139,20 @@ export function buildRoutes(c: Container): Router {
   a.delete('/blocked-times/:id', can('settings.edit'), h(admin.removeBlockedTime));
   a.get('/settings', canAny('settings.view', 'agenda.view'), h(admin.getSettings));
   a.put('/settings', can('settings.edit'), h(admin.updateSettings));
+
+  // Planos e mensalidades (sem pagamento online; pagamento registrado por quem tem "Planos → Confirmar")
+  a.get('/plans', ready10, can('plans.view'), h(plan.list));
+  a.post('/plans', ready10, can('plans.create'), h(plan.create));
+  a.patch('/plans/:id', ready10, can('plans.edit'), h(plan.update));
+  a.delete('/plans/:id', ready10, can('plans.delete'), h(plan.remove));
+  a.get('/customer-plans', ready10, can('plans.view'), h(plan.subscriptions));
+  a.post('/customer-plans', ready10, can('plans.create'), h(plan.subscribe));
+  a.get('/customer-plans/:id', ready10, can('plans.view'), h(plan.subscription));
+  a.patch('/customer-plans/:id', ready10, can('plans.edit'), h(plan.updateSubscription));
+  a.post('/customer-plans/:id/payments', ready10, can('plans.confirm'), h(plan.recordPayment));
+  a.get('/appointments/:id/plans', ready10, can('plans.view', 'agenda.view'), h(plan.forAppointment));
+  a.post('/appointments/:id/plan-usages', ready10, can('plans.edit', 'agenda.view'), h(plan.use));
+  a.delete('/plan-usages/:id', ready10, can('plans.edit'), h(plan.revertUsage));
 
   // Equipe e permissões
   a.get('/team', can('team.view'), h(team.list));
@@ -164,6 +185,7 @@ export function buildRoutes(c: Container): Router {
   me.post('/pets/:id/references', linkedCustomer, h(acc.addReference));
   me.delete('/references/:id', linkedCustomer, h(acc.removeReference));
   me.get('/appointments', linkedCustomer, h(acc.appointments));
+  me.get('/plans', ready10, linkedCustomer, h(acc.plans));
   router.use('/account/me', me);
 
   // ---------------- Arquivos PRIVADOS do modo DEMO (em produção: bucket privado do Supabase) ----------------

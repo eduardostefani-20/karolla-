@@ -14,13 +14,19 @@ import type {
   Pet,
   PetReference,
   Professional,
+  Plan,
+  CustomerPlan,
+  PlanPayment,
+  PlanUsage,
+  PlanEvent,
+  ProfessionalTimeOff,
   Story,
   PetSize,
   Service,
   ServicePrice,
   Species,
 } from '@karolla/shared';
-import { DEFAULT_CRM_INACTIVE_DAYS, DEFAULT_CRM_REACTIVATION_MESSAGE, DEFAULT_PROFESSIONAL_COLOR } from '@karolla/shared';
+import { DEFAULT_CRM_INACTIVE_DAYS, DEFAULT_CRM_REACTIVATION_MESSAGE, DEFAULT_PICKUP_MESSAGE, DEFAULT_PROFESSIONAL_COLOR } from '@karolla/shared';
 
 /**
  * Conversão entre o modelo de domínio (camelCase) e as colunas do PostgreSQL (snake_case).
@@ -99,9 +105,10 @@ export const sizeMapping: TableMapping<PetSize> = {
 export const serviceMapping: TableMapping<Service> = {
   table: 'services',
   order: sortOrder,
+  optionalColumns: ['max_concurrent'],
   toRow: (e) =>
     pick(e as Row, {
-      id: 'id', name: 'name', description: 'description', category: 'category', durationMinutes: 'duration_minutes', active: 'active', sortOrder: 'sort_order', speciesIds: 'species_ids',
+      id: 'id', name: 'name', description: 'description', category: 'category', durationMinutes: 'duration_minutes', active: 'active', sortOrder: 'sort_order', speciesIds: 'species_ids', maxConcurrent: 'max_concurrent',
     }),
   fromRow: (r) => ({
     id: str(r.id),
@@ -112,6 +119,7 @@ export const serviceMapping: TableMapping<Service> = {
     active: Boolean(r.active),
     sortOrder: Number(r.sort_order),
     speciesIds: (r.species_ids as string[] | null) ?? [],
+    maxConcurrent: r.max_concurrent == null ? null : Number(r.max_concurrent),
   }),
 };
 
@@ -285,11 +293,13 @@ export function settingsToRow(s: Partial<BusinessSettings>): Row {
     tiktokPixelId: 'tiktok_pixel_id',
     crmInactiveDays: 'crm_inactive_days',
     crmReactivationMessage: 'crm_reactivation_message',
+    pickupMessage: 'pickup_message',
+    slotCapacityLimit: 'slot_capacity_limit',
   });
 }
 
 /** Colunas de configurações criadas pela migração 0009. */
-export const SETTINGS_OPTIONAL_COLUMNS = ['crm_inactive_days', 'crm_reactivation_message'];
+export const SETTINGS_OPTIONAL_COLUMNS = ['crm_inactive_days', 'crm_reactivation_message', 'pickup_message', 'slot_capacity_limit'];
 
 export function settingsFromRow(r: Row): BusinessSettings {
   return {
@@ -312,6 +322,8 @@ export function settingsFromRow(r: Row): BusinessSettings {
     tiktokPixelId: str(r.tiktok_pixel_id),
     crmInactiveDays: r.crm_inactive_days == null ? DEFAULT_CRM_INACTIVE_DAYS : Number(r.crm_inactive_days),
     crmReactivationMessage: str(r.crm_reactivation_message) || DEFAULT_CRM_REACTIVATION_MESSAGE,
+    pickupMessage: str(r.pickup_message) || DEFAULT_PICKUP_MESSAGE,
+    slotCapacityLimit: r.slot_capacity_limit == null ? null : Number(r.slot_capacity_limit),
   };
 }
 
@@ -375,6 +387,8 @@ export function appointmentFromRow(r: Row): Appointment {
     professionalId: (r.professional_id as string | null) ?? null,
     inspiration: (r.inspiration_snapshot as Appointment['inspiration']) ?? null,
     attribution: (r.attribution as Appointment['attribution']) ?? null,
+    origin: (r.origin as Appointment['origin']) ?? null,
+    createdByName: str(r.created_by_name),
     services,
     addons,
     createdAt: str(r.created_at),
@@ -393,7 +407,9 @@ export function addonItemsToJson(items: Appointment['addons']) {
 export const professionalMapping: TableMapping<Professional> = {
   table: 'professionals',
   order: sortOrder,
-  toRow: (e) => pick(e as Row, { id: 'id', name: 'name', serviceIds: 'service_ids', color: 'color', active: 'active', sortOrder: 'sort_order' }),
+  optionalColumns: ['capacity', 'work_hours'],
+  toRow: (e) =>
+    pick(e as Row, { id: 'id', name: 'name', serviceIds: 'service_ids', color: 'color', active: 'active', sortOrder: 'sort_order', capacity: 'capacity', workHours: 'work_hours' }),
   fromRow: (r) => ({
     id: str(r.id),
     name: str(r.name),
@@ -401,6 +417,26 @@ export const professionalMapping: TableMapping<Professional> = {
     color: str(r.color) || DEFAULT_PROFESSIONAL_COLOR,
     active: Boolean(r.active),
     sortOrder: Number(r.sort_order),
+    capacity: r.capacity == null ? 1 : Number(r.capacity),
+    workHours: Array.isArray(r.work_hours) ? (r.work_hours as Professional['workHours']) : [],
+  }),
+};
+
+export const professionalTimeOffMapping: TableMapping<ProfessionalTimeOff> = {
+  table: 'professional_time_off',
+  optionalTable: true,
+  order: [{ column: 'date_from', ascending: true }],
+  toRow: (e) =>
+    pick(e as Row, { id: 'id', professionalId: 'professional_id', dateFrom: 'date_from', dateTo: 'date_to', startTime: 'start_time', endTime: 'end_time', reason: 'reason' }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    professionalId: str(r.professional_id),
+    dateFrom: str(r.date_from),
+    dateTo: str(r.date_to),
+    startTime: hhmm(r.start_time),
+    endTime: hhmm(r.end_time),
+    reason: str(r.reason),
+    createdAt: str(r.created_at),
   }),
 };
 
@@ -487,5 +523,110 @@ export const contactLogMapping: TableMapping<ContactLog> = {
     actorName: str(r.actor_name),
     createdAt: str(r.created_at),
     updatedAt: str(r.updated_at),
+  }),
+};
+
+const ts = (r: Row) => ({ createdAt: str(r.created_at) });
+
+export const planMapping: TableMapping<Plan> = {
+  table: 'plans',
+  optionalTable: true,
+  order: [{ column: 'created_at', ascending: true }],
+  toRow: (e) =>
+    pick(e as Row, {
+      id: 'id', name: 'name', description: 'description', priceCents: 'price_cents', periodicity: 'periodicity', serviceIds: 'service_ids', usesPerPeriod: 'uses_per_period', rules: 'rules', active: 'active',
+    }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    name: str(r.name),
+    description: str(r.description),
+    priceCents: Number(r.price_cents),
+    periodicity: r.periodicity as Plan['periodicity'],
+    serviceIds: (r.service_ids as string[] | null) ?? [],
+    usesPerPeriod: Number(r.uses_per_period),
+    rules: str(r.rules),
+    active: Boolean(r.active),
+    ...ts(r),
+    updatedAt: str(r.updated_at),
+  }),
+};
+
+export const customerPlanMapping: TableMapping<CustomerPlan> = {
+  table: 'customer_plans',
+  optionalTable: true,
+  order: [{ column: 'created_at', ascending: true }],
+  toRow: (e) =>
+    pick(e as Row, {
+      id: 'id', customerId: 'customer_id', planId: 'plan_id', petId: 'pet_id', startDate: 'start_date', nextDueDate: 'next_due_date', status: 'status', priceCents: 'price_cents', notes: 'notes',
+    }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    customerId: str(r.customer_id),
+    planId: str(r.plan_id),
+    petId: (r.pet_id as string | null) ?? null,
+    startDate: str(r.start_date),
+    nextDueDate: str(r.next_due_date),
+    status: r.status as CustomerPlan['status'],
+    priceCents: Number(r.price_cents),
+    notes: str(r.notes),
+    ...ts(r),
+    updatedAt: str(r.updated_at),
+  }),
+};
+
+export const planPaymentMapping: TableMapping<PlanPayment> = {
+  table: 'plan_payments',
+  optionalTable: true,
+  order: [{ column: 'created_at', ascending: true }],
+  toRow: (e) =>
+    pick(e as Row, {
+      id: 'id', customerPlanId: 'customer_plan_id', amountCents: 'amount_cents', paidAt: 'paid_at', method: 'method', periodFrom: 'period_from', periodTo: 'period_to', notes: 'notes', recordedByName: 'recorded_by_name',
+    }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    customerPlanId: str(r.customer_plan_id),
+    amountCents: Number(r.amount_cents),
+    paidAt: str(r.paid_at),
+    method: r.method as PlanPayment['method'],
+    periodFrom: str(r.period_from),
+    periodTo: str(r.period_to),
+    notes: str(r.notes),
+    recordedByName: str(r.recorded_by_name),
+    ...ts(r),
+  }),
+};
+
+export const planUsageMapping: TableMapping<PlanUsage> = {
+  table: 'plan_usages',
+  optionalTable: true,
+  order: [{ column: 'created_at', ascending: true }],
+  toRow: (e) =>
+    pick(e as Row, {
+      id: 'id', customerPlanId: 'customer_plan_id', appointmentId: 'appointment_id', serviceId: 'service_id', periodStart: 'period_start', usedAt: 'used_at', recordedByName: 'recorded_by_name',
+    }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    customerPlanId: str(r.customer_plan_id),
+    appointmentId: str(r.appointment_id),
+    serviceId: str(r.service_id),
+    periodStart: str(r.period_start),
+    usedAt: str(r.used_at),
+    recordedByName: str(r.recorded_by_name),
+    ...ts(r),
+  }),
+};
+
+export const planEventMapping: TableMapping<PlanEvent> = {
+  table: 'plan_events',
+  optionalTable: true,
+  order: [{ column: 'created_at', ascending: true }],
+  toRow: (e) => pick(e as Row, { id: 'id', customerPlanId: 'customer_plan_id', kind: 'kind', detail: 'detail', actorName: 'actor_name' }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    customerPlanId: str(r.customer_plan_id),
+    kind: r.kind as PlanEvent['kind'],
+    detail: str(r.detail),
+    actorName: str(r.actor_name),
+    ...ts(r),
   }),
 };

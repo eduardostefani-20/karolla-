@@ -143,7 +143,15 @@ class MemoryAppointments implements AppointmentRepository {
   async listOccupying(from: string, to: string) {
     return [...this.rows.values()]
       .filter((a) => a.date >= from && a.date <= to && isBlockingStatus(a.status))
-      .map(({ id, date, time, durationMinutes, status, professionalId }) => ({ id, date, time, durationMinutes, status, professionalId }));
+      .map(({ id, date, time, durationMinutes, status, professionalId, services }) => ({
+        id,
+        date,
+        time,
+        durationMinutes,
+        status,
+        professionalId,
+        serviceIds: services.map((s) => s.serviceId),
+      }));
   }
 
   /** Verificação síncrona: em Node não há interrupção entre checagem e escrita (atômico). */
@@ -154,7 +162,7 @@ class MemoryAppointments implements AppointmentRepository {
     if (concurrent >= guard.capacity) throw new SlotConflictError();
     if (guard.professionalId) {
       const own = all.filter((a) => a.professionalId === guard.professionalId);
-      if (maxConcurrentInInterval(own, date, start, start + duration, excludeId) > 0) throw new SlotConflictError();
+      if (maxConcurrentInInterval(own, date, start, start + duration, excludeId) >= (guard.professionalCapacity ?? 1)) throw new SlotConflictError();
     }
   }
 
@@ -195,6 +203,19 @@ class MemoryAppointments implements AppointmentRepository {
   }
 }
 
+/** Um uso por agendamento + serviço (igual ao índice único do banco). */
+class MemoryPlanUsages extends MemoryTable<import('@karolla/shared').PlanUsage> {
+  constructor() {
+    super(true);
+  }
+  override async create(data: NewEntity<import('@karolla/shared').PlanUsage>) {
+    if (this.listSync().some((u) => u.appointmentId === data.appointmentId && u.serviceId === data.serviceId)) {
+      throw new ConflictError('DUPLICATED', 'Este serviço deste atendimento já foi descontado de um plano.');
+    }
+    return super.create(data);
+  }
+}
+
 class MemoryStories extends MemoryTable<Story> {
   constructor() {
     super(true);
@@ -225,6 +246,12 @@ export class MemoryDatabase implements DatabaseService {
   blockedTimes = new MemoryTable<import('@karolla/shared').BlockedTime>();
   integrationLogs = new MemoryTable<import('@karolla/shared').IntegrationLog>(true);
   professionals = new MemoryTable<import('@karolla/shared').Professional>();
+  professionalTimeOff = new MemoryTable<import('@karolla/shared').ProfessionalTimeOff>(true);
+  plans = new MemoryTable<import('@karolla/shared').Plan>(true);
+  customerPlans = new MemoryTable<import('@karolla/shared').CustomerPlan>(true);
+  planPayments = new MemoryTable<import('@karolla/shared').PlanPayment>(true);
+  planUsages = new MemoryPlanUsages();
+  planEvents = new MemoryTable<import('@karolla/shared').PlanEvent>(true);
   inspirations = new MemoryTable<import('@karolla/shared').Inspiration>(true);
   stories = new MemoryStories();
 
@@ -292,8 +319,10 @@ export class MemoryDatabase implements DatabaseService {
     this.adminRows.set(record.userId, { customPermissions: null, professionalId: null, lastLoginAt: null, createdAt: nowIso(), ...record });
   }
 
-  async featuresReady() {
-    return true;
+  /** Modo demo: tudo disponível (o teste de compatibilidade pode simular banco antigo). */
+  schemaLevel = 10;
+  async featuresReady(level: 9 | 10 = 9) {
+    return this.schemaLevel >= level;
   }
 
   async healthCheck() {

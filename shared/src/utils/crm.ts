@@ -2,6 +2,7 @@ import type { CrmSegment } from '../types/api';
 import { addDays } from './date';
 
 export const DEFAULT_CRM_INACTIVE_DAYS = 40;
+export const DEFAULT_PICKUP_MESSAGE = 'Oi, {tutor}! O(a) {pet} já está pronto(a) e cheiroso(a) esperando por você na Karolla Pet 🐾';
 export const DEFAULT_CRM_REACTIVATION_MESSAGE =
   'Oi, {tutor}! Aqui é da Karolla Pet 🐾 Faz {dias} dias desde o último banho do(a) {pet}. Que tal agendar um horário? É só responder esta mensagem ou agendar pelo site.';
 

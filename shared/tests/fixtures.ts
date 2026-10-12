@@ -7,9 +7,9 @@ export const sizes: PetSize[] = [
 ];
 
 export const services: Service[] = [
-  { id: 'banho', name: 'Banho', description: '', category: 'Banho', durationMinutes: 60, active: true, sortOrder: 1, speciesIds: [] },
-  { id: 'tosa', name: 'Tosa', description: '', category: 'Tosa', durationMinutes: 90, active: true, sortOrder: 2, speciesIds: ['dog'] },
-  { id: 'antigo', name: 'Antigo', description: '', category: 'Banho', durationMinutes: 30, active: false, sortOrder: 3, speciesIds: [] },
+  { id: 'banho', name: 'Banho', description: '', category: 'Banho', durationMinutes: 60, active: true, sortOrder: 1, speciesIds: [], maxConcurrent: null },
+  { id: 'tosa', name: 'Tosa', description: '', category: 'Tosa', durationMinutes: 90, active: true, sortOrder: 2, speciesIds: ['dog'], maxConcurrent: null },
+  { id: 'antigo', name: 'Antigo', description: '', category: 'Banho', durationMinutes: 30, active: false, sortOrder: 3, speciesIds: [], maxConcurrent: null },
 ];
 
 export const servicePrices: ServicePrice[] = [

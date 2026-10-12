@@ -145,6 +145,8 @@ export class BookingService {
       professionalId,
       inspiration,
       attribution: request.attribution,
+      origin: 'site' as const,
+      createdByName: '',
       services: price.lines
         .filter((l) => l.kind === 'service')
         .map((l) => ({ serviceId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
@@ -156,7 +158,11 @@ export class BookingService {
     for (let attempt = 0; ; attempt++) {
       const professionalId = slot.professionalId ?? null;
       try {
-        appointment = await this.db.appointments.create(newAppointment(professionalId), { capacity: effectiveCapacity(ctx), professionalId });
+        appointment = await this.db.appointments.create(newAppointment(professionalId), {
+          capacity: effectiveCapacity(ctx, { date: request.date, time: request.time, durationMinutes: price.totalDurationMinutes }),
+          professionalId,
+          professionalCapacity: ctx.professionals?.find((p) => p.id === professionalId)?.capacity,
+        });
         break;
       } catch (err) {
         if (!(err instanceof SlotConflictError) || !professionalId || request.professionalId || attempt >= 5) throw err;

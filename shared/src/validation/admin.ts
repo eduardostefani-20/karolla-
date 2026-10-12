@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { ADMIN_ROLES, APPOINTMENT_STATUSES, CONTACT_KINDS, CONTACT_STATUSES, FORM_FIELD_KEYS } from '../types/domain';
-import { DEFAULT_CRM_INACTIVE_DAYS, DEFAULT_CRM_REACTIVATION_MESSAGE } from '../utils/crm';
+import { ADMIN_ROLES, APPOINTMENT_ORIGINS, APPOINTMENT_STATUSES, PAYMENT_METHODS, PLAN_PERIODICITIES, CONTACT_KINDS, CONTACT_STATUSES, FORM_FIELD_KEYS } from '../types/domain';
+import { DEFAULT_CRM_INACTIVE_DAYS, DEFAULT_CRM_REACTIVATION_MESSAGE, DEFAULT_PICKUP_MESSAGE } from '../utils/crm';
 import { ASSIGNABLE_ROLES, sanitizeGrants } from '../auth/permissions';
 import { DEFAULT_PROFESSIONAL_COLOR } from '../utils/color';
 import {
@@ -103,6 +103,8 @@ export const serviceSchema = z.object({
   active: z.boolean().default(true),
   sortOrder: sortOrderSchema.default(0),
   speciesIds: z.array(idSchema).default([]),
+  /** Limite opcional de atendimentos simultâneos deste serviço. null = sem limite. */
+  maxConcurrent: z.number().int().min(1, 'Use pelo menos 1.').max(50).nullable().default(null),
 });
 export type ServiceInput = z.input<typeof serviceSchema>;
 
@@ -209,6 +211,8 @@ export const settingsSchema = z.object({
   tiktokPixelId: trackingId(/^[A-Z0-9]{10,40}$/, 'O ID do Pixel do TikTok tem letras maiúsculas e números (ex.: C4ABCDEF123GHIJ456KL).', (v) => v.toUpperCase()),
   crmInactiveDays: z.number({ invalid_type_error: 'Informe os dias.' }).int().min(7, 'Use pelo menos 7 dias.').max(365, 'Use no máximo 365 dias.').default(DEFAULT_CRM_INACTIVE_DAYS),
   crmReactivationMessage: text(600).pipe(z.string().min(10, 'Escreva a mensagem.')).default(DEFAULT_CRM_REACTIVATION_MESSAGE),
+  pickupMessage: text(600).pipe(z.string().min(10, 'Escreva a mensagem.')).default(DEFAULT_PICKUP_MESSAGE),
+  slotCapacityLimit: z.number().int().min(1).max(50).nullable().default(null),
 });
 export type SettingsInput = z.input<typeof settingsSchema>;
 
@@ -270,6 +274,40 @@ export const petUpdateSchema = z
   })
   .partial();
 
+/** Agendamento criado pela equipe (WhatsApp, telefone, presencial...). Mesma agenda do site. */
+export const manualAppointmentSchema = z
+  .object({
+    customerId: idSchema.nullable().default(null),
+    newCustomer: z
+      .object({ name: requiredText('o nome do tutor', 120), whatsapp: phoneSchema, email: z.union([z.literal(''), emailSchema]).default('') })
+      .nullable()
+      .default(null),
+    petId: idSchema.nullable().default(null),
+    newPet: z
+      .object({
+        name: requiredText('o nome do pet', 60),
+        speciesId: idSchema,
+        breedId: idSchema.nullable().default(null),
+        breedName: requiredText('a raça', 80),
+        sizeId: idSchema,
+      })
+      .nullable()
+      .default(null),
+    serviceIds: z.array(idSchema).min(1, 'Escolha pelo menos um serviço.').max(5),
+    addonIds: z.array(idSchema).max(20).default([]),
+    date: dateSchema,
+    time: timeSchema,
+    professionalId: idSchema.nullable().default(null),
+    status: z.enum(['pending', 'confirmed', 'waiting']).default('confirmed'),
+    origin: z.enum(APPOINTMENT_ORIGINS).default('whatsapp'),
+    notes: optionalText(1000),
+  })
+  .superRefine((v, ctx) => {
+    if (!v.customerId && !v.newCustomer) ctx.addIssue({ code: 'custom', path: ['customerId'], message: 'Escolha ou cadastre o tutor.' });
+    if (!v.petId && !v.newPet) ctx.addIssue({ code: 'custom', path: ['petId'], message: 'Escolha ou cadastre o pet.' });
+  });
+export type ManualAppointmentInput = z.input<typeof manualAppointmentSchema>;
+
 export const crmQuerySchema = z.object({
   segment: z.enum(['all', 'new', 'recurring', 'inactive']).default('all'),
   search: z.string().trim().max(80).optional(),
@@ -302,8 +340,44 @@ export const professionalSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida.').default(DEFAULT_PROFESSIONAL_COLOR),
   active: z.boolean().default(true),
   sortOrder: sortOrderSchema.default(0),
+  capacity: z.number().int().min(1, 'Use pelo menos 1.').max(10, 'Use no máximo 10.').default(1),
+  /** Vazio = segue o horário de funcionamento. Dias ausentes = folga. */
+  workHours: z
+    .array(
+      z
+        .object({
+          weekday: z.number().int().min(0).max(6),
+          startTime: timeSchema,
+          endTime: timeSchema,
+          breakStart: timeSchema.nullable().default(null),
+          breakEnd: timeSchema.nullable().default(null),
+        })
+        .refine((d) => timeToMinutes(d.endTime) > timeToMinutes(d.startTime), { message: 'O fim deve ser depois do início.', path: ['endTime'] })
+        .refine((d) => (!d.breakStart && !d.breakEnd) || (d.breakStart && d.breakEnd && timeToMinutes(d.breakEnd) > timeToMinutes(d.breakStart)), {
+          message: 'Intervalo inválido.',
+          path: ['breakEnd'],
+        }),
+    )
+    .max(7)
+    .refine((days) => new Set(days.map((d) => d.weekday)).size === days.length, 'Cada dia da semana só pode aparecer uma vez.')
+    .default([]),
 });
 export type ProfessionalInput = z.input<typeof professionalSchema>;
+
+export const professionalTimeOffSchema = z
+  .object({
+    professionalId: idSchema,
+    dateFrom: dateSchema,
+    dateTo: dateSchema,
+    startTime: timeSchema.nullable().default(null),
+    endTime: timeSchema.nullable().default(null),
+    reason: optionalText(200),
+  })
+  .refine((v) => v.dateTo >= v.dateFrom, { message: 'A data final deve ser igual ou depois da inicial.', path: ['dateTo'] })
+  .refine((v) => (!v.startTime && !v.endTime) || (v.startTime && v.endTime && timeToMinutes(v.endTime) > timeToMinutes(v.startTime)), {
+    message: 'Informe início e fim do período (ou deixe os dois em branco para o dia inteiro).',
+    path: ['endTime'],
+  });
 
 /** URL de mídia: https (armazenamento) ou caminho local do próprio site/API. */
 export const mediaUrlSchema = z
@@ -352,3 +426,46 @@ export const uploadRequestSchema = z
     if (v.size > max) ctx.addIssue({ code: 'custom', path: ['size'], message: `Arquivo muito grande (máximo ${max / 1024 / 1024} MB).` });
   });
 export type UploadRequest = z.infer<typeof uploadRequestSchema>;
+
+// ---------------------------------------------------------------- Planos (sem pagamento online)
+
+export const planSchema = z.object({
+  name: requiredText('o nome do plano', 80),
+  description: optionalText(400),
+  priceCents: centsSchema,
+  periodicity: z.enum(PLAN_PERIODICITIES).default('monthly'),
+  serviceIds: z.array(idSchema).min(1, 'Escolha pelo menos um serviço coberto.').max(30),
+  usesPerPeriod: z.number({ invalid_type_error: 'Informe a quantidade.' }).int().min(1, 'Use pelo menos 1.').max(100),
+  rules: optionalText(1000),
+  active: z.boolean().default(true),
+});
+
+export const subscribeSchema = z.object({
+  customerId: idSchema,
+  planId: idSchema,
+  petId: idSchema.nullable().default(null),
+  startDate: dateSchema,
+  /** Valor combinado (padrão: preço do plano). */
+  priceCents: centsSchema.nullable().default(null),
+  notes: optionalText(500),
+});
+
+export const subscriptionUpdateSchema = z
+  .object({
+    status: z.enum(['active', 'paused', 'cancelled']),
+    nextDueDate: dateSchema,
+    notes: optionalText(500),
+  })
+  .partial();
+
+export const paymentSchema = z.object({
+  amountCents: centsSchema,
+  paidAt: dateSchema,
+  method: z.enum(PAYMENT_METHODS).default('pix'),
+  notes: optionalText(300),
+});
+
+export const planUsageSchema = z.object({
+  customerPlanId: idSchema,
+  serviceId: idSchema,
+});

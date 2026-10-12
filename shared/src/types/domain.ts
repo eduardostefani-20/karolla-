@@ -11,11 +11,15 @@ import { STAFF_ROLES, type PermissionSet, type StaffRole } from '../auth/permiss
 
 export type ID = string;
 
+/** Fluxo do atendimento (na ordem em que normalmente acontece). */
 export const APPOINTMENT_STATUSES = [
   'pending',
   'confirmed',
+  'waiting',
   'in_progress',
   'completed',
+  'ready',
+  'delivered',
   'cancelled',
   'no_show',
 ] as const;
@@ -23,6 +27,24 @@ export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 
 /** Status que NÃO ocupam a agenda (liberam o horário). */
 export const NON_BLOCKING_STATUSES: readonly AppointmentStatus[] = ['cancelled', 'no_show'];
+
+/** Atendimento realizado (conta como visita no CRM e no histórico). */
+export const DONE_STATUSES: readonly AppointmentStatus[] = ['completed', 'ready', 'delivered'];
+export const isDoneStatus = (s: AppointmentStatus) => DONE_STATUSES.includes(s);
+
+/** Status criados pela migração 0010 (só podem ser usados depois dela). */
+export const STATUSES_SINCE_0010: readonly AppointmentStatus[] = ['waiting', 'ready', 'delivered'];
+
+/** Por onde o agendamento chegou. */
+export const APPOINTMENT_ORIGINS = ['site', 'whatsapp', 'phone', 'walk_in', 'other'] as const;
+export type AppointmentOrigin = (typeof APPOINTMENT_ORIGINS)[number];
+export const APPOINTMENT_ORIGIN_LABELS: Record<AppointmentOrigin, string> = {
+  site: 'Site',
+  whatsapp: 'WhatsApp',
+  phone: 'Telefone',
+  walk_in: 'Presencial',
+  other: 'Outro',
+};
 
 /** Perfis da equipe — veja shared/src/auth/permissions.ts. */
 export const ADMIN_ROLES = STAFF_ROLES;
@@ -67,6 +89,8 @@ export interface Service {
   sortOrder: number;
   /** Espécies atendidas. Lista vazia = todas as espécies. */
   speciesIds: ID[];
+  /** Limite OPCIONAL de atendimentos simultâneos deste serviço (ex.: 1 mesa de tosa). null = sem limite. */
+  maxConcurrent: number | null;
 }
 
 export interface ServicePrice {
@@ -206,6 +230,33 @@ export interface Professional {
   color: string;
   active: boolean;
   sortOrder: number;
+  /** Quantos pets atende ao mesmo tempo (padrão 1). */
+  capacity: number;
+  /** Horário de trabalho por dia da semana. Lista vazia = segue o horário de funcionamento. */
+  workHours: ProfessionalWorkHours[];
+}
+
+/** Dia de trabalho do profissional (dias sem registro = folga, quando a lista não está vazia). */
+export interface ProfessionalWorkHours {
+  /** 0 = domingo ... 6 = sábado */
+  weekday: number;
+  startTime: string;
+  endTime: string;
+  breakStart: string | null;
+  breakEnd: string | null;
+}
+
+/** Folga, férias ou indisponibilidade do profissional (dia inteiro ou só um período). */
+export interface ProfessionalTimeOff {
+  id: ID;
+  professionalId: ID;
+  dateFrom: string;
+  dateTo: string;
+  /** null = o dia inteiro. */
+  startTime: string | null;
+  endTime: string | null;
+  reason: string;
+  createdAt: string;
 }
 
 /** Foto do catálogo de inspirações de tosa (estilo Instagram). */
@@ -284,6 +335,10 @@ export interface Appointment {
   /** Observações escritas pelo tutor no formulário. */
   customerNotes: string;
   source: AppointmentSource;
+  /** Canal de origem (agendamentos do painel: WhatsApp, telefone, presencial...). null = antigo. */
+  origin: AppointmentOrigin | null;
+  /** Quem da equipe criou pelo painel ('' = pelo site). */
+  createdByName: string;
   /** Profissional responsável (null = sem profissional definido). */
   professionalId: ID | null;
   /** Inspiração de tosa escolhida pelo cliente (null = nenhuma). */
@@ -378,6 +433,10 @@ export interface BusinessSettings {
   crmInactiveDays: number;
   /** CRM: mensagem de reativação. Variáveis: {tutor}, {pet}, {dias}. */
   crmReactivationMessage: string;
+  /** Aviso "pronto para retirada". Variáveis: {tutor}, {pet}. */
+  pickupMessage: string;
+  /** Limite geral OPCIONAL de pets por horário, mesmo com vários profissionais. null = sem limite extra. */
+  slotCapacityLimit: number | null;
 }
 
 export const FORM_FIELD_KEYS = [
@@ -446,5 +505,111 @@ export interface AuditLog {
   entity: string;
   entityId: string | null;
   status: number;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------- Planos e mensalidades
+
+export const PLAN_PERIODICITIES = ['monthly', 'quarterly', 'semiannual', 'yearly'] as const;
+export type PlanPeriodicity = (typeof PLAN_PERIODICITIES)[number];
+export const PLAN_PERIODICITY_LABELS: Record<PlanPeriodicity, string> = {
+  monthly: 'Mensal',
+  quarterly: 'Trimestral',
+  semiannual: 'Semestral',
+  yearly: 'Anual',
+};
+export const PLAN_PERIOD_MONTHS: Record<PlanPeriodicity, number> = { monthly: 1, quarterly: 3, semiannual: 6, yearly: 12 };
+
+/** Plano oferecido (ex.: "4 banhos por mês"). Sem pagamento online: a equipe registra os pagamentos. */
+export interface Plan {
+  id: ID;
+  name: string;
+  description: string;
+  priceCents: number;
+  periodicity: PlanPeriodicity;
+  /** Serviços cobertos pelo plano. */
+  serviceIds: ID[];
+  /** Usos incluídos por período (somando os serviços cobertos). */
+  usesPerPeriod: number;
+  /** Regras e condições (texto livre). */
+  rules: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Status gravado. "Vencido" é calculado: ativo com vencimento já passado e sem pagamento. */
+export const SUBSCRIPTION_STATUSES = ['pending', 'active', 'paused', 'cancelled'] as const;
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+export type EffectiveSubscriptionStatus = SubscriptionStatus | 'overdue';
+export const SUBSCRIPTION_STATUS_LABELS: Record<EffectiveSubscriptionStatus, string> = {
+  pending: 'Pendente',
+  active: 'Ativo',
+  overdue: 'Vencido',
+  paused: 'Pausado',
+  cancelled: 'Cancelado',
+};
+
+/** Plano contratado por um cliente (opcionalmente para um pet). */
+export interface CustomerPlan {
+  id: ID;
+  customerId: ID;
+  planId: ID;
+  petId: ID | null;
+  startDate: string;
+  /** Data do próximo pagamento. O período pago vai até aqui. */
+  nextDueDate: string;
+  status: SubscriptionStatus;
+  /** Valor combinado (copiado do plano na contratação). */
+  priceCents: number;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const PAYMENT_METHODS = ['pix', 'cash', 'debit', 'credit', 'transfer', 'other'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  pix: 'Pix',
+  cash: 'Dinheiro',
+  debit: 'Cartão de débito',
+  credit: 'Cartão de crédito',
+  transfer: 'Transferência',
+  other: 'Outro',
+};
+
+/** Pagamento registrado MANUALMENTE pela equipe (nunca automático). */
+export interface PlanPayment {
+  id: ID;
+  customerPlanId: ID;
+  amountCents: number;
+  paidAt: string;
+  method: PaymentMethod;
+  periodFrom: string;
+  periodTo: string;
+  notes: string;
+  recordedByName: string;
+  createdAt: string;
+}
+
+/** Uso do plano em um atendimento (um serviço por agendamento, sem repetir). */
+export interface PlanUsage {
+  id: ID;
+  customerPlanId: ID;
+  appointmentId: ID;
+  serviceId: ID;
+  /** Início do período ao qual o uso foi descontado. */
+  periodStart: string;
+  usedAt: string;
+  recordedByName: string;
+  createdAt: string;
+}
+
+export interface PlanEvent {
+  id: ID;
+  customerPlanId: ID;
+  kind: 'created' | 'status' | 'payment' | 'usage' | 'usage_reverted' | 'edited';
+  detail: string;
+  actorName: string;
   createdAt: string;
 }

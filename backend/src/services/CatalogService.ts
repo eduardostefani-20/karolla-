@@ -17,6 +17,7 @@ import {
   type Service,
 } from '@karolla/shared';
 import type { z } from 'zod';
+import { assertSchemaFor } from './schemaGuard';
 import type { DatabaseService, TableRepository } from '../repositories/types';
 import { ConflictError, NotFoundError } from '../utils/errors';
 import type { Clock } from '../utils/clock';
@@ -90,6 +91,7 @@ export class CatalogService {
         tiktokPixelId: settings.tiktokPixelId,
       },
       mode: this.mode,
+      features: { customerAccounts: await this.db.featuresReady(9) },
     };
   }
 
@@ -115,12 +117,14 @@ export class CatalogService {
 
   async createService(input: z.output<typeof serviceSchema>): Promise<Service> {
     await this.assertSpeciesExist(input.speciesIds);
+    await assertSchemaFor(this.db, 10, input.maxConcurrent != null, 'O limite de atendimentos simultâneos por serviço');
     const sortOrder = input.sortOrder || (await this.nextSortOrder(this.db.services));
     return this.db.services.create({ ...input, sortOrder });
   }
 
   async updateService(id: string, input: Partial<z.output<typeof serviceSchema>>) {
     if (input.speciesIds) await this.assertSpeciesExist(input.speciesIds);
+    await assertSchemaFor(this.db, 10, input.maxConcurrent != null, 'O limite de atendimentos simultâneos por serviço');
     return this.db.services.update(id, input);
   }
 
@@ -242,12 +246,14 @@ export class CatalogService {
 
   async createProfessional(input: z.output<typeof professionalSchema>) {
     await this.assertServicesExist(input.serviceIds);
+    await assertSchemaFor(this.db, 10, input.capacity !== 1 || input.workHours.length > 0, 'Horário próprio e capacidade do profissional');
     const sortOrder = input.sortOrder || (await this.nextSortOrder(this.db.professionals));
     return this.db.professionals.create({ ...input, sortOrder });
   }
 
   async updateProfessional(id: string, input: Partial<z.output<typeof professionalSchema>>) {
     if (input.serviceIds) await this.assertServicesExist(input.serviceIds);
+    await assertSchemaFor(this.db, 10, (input.capacity ?? 1) !== 1 || (input.workHours?.length ?? 0) > 0, 'Horário próprio e capacidade do profissional');
     return this.db.professionals.update(id, input);
   }
 

@@ -14,9 +14,17 @@ import {
   type Customer,
   type DashboardData,
   type Pet,
+  type AdminUser,
+  type AppointmentStatus,
+  type manualAppointmentSchema,
+  APPOINTMENT_STATUS_LABELS,
+  CUSTOMER_DEFAULTS,
+  PET_DEFAULTS,
+  STATUSES_SINCE_0010,
 } from '@karolla/shared';
+import type { z } from 'zod';
 import type { DatabaseService, AppointmentPatch } from '../repositories/types';
-import { ConflictError, NotFoundError } from '../utils/errors';
+import { AppError, ConflictError, NotFoundError, ValidationError } from '../utils/errors';
 import type { Clock } from '../utils/clock';
 import type { CatalogService } from './CatalogService';
 import type { ScheduleService } from './ScheduleService';
@@ -73,9 +81,120 @@ export class AppointmentService {
     return { ...detail, integrationLogs };
   }
 
+  /** Novos status só depois da migração 0010 (antes disso o banco recusaria). */
+  private async assertStatusAvailable(status: AppointmentStatus | undefined) {
+    if (status && STATUSES_SINCE_0010.includes(status) && !(await this.db.featuresReady(10))) {
+      throw new AppError(409, 'SETUP_PENDING', `O status "${APPOINTMENT_STATUS_LABELS[status]}" fica disponível depois da atualização do banco.`);
+    }
+  }
+
+  /**
+   * Agendamento criado pela equipe (WhatsApp, telefone, presencial). Usa a MESMA agenda do site:
+   * mesmas regras de funcionamento, capacidade e profissionais (pode ser para hoje/sem antecedência).
+   */
+  async createManual(input: z.output<typeof manualAppointmentSchema>, actor: AdminUser, ownProfessionalId?: string | null): Promise<AppointmentDetail> {
+    await this.assertStatusAvailable(input.status);
+    const professionalId = ownProfessionalId !== undefined ? ownProfessionalId : input.professionalId;
+
+    // 1. Tutor: existente ou novo (WhatsApp já cadastrado reaproveita o cadastro, sem sobrescrever).
+    let customer: Customer | null = null;
+    if (input.customerId) {
+      customer = await this.db.customers.findById(input.customerId);
+      if (!customer) throw new NotFoundError('Cliente não encontrado.');
+    } else if (input.newCustomer) {
+      customer =
+        (await this.db.customers.findByWhatsapp(input.newCustomer.whatsapp)) ??
+        (await this.db.customers.create({
+          ...CUSTOMER_DEFAULTS,
+          name: input.newCustomer.name,
+          whatsapp: input.newCustomer.whatsapp,
+          email: input.newCustomer.email,
+          address: { street: '', number: '', complement: '', neighborhood: '', city: '' },
+          notes: '',
+        }));
+    }
+    if (!customer) throw new ValidationError('Escolha ou cadastre o tutor.', { customerId: 'Escolha ou cadastre o tutor.' });
+
+    // 2. Pet: do próprio tutor, ou novo
+    let pet: Pet | null = null;
+    if (input.petId) {
+      pet = await this.db.pets.findById(input.petId);
+      if (!pet || pet.customerId !== customer.id) throw new NotFoundError('Pet não encontrado para este tutor.');
+    } else if (input.newPet) {
+      const [species, size] = await Promise.all([this.db.species.findById(input.newPet.speciesId), this.db.sizes.findById(input.newPet.sizeId)]);
+      if (!species) throw new ValidationError('Espécie inválida.', { 'newPet.speciesId': 'Escolha a espécie.' });
+      if (!size) throw new ValidationError('Porte inválido.', { 'newPet.sizeId': 'Escolha o porte.' });
+      let breedName = input.newPet.breedName;
+      if (input.newPet.breedId) {
+        const breed = await this.db.breeds.findById(input.newPet.breedId);
+        if (!breed || breed.speciesId !== species.id) throw new ValidationError('Raça inválida.', { 'newPet.breedId': 'Escolha uma raça da lista.' });
+        breedName = breed.name;
+      }
+      pet = await this.db.pets.create({
+        ...PET_DEFAULTS,
+        customerId: customer.id,
+        name: input.newPet.name,
+        speciesId: species.id,
+        breedId: input.newPet.breedId,
+        breedName,
+        sizeId: size.id,
+        weightKg: null,
+        ageMonths: null,
+        notes: '',
+      });
+    }
+    if (!pet) throw new ValidationError('Escolha ou cadastre o pet.', { petId: 'Escolha ou cadastre o pet.' });
+    if (professionalId && !(await this.db.professionals.findById(professionalId))) throw new NotFoundError('Profissional não encontrado.');
+
+    // 3. Preço calculado no servidor pela tabela atual
+    let price;
+    try {
+      price = calculateAppointmentPrice({ serviceIds: input.serviceIds, addonIds: input.addonIds, sizeId: pet.sizeId, speciesId: pet.speciesId }, await this.catalog.getPricingCatalog());
+    } catch (err) {
+      pricingErrorToAppError(err);
+    }
+
+    // 4. Disponibilidade (mesma regra do site, sem exigir antecedência)
+    const ctx = await this.schedule.getAvailabilityContext(input.date, input.date);
+    const slot = checkSlot(ctx, input.date, input.time, price.totalDurationMinutes, {
+      enforceBookingWindow: false,
+      serviceIds: input.serviceIds,
+      professionalId: professionalId ?? undefined,
+    });
+    if (!slot.ok) throw new ConflictError('SLOT_UNAVAILABLE', SLOT_REASON_MESSAGES[slot.reason]);
+    const assigned = professionalId ?? slot.professionalId ?? null;
+
+    const appointment = await this.db.appointments.create(
+      {
+        customerId: customer.id,
+        petId: pet.id,
+        sizeId: pet.sizeId,
+        date: input.date,
+        time: input.time,
+        durationMinutes: price.totalDurationMinutes,
+        totalCents: price.totalCents,
+        status: input.status,
+        notes: input.notes,
+        customerNotes: '',
+        source: 'admin',
+        origin: input.origin,
+        createdByName: actor.name || actor.email,
+        professionalId: assigned,
+        inspiration: null,
+        attribution: null,
+        services: price.lines.filter((l) => l.kind === 'service').map((l) => ({ serviceId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
+        addons: price.lines.filter((l) => l.kind === 'addon').map((l) => ({ addonId: l.refId, name: l.name, priceCents: l.priceCents, durationMinutes: l.durationMinutes })),
+      },
+      { capacity: effectiveCapacity(ctx, { date: input.date, time: input.time, durationMinutes: price.totalDurationMinutes }), professionalId: assigned, professionalCapacity: ctx.professionals?.find((p) => p.id === assigned)?.capacity },
+    );
+    await this.notifications.onAppointmentCreated(appointment, customer, pet).catch(() => undefined);
+    return this.get(appointment.id);
+  }
+
   async update(id: string, input: AppointmentUpdateInput & { recalculatePrice?: boolean }): Promise<AppointmentDetail> {
     const current = await this.db.appointments.findById(id);
     if (!current) throw new NotFoundError('Agendamento não encontrado.');
+    await this.assertStatusAvailable(input.status);
 
     const serviceIds = input.serviceIds ?? current.services.map((s) => s.serviceId);
     const addonIds = input.addonIds ?? current.addons.map((a) => a.addonId);
@@ -142,7 +261,12 @@ export class AppointmentService {
       if (!result.ok) throw new ConflictError('SLOT_UNAVAILABLE', SLOT_REASON_MESSAGES[result.reason]);
       // Agenda por profissional: agendamento sem profissional recebe um livre ao ser remarcado.
       if (!next.professionalId && result.professionalId) patch.professionalId = result.professionalId;
-      guard = { capacity: effectiveCapacity(ctx), professionalId: patch.professionalId ?? next.professionalId };
+      const guardPro = patch.professionalId ?? next.professionalId;
+      guard = {
+        capacity: effectiveCapacity(ctx, next),
+        professionalId: guardPro,
+        professionalCapacity: ctx.professionals?.find((p) => p.id === guardPro)?.capacity,
+      };
     }
 
     const updated = await this.db.appointments.update(id, patch, guard);
@@ -170,7 +294,7 @@ export class AppointmentService {
     const recentRaw = own ? allRecent.filter((a) => onlyProfessionalId !== null && a.professionalId === onlyProfessionalId) : allRecent;
     const upcomingRaw = recentRaw.filter((a) => a.date >= today);
     const todayRows = upcomingRaw.filter((a) => a.date === today && a.status !== 'cancelled');
-    const future = upcomingRaw.filter((a) => a.status === 'pending' || a.status === 'confirmed');
+    const future = upcomingRaw.filter((a) => a.status === 'pending' || a.status === 'confirmed' || a.status === 'waiting');
     const [todayAgenda, nextAppointments] = await Promise.all([
       this.attach(todayRows),
       this.attach(future.filter((a) => a.date > today).slice(0, 6)),

@@ -26,6 +26,8 @@ import {
   crmQuerySchema,
   idSchema,
   linkAccountSchema,
+  manualAppointmentSchema,
+  professionalTimeOffSchema,
   petPhotoSchema,
   petReferenceSchema,
   privateUploadSchema,
@@ -90,6 +92,7 @@ export function adminController(c: Container) {
         storage: { provider: c.storage.provider },
         instagramFeed: { configured: c.instagram.configured },
         ...c.notifications.status(),
+        schema: { portalCrm: await c.db.featuresReady(9), agendaPlans: await c.db.featuresReady(10) },
       };
       res.json(status);
     },
@@ -117,6 +120,18 @@ export function adminController(c: Container) {
     async updateAppointmentStatus(req: Request, res: Response) {
       const { status } = parse(z.object({ status: appointmentStatusSchema }), req.body);
       res.json(await c.appointments.update(await scopedAppointment(req), { status }));
+    },
+    async createAppointment(req: Request, res: Response) {
+      const input = parse(manualAppointmentSchema, req.body);
+      const own = ownProfessional(req);
+      if (own === null) throw new ForbiddenError('Sua conta não tem profissional vinculado para criar atendimentos.');
+      res.status(201).json(await c.appointments.createManual(input, req.admin!, own));
+    },
+    /** "Avisar tutor pelo WhatsApp": abre a conversa com a mensagem pronta e registra a tentativa. */
+    async notifyPickup(req: Request, res: Response) {
+      const appointmentId = await scopedAppointment(req);
+      const appointment = await c.db.appointments.findById(appointmentId);
+      res.status(201).json(await c.crm.startContact(appointment!.customerId, { kind: 'pickup', appointmentId }, req.admin!));
     },
     async resendNotifications(req: Request, res: Response) {
       res.json(await c.appointments.resendNotifications(await scopedAppointment(req)));
@@ -300,6 +315,13 @@ export function adminController(c: Container) {
     },
     async removeBlockedDate(req: Request, res: Response) {
       await c.schedule.removeBlockedDate(id(req));
+      res.status(204).end();
+    },
+    async addProfessionalTimeOff(req: Request, res: Response) {
+      res.status(201).json(await c.schedule.addProfessionalTimeOff(parse(professionalTimeOffSchema, req.body)));
+    },
+    async removeProfessionalTimeOff(req: Request, res: Response) {
+      await c.schedule.removeProfessionalTimeOff(id(req));
       res.status(204).end();
     },
     async addBlockedTime(req: Request, res: Response) {

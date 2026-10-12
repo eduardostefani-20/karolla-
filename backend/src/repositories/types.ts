@@ -19,6 +19,12 @@ import type {
   Inspiration,
   OccupiedSlot,
   Professional,
+  ProfessionalTimeOff,
+  Plan,
+  CustomerPlan,
+  PlanPayment,
+  PlanUsage,
+  PlanEvent,
   Story,
   Pet,
   PetReference,
@@ -76,11 +82,14 @@ export interface NewAppointment {
   professionalId: string | null;
   inspiration: Appointment['inspiration'];
   attribution: Appointment['attribution'];
+  /** Canal e autor (painel). Gravados depois da criação; antes da migração 0010 são ignorados. */
+  origin: Appointment['origin'];
+  createdByName: string;
   services: AppointmentServiceItem[];
   addons: AppointmentAddonItem[];
 }
 
-export type AppointmentPatch = Partial<Omit<NewAppointment, 'customerId' | 'petId' | 'source' | 'inspiration' | 'attribution'>>;
+export type AppointmentPatch = Partial<Omit<NewAppointment, 'customerId' | 'petId' | 'source' | 'inspiration' | 'attribution' | 'origin' | 'createdByName'>>;
 
 /**
  * Garantia de não-sobreposição aplicada NO MOMENTO DA GRAVAÇÃO.
@@ -90,8 +99,10 @@ export type AppointmentPatch = Partial<Omit<NewAppointment, 'customerId' | 'petI
 export interface CapacityGuard {
   /** Máximo de atendimentos simultâneos no pet shop (com profissionais: número de profissionais ativos). */
   capacity: number;
-  /** Se definido, o profissional também não pode ter outro atendimento sobreposto. */
+  /** Se definido, o profissional não pode passar da própria capacidade (padrão: 1 pet por vez). */
   professionalId?: string | null;
+  /** Pets ao mesmo tempo do profissional (o banco lê da tabela de profissionais). */
+  professionalCapacity?: number;
 }
 
 export interface AppointmentRepository {
@@ -179,11 +190,20 @@ export interface DatabaseService {
   formFields: FormFieldRepository;
   integrationLogs: TableRepository<IntegrationLog>;
   professionals: TableRepository<Professional>;
+  professionalTimeOff: TableRepository<ProfessionalTimeOff>;
+  plans: TableRepository<Plan>;
+  customerPlans: TableRepository<CustomerPlan>;
+  planPayments: TableRepository<PlanPayment>;
+  planUsages: TableRepository<PlanUsage>;
+  planEvents: TableRepository<PlanEvent>;
   inspirations: TableRepository<Inspiration>;
   stories: StoryRepository;
   admins: AdminRepository;
   audit: AuditRepository;
-  /** false = migração mais recente do banco ainda não aplicada (portal, CRM e fotos ficam desativados). */
-  featuresReady(): Promise<boolean>;
+  /**
+   * A migração indicada já foi aplicada no banco? 9 = portal/CRM/fotos; 10 = novos status, origem do
+   * agendamento, agenda por profissional e planos. Enquanto não, esses recursos ficam "em ativação".
+   */
+  featuresReady(level?: 9 | 10): Promise<boolean>;
   healthCheck(): Promise<boolean>;
 }
