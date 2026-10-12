@@ -1,8 +1,8 @@
 import type { Request, Response } from 'express';
-import { bookingRequestSchema } from '@karolla/shared';
+import { bookingRequestSchema, privateUploadSchema } from '@karolla/shared';
 import type { Container } from '../container';
 import { parse } from '../middleware/validate';
-import { availabilityQuerySchema } from '../validators/query';
+import { availabilityQuerySchema, taxiQuoteQuerySchema } from '../validators/query';
 
 export function publicController(c: Container) {
   return {
@@ -15,6 +15,21 @@ export function publicController(c: Container) {
       const query = parse(availabilityQuerySchema, req.query);
       res.set('Cache-Control', 'no-store');
       res.json(await c.booking.getAvailability(query));
+    },
+
+    async taxiQuote(req: Request, res: Response) {
+      res.set('Cache-Control', 'no-store');
+      res.json(await c.taxi.quote(parse(taxiQuoteQuerySchema, req.query)));
+    },
+
+    async groomingUploadTicket(req: Request, res: Response) {
+      const { contentType, size } = parse(privateUploadSchema.pick({ contentType: true, size: true }), req.body);
+      res.json(await c.booking.groomingUploadTicket({ contentType, size }));
+    },
+
+    async inspirationComments(req: Request, res: Response) {
+      res.set('Cache-Control', 'no-store');
+      res.json(await c.comments.listPublic(String(req.params.id)));
     },
 
     async inspirations(_req: Request, res: Response) {

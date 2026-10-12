@@ -11,6 +11,7 @@ export * from './utils/color';
 export * from './utils/crm';
 export * from './pricing/calculateAppointmentPrice';
 export * from './scheduling/availability';
+export * from './scheduling/taxi';
 export * from './validation/primitives';
 export * from './validation/booking';
 export * from './validation/admin';

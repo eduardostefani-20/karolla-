@@ -10,6 +10,7 @@ import { adminController } from '../controllers/adminController';
 import { teamController } from '../controllers/teamController';
 import { accountController } from '../controllers/accountController';
 import { planController } from '../controllers/planController';
+import { taxiController } from '../controllers/taxiController';
 import { MemoryPrivateStorage } from '../integrations/storage/PrivateStorage';
 
 /** Dados pessoais: o navegador/proxy não guarda cópia. */
@@ -26,9 +27,11 @@ export function buildRoutes(c: Container): Router {
   const team = teamController(c);
   const acc = accountController(c);
   const plan = planController(c);
+  const taxi = taxiController(c);
   const isTest = c.env.NODE_ENV === 'test';
   const ready = requireFeatures(c.db); // recursos que dependem da migração 0009
   const ready10 = requireFeatures(c.db, 10); // novos status, agenda por profissional e planos (0010)
+  const ready11 = requireFeatures(c.db, 11); // etiquetas/comentários das inspirações e Taxi Dog (0011)
 
   router.get('/health', (_req, res) => {
     res.json({ ok: true, mode: c.env.APP_MODE });
@@ -39,6 +42,14 @@ export function buildRoutes(c: Container): Router {
   router.get('/public/availability', h(pub.availability));
   router.get('/public/inspirations', h(pub.inspirations));
   router.get('/public/inspirations/:id', h(pub.inspiration));
+  router.get('/public/inspirations/:id/comments', ready11, h(pub.inspirationComments));
+  router.get('/public/taxi/quote', ready11, h(pub.taxiQuote));
+  router.post(
+    '/public/grooming-reference/upload-ticket',
+    ready,
+    rateLimit({ keyPrefix: 'grooming-upload', windowMs: 60 * 60 * 1000, max: isTest ? 10_000 : 10, message: 'Muitos envios de foto. Tente mais tarde.' }),
+    h(pub.groomingUploadTicket),
+  );
   router.get('/public/stories', h(pub.stories));
   router.get('/public/instagram-feed', h(pub.instagramFeed));
   router.post(
@@ -154,6 +165,22 @@ export function buildRoutes(c: Container): Router {
   a.post('/appointments/:id/plan-usages', ready10, can('plans.edit', 'agenda.view'), h(plan.use));
   a.delete('/plan-usages/:id', ready10, can('plans.edit'), h(plan.revertUsage));
 
+  // Comentários das inspirações (moderação)
+  a.get('/comments', ready11, can('comments.view'), h(admin.comments));
+  a.delete('/comments/:id', ready11, can('comments.delete'), h(admin.removeComment));
+
+  // Taxi Dog
+  a.get('/taxi', ready11, can('taxidog.view'), h(taxi.overview));
+  a.put('/taxi/settings', ready11, can('taxidog.edit'), h(taxi.updateSettings));
+  a.post('/taxi/regions', ready11, can('taxidog.create'), h(taxi.createRegion));
+  a.patch('/taxi/regions/:id', ready11, can('taxidog.edit'), h(taxi.updateRegion));
+  a.post('/taxi/drivers', ready11, can('taxidog.create'), h(taxi.createDriver));
+  a.patch('/taxi/drivers/:id', ready11, can('taxidog.edit'), h(taxi.updateDriver));
+  a.post('/taxi/blocks', ready11, can('taxidog.edit'), h(taxi.addBlock));
+  a.delete('/taxi/blocks/:id', ready11, can('taxidog.edit'), h(taxi.removeBlock));
+  a.get('/taxi/transports', ready11, can('taxidog.view'), h(taxi.transports));
+  a.patch('/taxi/transports/:id', ready11, can('taxidog.edit'), h(taxi.updateTransport));
+
   // Equipe e permissões
   a.get('/team', can('team.view'), h(team.list));
   a.post('/team', can('team.admin'), h(team.create));
@@ -186,6 +213,13 @@ export function buildRoutes(c: Container): Router {
   me.delete('/references/:id', linkedCustomer, h(acc.removeReference));
   me.get('/appointments', linkedCustomer, h(acc.appointments));
   me.get('/plans', ready10, linkedCustomer, h(acc.plans));
+  me.post(
+    '/inspirations/:id/comments',
+    ready11,
+    linkedCustomer,
+    rateLimit({ keyPrefix: 'comment', windowMs: 10 * 60 * 1000, max: isTest ? 10_000 : 10, message: 'Muitos comentários em sequência. Tente mais tarde.' }),
+    h(acc.comment),
+  );
   router.use('/account/me', me);
 
   // ---------------- Arquivos PRIVADOS do modo DEMO (em produção: bucket privado do Supabase) ----------------

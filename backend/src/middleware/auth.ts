@@ -139,7 +139,7 @@ export const linkedCustomer: RequestHandler = (req, _res, next) => {
 };
 
 /** Recursos que dependem da migração mais recente do banco: até ela ser aplicada, respondem "em ativação". */
-export function requireFeatures(db: DatabaseService, level: 9 | 10 = 9): RequestHandler {
+export function requireFeatures(db: DatabaseService, level: 9 | 10 | 11 = 9): RequestHandler {
   return asyncHandler(async (_req, _res, next) => {
     if (!(await db.featuresReady(level))) {
       throw new AppError(503, 'SETUP_PENDING', 'Este recurso está sendo ativado. Tente novamente mais tarde ou fale com a Karolla Pet pelo WhatsApp.');

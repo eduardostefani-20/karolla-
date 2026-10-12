@@ -25,6 +25,11 @@ import type {
   PlanPayment,
   PlanUsage,
   PlanEvent,
+  InspirationComment,
+  TaxiBlock,
+  TaxiDriver,
+  TaxiRegion,
+  TaxiTransport,
   Story,
   Pet,
   PetReference,
@@ -196,14 +201,20 @@ export interface DatabaseService {
   planPayments: TableRepository<PlanPayment>;
   planUsages: TableRepository<PlanUsage>;
   planEvents: TableRepository<PlanEvent>;
+  comments: TableRepository<InspirationComment>;
+  taxiRegions: TableRepository<TaxiRegion>;
+  taxiDrivers: TableRepository<TaxiDriver>;
+  taxiBlocks: TableRepository<TaxiBlock>;
+  taxiTransports: TableRepository<TaxiTransport>;
   inspirations: TableRepository<Inspiration>;
   stories: StoryRepository;
   admins: AdminRepository;
   audit: AuditRepository;
   /**
    * A migração indicada já foi aplicada no banco? 9 = portal/CRM/fotos; 10 = novos status, origem do
-   * agendamento, agenda por profissional e planos. Enquanto não, esses recursos ficam "em ativação".
+   * agendamento, agenda por profissional e planos; 11 = etiquetas/comentários das inspirações e Taxi Dog.
+   * Enquanto não, esses recursos ficam "em ativação".
    */
-  featuresReady(level?: 9 | 10): Promise<boolean>;
+  featuresReady(level?: 9 | 10 | 11): Promise<boolean>;
   healthCheck(): Promise<boolean>;
 }

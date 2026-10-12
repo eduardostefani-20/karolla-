@@ -9,6 +9,12 @@ import type {
   BusinessHours,
   BusinessSettings,
   ContactLog,
+  InspirationComment,
+  TaxiBlock,
+  TaxiDriver,
+  TaxiRegion,
+  TaxiTransport,
+  TaxiWindow,
   CustomerPlan,
   EffectiveSubscriptionStatus,
   Plan,
@@ -71,7 +77,7 @@ export interface PublicCatalog {
   settings: PublicSettings;
   mode: AppMode;
   /** Recursos que dependem de atualização do banco (o site esconde o que ainda não está ativo). */
-  features: { customerAccounts: boolean };
+  features: { customerAccounts: boolean; taxi: boolean };
 }
 
 export type AppMode = 'demo' | 'production';
@@ -91,6 +97,8 @@ export interface BookingResult {
   pet: Pet;
   customer: Pick<Customer, 'name'>;
   whatsappLink: string;
+  /** Taxi Dog solicitado (a equipe confirma o motorista). */
+  taxi: Pick<TaxiTransport, 'direction' | 'pickupTime' | 'dropoffTime' | 'feeCents' | 'status'> | null;
 }
 
 export interface AppointmentDetail extends Appointment {
@@ -303,3 +311,30 @@ export interface CustomerPlanDetail extends CustomerPlan {
 
 /** Plano como o tutor vê na conta (sem histórico interno). */
 export type PortalCustomerPlan = Omit<CustomerPlanDetail, 'events' | 'notes' | 'customerName'>;
+
+// ---------------------------------------------------------------- Comentários
+
+export type PublicComment = Pick<InspirationComment, 'id' | 'authorName' | 'body' | 'createdAt'>;
+export interface AdminComment extends InspirationComment {
+  inspirationTitle: string;
+  customerName: string;
+}
+
+// ---------------------------------------------------------------- Taxi Dog
+
+export interface TaxiOverview {
+  settings: { taxiEnabled: boolean; taxiWindows: TaxiWindow[]; taxiPickupLeadMinutes: number; taxiSlotMinutes: number };
+  regions: TaxiRegion[];
+  drivers: TaxiDriver[];
+  blocks: TaxiBlock[];
+}
+
+export interface TaxiTransportDetail extends TaxiTransport {
+  customerName: string;
+  customerWhatsapp: string;
+  petName: string;
+  appointmentTime: string;
+  appointmentStatus: Appointment['status'];
+  driverName: string | null;
+  regionName: string | null;
+}

@@ -44,6 +44,10 @@ export function demoSettings(env: { WHATSAPP_NUMBER?: string; TIMEZONE: string }
     crmReactivationMessage: DEFAULT_CRM_REACTIVATION_MESSAGE,
     pickupMessage: DEFAULT_PICKUP_MESSAGE,
     slotCapacityLimit: null,
+    taxiEnabled: false,
+    taxiWindows: [],
+    taxiPickupLeadMinutes: 30,
+    taxiSlotMinutes: 30,
   };
 }
 
@@ -105,7 +109,7 @@ export async function seedDemoData(db: MemoryDatabase, opts: { now: Date; timezo
     ['escovacao', 'Escovação', 'Escovação completa para remover pelos mortos e evitar nós.', 'Estética', 30, []],
   ] as const;
   for (const [i, [id, name, description, category, durationMinutes, speciesIds]] of services.entries()) {
-    await db.services.create({ id, name, description, category, durationMinutes, active: true, sortOrder: i + 1, speciesIds: [...speciesIds], maxConcurrent: null });
+    await db.services.create({ id, name, description, category, durationMinutes, active: true, sortOrder: i + 1, speciesIds: [...speciesIds], maxConcurrent: null, includesGrooming: /tosa/i.test(name) });
   }
 
   // ⚠️ Tabela de preços FICTÍCIA (centavos) — substituir pelos valores reais no painel.
@@ -150,15 +154,15 @@ export async function seedDemoData(db: MemoryDatabase, opts: { now: Date; timezo
 
   // Inspirações de tosa (DEMO: ilustrações estáticas em /images/inspiracoes — em produção, fotos reais enviadas no painel)
   const inspirations = [
-    ['Tosa bebê', 'Pelagem curtinha e uniforme, fácil de cuidar.', 'dog', 'dog-shih-tzu', 'shih-tzu-bebe', 'tosa-maquina'],
-    ['Shih Tzu com lacinho', 'Franja presa e acabamento arredondado.', 'dog', 'dog-shih-tzu', 'shih-tzu-lacinho', 'banho-tosa'],
-    ['Poodle na tesoura', 'Volume e definição feitos à tesoura.', 'dog', 'dog-poodle', 'poodle-tesoura', 'tosa-tesoura'],
-    ['Golden: higiênica + banho', 'Patas, barriga e regiões íntimas aparadas.', 'dog', 'dog-golden-retriever', 'golden-higienica', 'tosa-higienica'],
-    ['Yorkshire clássico', 'Tosa no padrão da raça com laço.', 'dog', 'dog-yorkshire', 'yorkshire-classica', 'tosa'],
-    ['Spitz "leãozinho"', 'Corpo curto, juba e cauda preservadas.', 'dog', 'dog-spitz-alemao', 'spitz-leao', 'tosa-tesoura'],
-    ['Persa escovado', 'Escovação completa e higiênica.', 'cat', 'cat-persa', 'persa-escovacao', 'escovacao'],
+    ['Tosa bebê', 'Pelagem curtinha e uniforme, fácil de cuidar.', 'dog', 'dog-shih-tzu', 'shih-tzu-bebe', 'tosa-maquina', 'bebe'],
+    ['Shih Tzu com lacinho', 'Franja presa e acabamento arredondado.', 'dog', 'dog-shih-tzu', 'shih-tzu-lacinho', 'banho-tosa', 'tesoura'],
+    ['Poodle na tesoura', 'Volume e definição feitos à tesoura.', 'dog', 'dog-poodle', 'poodle-tesoura', 'tosa-tesoura', 'tesoura'],
+    ['Golden: higiênica + banho', 'Patas, barriga e regiões íntimas aparadas.', 'dog', 'dog-golden-retriever', 'golden-higienica', 'tosa-higienica', 'higienica'],
+    ['Yorkshire clássico', 'Tosa no padrão da raça com laço.', 'dog', 'dog-yorkshire', 'yorkshire-classica', 'tosa', 'raca'],
+    ['Spitz "leãozinho"', 'Corpo curto, juba e cauda preservadas.', 'dog', 'dog-spitz-alemao', 'spitz-leao', 'tosa-tesoura', 'criativa'],
+    ['Persa escovado', 'Escovação completa e higiênica.', 'cat', 'cat-persa', 'persa-escovacao', 'escovacao', 'banho'],
   ] as const;
-  for (const [i, [title, description, speciesId, breedId, file, serviceId]] of inspirations.entries()) {
+  for (const [i, [title, description, speciesId, breedId, file, serviceId, groomingType]] of inspirations.entries()) {
     const breed = await db.breeds.findById(breedId);
     await db.inspirations.create({
       id: `demo-${file}`,
@@ -170,6 +174,8 @@ export async function seedDemoData(db: MemoryDatabase, opts: { now: Date; timezo
       imageUrl: `/images/inspiracoes/${file}.svg`,
       storagePath: '',
       serviceId,
+      sizeId: null,
+      groomingType,
       active: true,
       sortOrder: i + 1,
     });

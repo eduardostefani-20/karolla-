@@ -39,6 +39,11 @@ import {
   planPaymentMapping,
   planUsageMapping,
   planEventMapping,
+  commentMapping,
+  taxiRegionMapping,
+  taxiDriverMapping,
+  taxiBlockMapping,
+  taxiTransportMapping,
   storyMapping,
   serviceItemsToJson,
   serviceMapping,
@@ -323,6 +328,11 @@ export class SupabaseDatabase implements DatabaseService {
   planPayments;
   planUsages;
   planEvents;
+  comments;
+  taxiRegions;
+  taxiDrivers;
+  taxiBlocks;
+  taxiTransports;
   inspirations;
   stories;
 
@@ -352,6 +362,11 @@ export class SupabaseDatabase implements DatabaseService {
     this.planPayments = new SupabaseTable(this.client, planPaymentMapping);
     this.planUsages = new SupabaseTable(this.client, planUsageMapping);
     this.planEvents = new SupabaseTable(this.client, planEventMapping);
+    this.comments = new SupabaseTable(this.client, commentMapping);
+    this.taxiRegions = new SupabaseTable(this.client, taxiRegionMapping);
+    this.taxiDrivers = new SupabaseTable(this.client, taxiDriverMapping);
+    this.taxiBlocks = new SupabaseTable(this.client, taxiBlockMapping);
+    this.taxiTransports = new SupabaseTable(this.client, taxiTransportMapping);
     this.inspirations = new SupabaseTable(this.client, inspirationMapping);
     this.stories = new SupabaseStories(this.client, storyMapping);
   }
@@ -492,17 +507,19 @@ export class SupabaseDatabase implements DatabaseService {
   private features = new Map<number, { ok: boolean; at: number }>();
 
   /** A migração indicada já foi aplicada? Fica em cache; enquanto não, reconfere a cada minuto. */
-  async featuresReady(level: 9 | 10 = 9): Promise<boolean> {
+  async featuresReady(level: 9 | 10 | 11 = 9): Promise<boolean> {
     const cached = this.features.get(level);
     if (cached && (cached.ok || Date.now() - cached.at < 60_000)) return cached.ok;
-    const probes =
-      level === 9
-        ? [this.client.from('business_settings').select('crm_inactive_days').limit(1), this.client.from('contact_logs').select('id').limit(1)]
-        : [this.client.from('business_settings').select('pickup_message').limit(1), this.client.from('plans').select('id').limit(1)];
+    const probes = {
+      9: () => [this.client.from('business_settings').select('crm_inactive_days').limit(1), this.client.from('contact_logs').select('id').limit(1)],
+      10: () => [this.client.from('business_settings').select('pickup_message').limit(1), this.client.from('plans').select('id').limit(1)],
+      11: () => [this.client.from('business_settings').select('taxi_enabled').limit(1), this.client.from('inspiration_comments').select('id').limit(1)],
+    }[level]();
     const results = await Promise.all(probes);
-    const ok = results.every((r) => !r.error) && (level === 9 || (await this.featuresReady(9)));
+    const previous = level === 9 ? true : await this.featuresReady((level - 1) as 9 | 10);
+    const ok = results.every((r) => !r.error) && previous;
     this.features.set(level, { ok, at: Date.now() });
-    if (!ok) warnPending(`migração ${level === 9 ? '0009' : '0010'}`);
+    if (!ok) warnPending(`migração 00${level}`);
     return ok;
   }
 

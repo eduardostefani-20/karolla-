@@ -252,6 +252,11 @@ export class MemoryDatabase implements DatabaseService {
   planPayments = new MemoryTable<import('@karolla/shared').PlanPayment>(true);
   planUsages = new MemoryPlanUsages();
   planEvents = new MemoryTable<import('@karolla/shared').PlanEvent>(true);
+  comments = new MemoryTable<import('@karolla/shared').InspirationComment>(true);
+  taxiRegions = new MemoryTable<import('@karolla/shared').TaxiRegion>();
+  taxiDrivers = new MemoryTable<import('@karolla/shared').TaxiDriver>();
+  taxiBlocks = new MemoryTable<import('@karolla/shared').TaxiBlock>(true);
+  taxiTransports = new MemoryTable<import('@karolla/shared').TaxiTransport>(true);
   inspirations = new MemoryTable<import('@karolla/shared').Inspiration>(true);
   stories = new MemoryStories();
 
@@ -320,8 +325,8 @@ export class MemoryDatabase implements DatabaseService {
   }
 
   /** Modo demo: tudo disponível (o teste de compatibilidade pode simular banco antigo). */
-  schemaLevel = 10;
-  async featuresReady(level: 9 | 10 = 9) {
+  schemaLevel = 11;
+  async featuresReady(level: 9 | 10 | 11 = 9) {
     return this.schemaLevel >= level;
   }
 

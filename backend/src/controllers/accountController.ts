@@ -6,6 +6,7 @@ import {
   accountPetUpdateSchema,
   accountProfileSchema,
   accountSignupSchema,
+  commentSchema,
   petPhotoSchema,
   petReferenceSchema,
   privateUploadSchema,
@@ -73,6 +74,9 @@ export function accountController(c: Container) {
     async removeReference(req: Request, res: Response) {
       await c.account.removeReference(req.customer!, id(req));
       res.status(204).end();
+    },
+    async comment(req: Request, res: Response) {
+      res.status(201).json(await c.comments.create(req.customer!, id(req), parse(commentSchema, req.body).body));
     },
     async plans(req: Request, res: Response) {
       res.json(await c.plans.forCustomer(req.customer!.id));

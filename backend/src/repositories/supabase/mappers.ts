@@ -14,6 +14,11 @@ import type {
   Pet,
   PetReference,
   Professional,
+  InspirationComment,
+  TaxiBlock,
+  TaxiDriver,
+  TaxiRegion,
+  TaxiTransport,
   Plan,
   CustomerPlan,
   PlanPayment,
@@ -105,10 +110,10 @@ export const sizeMapping: TableMapping<PetSize> = {
 export const serviceMapping: TableMapping<Service> = {
   table: 'services',
   order: sortOrder,
-  optionalColumns: ['max_concurrent'],
+  optionalColumns: ['max_concurrent', 'includes_grooming'],
   toRow: (e) =>
     pick(e as Row, {
-      id: 'id', name: 'name', description: 'description', category: 'category', durationMinutes: 'duration_minutes', active: 'active', sortOrder: 'sort_order', speciesIds: 'species_ids', maxConcurrent: 'max_concurrent',
+      id: 'id', name: 'name', description: 'description', category: 'category', durationMinutes: 'duration_minutes', active: 'active', sortOrder: 'sort_order', speciesIds: 'species_ids', maxConcurrent: 'max_concurrent', includesGrooming: 'includes_grooming',
     }),
   fromRow: (r) => ({
     id: str(r.id),
@@ -120,6 +125,8 @@ export const serviceMapping: TableMapping<Service> = {
     sortOrder: Number(r.sort_order),
     speciesIds: (r.species_ids as string[] | null) ?? [],
     maxConcurrent: r.max_concurrent == null ? null : Number(r.max_concurrent),
+    // antes da migração 0011: considera "tosa" no nome/categoria
+    includesGrooming: r.includes_grooming == null ? /tosa/i.test(`${str(r.name)} ${str(r.category)}`) : Boolean(r.includes_grooming),
   }),
 };
 
@@ -295,11 +302,24 @@ export function settingsToRow(s: Partial<BusinessSettings>): Row {
     crmReactivationMessage: 'crm_reactivation_message',
     pickupMessage: 'pickup_message',
     slotCapacityLimit: 'slot_capacity_limit',
+    taxiEnabled: 'taxi_enabled',
+    taxiWindows: 'taxi_windows',
+    taxiPickupLeadMinutes: 'taxi_pickup_lead_minutes',
+    taxiSlotMinutes: 'taxi_slot_minutes',
   });
 }
 
 /** Colunas de configurações criadas pela migração 0009. */
-export const SETTINGS_OPTIONAL_COLUMNS = ['crm_inactive_days', 'crm_reactivation_message', 'pickup_message', 'slot_capacity_limit'];
+export const SETTINGS_OPTIONAL_COLUMNS = [
+  'crm_inactive_days',
+  'crm_reactivation_message',
+  'pickup_message',
+  'slot_capacity_limit',
+  'taxi_enabled',
+  'taxi_windows',
+  'taxi_pickup_lead_minutes',
+  'taxi_slot_minutes',
+];
 
 export function settingsFromRow(r: Row): BusinessSettings {
   return {
@@ -324,6 +344,10 @@ export function settingsFromRow(r: Row): BusinessSettings {
     crmReactivationMessage: str(r.crm_reactivation_message) || DEFAULT_CRM_REACTIVATION_MESSAGE,
     pickupMessage: str(r.pickup_message) || DEFAULT_PICKUP_MESSAGE,
     slotCapacityLimit: r.slot_capacity_limit == null ? null : Number(r.slot_capacity_limit),
+    taxiEnabled: Boolean(r.taxi_enabled),
+    taxiWindows: Array.isArray(r.taxi_windows) ? (r.taxi_windows as BusinessSettings['taxiWindows']) : [],
+    taxiPickupLeadMinutes: r.taxi_pickup_lead_minutes == null ? 30 : Number(r.taxi_pickup_lead_minutes),
+    taxiSlotMinutes: r.taxi_slot_minutes == null ? 30 : Number(r.taxi_slot_minutes),
   };
 }
 
@@ -442,6 +466,7 @@ export const professionalTimeOffMapping: TableMapping<ProfessionalTimeOff> = {
 
 export const inspirationMapping: TableMapping<Inspiration> = {
   table: 'inspirations',
+  optionalColumns: ['size_id', 'grooming_type'],
   order: [
     { column: 'sort_order', ascending: true },
     { column: 'created_at', ascending: false },
@@ -450,6 +475,7 @@ export const inspirationMapping: TableMapping<Inspiration> = {
     pick(e as Row, {
       id: 'id', title: 'title', description: 'description', speciesId: 'species_id', breedId: 'breed_id', breedName: 'breed_name',
       imageUrl: 'image_url', storagePath: 'storage_path', serviceId: 'service_id', active: 'active', sortOrder: 'sort_order',
+      sizeId: 'size_id', groomingType: 'grooming_type',
     }),
   fromRow: (r) => ({
     id: str(r.id),
@@ -461,6 +487,8 @@ export const inspirationMapping: TableMapping<Inspiration> = {
     imageUrl: str(r.image_url),
     storagePath: str(r.storage_path),
     serviceId: (r.service_id as string | null) ?? null,
+    sizeId: (r.size_id as string | null) ?? null,
+    groomingType: (r.grooming_type as Inspiration['groomingType']) ?? null,
     active: Boolean(r.active),
     sortOrder: Number(r.sort_order),
     createdAt: str(r.created_at),
@@ -628,5 +656,100 @@ export const planEventMapping: TableMapping<PlanEvent> = {
     detail: str(r.detail),
     actorName: str(r.actor_name),
     ...ts(r),
+  }),
+};
+
+export const commentMapping: TableMapping<InspirationComment> = {
+  table: 'inspiration_comments',
+  optionalTable: true,
+  order: [{ column: 'created_at', ascending: true }],
+  toRow: (e) => pick(e as Row, { id: 'id', inspirationId: 'inspiration_id', customerId: 'customer_id', authorName: 'author_name', body: 'body', status: 'status' }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    inspirationId: str(r.inspiration_id),
+    customerId: str(r.customer_id),
+    authorName: str(r.author_name),
+    body: str(r.body),
+    status: r.status === 'removed' ? 'removed' : 'visible',
+    createdAt: str(r.created_at),
+  }),
+};
+
+export const taxiRegionMapping: TableMapping<TaxiRegion> = {
+  table: 'taxi_regions',
+  optionalTable: true,
+  order: sortOrder,
+  toRow: (e) =>
+    pick(e as Row, { id: 'id', name: 'name', neighborhoods: 'neighborhoods', feeOneWayCents: 'fee_one_way_cents', feeRoundTripCents: 'fee_round_trip_cents', active: 'active', sortOrder: 'sort_order' }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    name: str(r.name),
+    neighborhoods: (r.neighborhoods as string[] | null) ?? [],
+    feeOneWayCents: Number(r.fee_one_way_cents),
+    feeRoundTripCents: Number(r.fee_round_trip_cents),
+    active: Boolean(r.active),
+    sortOrder: Number(r.sort_order),
+  }),
+};
+
+export const taxiDriverMapping: TableMapping<TaxiDriver> = {
+  table: 'taxi_drivers',
+  optionalTable: true,
+  order: sortOrder,
+  toRow: (e) => pick(e as Row, { id: 'id', name: 'name', phone: 'phone', active: 'active', capacity: 'capacity', workHours: 'work_hours', sortOrder: 'sort_order' }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    name: str(r.name),
+    phone: str(r.phone),
+    active: Boolean(r.active),
+    capacity: Number(r.capacity ?? 1),
+    workHours: Array.isArray(r.work_hours) ? (r.work_hours as TaxiDriver['workHours']) : [],
+    sortOrder: Number(r.sort_order),
+  }),
+};
+
+export const taxiBlockMapping: TableMapping<TaxiBlock> = {
+  table: 'taxi_blocks',
+  optionalTable: true,
+  order: [{ column: 'date_from', ascending: true }],
+  toRow: (e) => pick(e as Row, { id: 'id', driverId: 'driver_id', dateFrom: 'date_from', dateTo: 'date_to', startTime: 'start_time', endTime: 'end_time', reason: 'reason' }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    driverId: (r.driver_id as string | null) ?? null,
+    dateFrom: str(r.date_from),
+    dateTo: str(r.date_to),
+    startTime: hhmm(r.start_time),
+    endTime: hhmm(r.end_time),
+    reason: str(r.reason),
+    createdAt: str(r.created_at),
+  }),
+};
+
+export const taxiTransportMapping: TableMapping<TaxiTransport> = {
+  table: 'taxi_transports',
+  optionalTable: true,
+  order: [{ column: 'created_at', ascending: true }],
+  toRow: (e) =>
+    pick(e as Row, {
+      id: 'id', appointmentId: 'appointment_id', customerId: 'customer_id', petId: 'pet_id', regionId: 'region_id', direction: 'direction', date: 'date',
+      pickupTime: 'pickup_time', dropoffTime: 'dropoff_time', address: 'address', notes: 'notes', feeCents: 'fee_cents', driverId: 'driver_id', status: 'status',
+    }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    appointmentId: str(r.appointment_id),
+    customerId: str(r.customer_id),
+    petId: str(r.pet_id),
+    regionId: (r.region_id as string | null) ?? null,
+    direction: r.direction as TaxiTransport['direction'],
+    date: str(r.date),
+    pickupTime: hhmm(r.pickup_time),
+    dropoffTime: hhmm(r.dropoff_time),
+    address: str(r.address),
+    notes: str(r.notes),
+    feeCents: Number(r.fee_cents),
+    driverId: (r.driver_id as string | null) ?? null,
+    status: r.status as TaxiTransport['status'],
+    createdAt: str(r.created_at),
+    updatedAt: str(r.updated_at),
   }),
 };

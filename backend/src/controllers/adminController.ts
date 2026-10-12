@@ -186,6 +186,15 @@ export function adminController(c: Container) {
       res.json(await c.customers.removePetReference(id(req), refId));
     },
 
+    // ----- Comentários -----
+    async comments(_req: Request, res: Response) {
+      res.json(await c.comments.listAdmin());
+    },
+    async removeComment(req: Request, res: Response) {
+      await c.comments.remove(id(req));
+      res.status(204).end();
+    },
+
     // ----- CRM -----
     async crm(req: Request, res: Response) {
       res.json(await c.crm.list(parse(crmQuerySchema, req.query)));

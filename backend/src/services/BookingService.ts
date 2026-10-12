@@ -15,6 +15,9 @@ import {
   type AppointmentInspiration,
   type Customer,
   type Pet,
+  type TaxiQuote,
+  type UploadTicket,
+  quoteTaxi,
   CUSTOMER_DEFAULTS,
   PET_DEFAULTS,
 } from '@karolla/shared';
@@ -23,6 +26,14 @@ import { AppError, ConflictError, SlotConflictError, ValidationError } from '../
 import type { CatalogService } from './CatalogService';
 import type { ScheduleService } from './ScheduleService';
 import type { NotificationService } from './NotificationService';
+import type { TaxiService } from './TaxiService';
+import type { PrivateStorage } from '../integrations/storage/PrivateStorage';
+import { EXTENSIONS } from '../integrations/storage/MediaStorage';
+import { assertSchemaFor } from './schemaGuard';
+import { randomUUID } from 'node:crypto';
+
+/** Pasta das fotos de referência enviadas no agendamento (antes de existir o cadastro do pet). */
+export const GROOMING_UPLOAD_FOLDER = 'agendamentos/referencias/';
 
 export function pricingErrorToAppError(err: unknown): never {
   if (err instanceof PricingError) {
@@ -47,7 +58,15 @@ export class BookingService {
     private readonly catalog: CatalogService,
     private readonly schedule: ScheduleService,
     private readonly notifications: NotificationService,
+    private readonly taxi: TaxiService,
+    private readonly privateStorage: PrivateStorage,
   ) {}
+
+  /** Foto de referência enviada no agendamento (pasta temporária, só imagens, até 8 MB). */
+  async groomingUploadTicket(input: { contentType: string; size: number }): Promise<UploadTicket> {
+    const path = `${GROOMING_UPLOAD_FOLDER}${randomUUID()}.${EXTENSIONS[input.contentType] ?? 'jpg'}`;
+    return this.privateStorage.createUploadTicket(path, input.contentType, input.size);
+  }
 
   async getAvailability(input: {
     date: string;
@@ -124,6 +143,33 @@ export class BookingService {
     // 5. Inspiração escolhida no catálogo: grava só a referência (título, foto, raça) do momento
     const inspiration = request.inspirationId ? await this.inspirationSnapshot(request.inspirationId) : null;
 
+    // 5b. Foto de referência própria (enviada antes, em pasta temporária privada)
+    const reference = request.groomingReference ?? null;
+    if (reference) {
+      await assertSchemaFor(this.db, 9, true, 'O envio de foto de referência');
+      if (!reference.path.startsWith(GROOMING_UPLOAD_FOLDER) || reference.path.includes('..') || !(await this.privateStorage.exists(reference.path))) {
+        throw new ValidationError('A foto de referência não chegou. Envie de novo.', { groomingReference: 'Envie a foto de novo.' });
+      }
+    }
+
+    // 5c. Taxi Dog: só se estiver disponível para o bairro e os horários (nunca promete sem motorista)
+    let taxiQuote: TaxiQuote | null = null;
+    if (request.taxi) {
+      await assertSchemaFor(this.db, 11, true, 'O Taxi Dog');
+      if (!request.tutor.address.street || !request.tutor.address.neighborhood) {
+        throw new ValidationError('Para o Taxi Dog, informe o endereço com bairro.', { 'tutor.address.street': 'Informe o endereço.' });
+      }
+      taxiQuote = quoteTaxi(await this.taxi.context(request.date), {
+        date: request.date,
+        time: request.time,
+        durationMinutes: price.totalDurationMinutes,
+        neighborhood: request.tutor.address.neighborhood,
+        direction: request.taxi.direction,
+      });
+      if (!taxiQuote.available) throw new ConflictError('TAXI_UNAVAILABLE', taxiQuote.message ?? 'Taxi Dog indisponível.');
+    }
+    const customerNotes = [request.tutor.notes, request.groomingNotes && `Tosa: ${request.groomingNotes}`].filter(Boolean).join('\n');
+
     // 6. Cliente e pet (reaproveita cadastro existente pelo WhatsApp)
     const customer = await this.upsertCustomer(request.tutor);
     const pet = await this.upsertPet(customer.id, { ...request.pet, breedName });
@@ -140,7 +186,7 @@ export class BookingService {
       totalCents: price.totalCents,
       status: 'pending' as const,
       notes: '',
-      customerNotes: request.tutor.notes,
+      customerNotes,
       source: 'online' as const,
       professionalId,
       inspiration,
@@ -172,10 +218,29 @@ export class BookingService {
       }
     }
 
-    // 8. Integrações (falhas não afetam o agendamento salvo)
+    // 8. Taxi Dog e foto de referência ligados ao agendamento e ao pet
+    const transport = taxiQuote && request.taxi ? await this.taxi.createForAppointment(appointment, customer, pet, taxiQuote, request.taxi.direction, request.taxi.notes) : null;
+    if (reference) {
+      await this.db.petReferences.create({
+        petId: pet.id,
+        customerId: customer.id,
+        path: reference.path,
+        description: reference.description || request.groomingNotes,
+        appointmentId: appointment.id,
+        uploadedBy: 'customer',
+      });
+    }
+
+    // 9. Integrações (falhas não afetam o agendamento salvo)
     const { whatsappLink } = await this.notifications.onAppointmentCreated(appointment, customer, pet);
 
-    return { appointment, pet, customer: { name: customer.name }, whatsappLink: whatsappLink ?? '' };
+    return {
+      appointment,
+      pet,
+      customer: { name: customer.name },
+      whatsappLink: whatsappLink ?? '',
+      taxi: transport ? { direction: transport.direction, pickupTime: transport.pickupTime, dropoffTime: transport.dropoffTime, feeCents: transport.feeCents, status: transport.status } : null,
+    };
   }
 
   private async inspirationSnapshot(id: string): Promise<AppointmentInspiration> {

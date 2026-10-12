@@ -18,6 +18,8 @@ import { StaffService } from './services/StaffService';
 import { CustomerAccountService } from './services/CustomerAccountService';
 import { CrmService } from './services/CrmService';
 import { PlanService } from './services/PlanService';
+import { TaxiService } from './services/TaxiService';
+import { CommentService } from './services/CommentService';
 import { MemoryPrivateStorage, SupabasePrivateStorage, type PrivateStorage } from './integrations/storage/PrivateStorage';
 import { MediaService } from './services/MediaService';
 import { CatalogService } from './services/CatalogService';
@@ -54,6 +56,8 @@ export interface Container {
   account: CustomerAccountService;
   crm: CrmService;
   plans: PlanService;
+  taxi: TaxiService;
+  comments: CommentService;
 }
 
 export interface ContainerOverrides {
@@ -140,7 +144,9 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
   const catalog = new CatalogService(db, env.APP_MODE, clock);
   const schedule = new ScheduleService(db, clock);
   const notifications = new NotificationService(db, whatsapp, sheets);
-  const booking = new BookingService(db, catalog, schedule, notifications);
+  const taxi = new TaxiService(db, catalog);
+  const booking = new BookingService(db, catalog, schedule, notifications, taxi, privateStorage);
+  const comments = new CommentService(db, clock);
   const appointments = new AppointmentService(db, catalog, schedule, notifications, clock);
   const customers = new CustomerService(db, auth, privateStorage, clock);
   const account = new CustomerAccountService(db, auth, privateStorage, clock);
@@ -150,5 +156,5 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
   const media = new MediaService(db, storage, clock);
   const staff = new StaffService(db, auth, clock);
 
-  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media, staff, privateStorage, account, crm, plans };
+  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media, staff, privateStorage, account, crm, plans, taxi, comments };
 }

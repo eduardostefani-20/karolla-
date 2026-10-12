@@ -123,6 +123,7 @@ export class ScheduleService {
       'A configuração do CRM',
     );
     await assertSchemaFor(this.db, 10, input.slotCapacityLimit != null || input.pickupMessage !== DEFAULT_PICKUP_MESSAGE, 'O limite geral por horário e a mensagem de retirada');
+    await assertSchemaFor(this.db, 11, input.taxiEnabled || input.taxiWindows.length > 0, 'O Taxi Dog');
     return this.db.settings.update(input);
   }
 }

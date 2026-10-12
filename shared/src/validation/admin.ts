@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ADMIN_ROLES, APPOINTMENT_ORIGINS, APPOINTMENT_STATUSES, PAYMENT_METHODS, PLAN_PERIODICITIES, CONTACT_KINDS, CONTACT_STATUSES, FORM_FIELD_KEYS } from '../types/domain';
+import { ADMIN_ROLES, APPOINTMENT_ORIGINS, APPOINTMENT_STATUSES, GROOMING_TYPES, PAYMENT_METHODS, PLAN_PERIODICITIES, TAXI_STATUSES, CONTACT_KINDS, CONTACT_STATUSES, FORM_FIELD_KEYS } from '../types/domain';
 import { DEFAULT_CRM_INACTIVE_DAYS, DEFAULT_CRM_REACTIVATION_MESSAGE, DEFAULT_PICKUP_MESSAGE } from '../utils/crm';
 import { ASSIGNABLE_ROLES, sanitizeGrants } from '../auth/permissions';
 import { DEFAULT_PROFESSIONAL_COLOR } from '../utils/color';
@@ -105,6 +105,7 @@ export const serviceSchema = z.object({
   speciesIds: z.array(idSchema).default([]),
   /** Limite opcional de atendimentos simultâneos deste serviço. null = sem limite. */
   maxConcurrent: z.number().int().min(1, 'Use pelo menos 1.').max(50).nullable().default(null),
+  includesGrooming: z.boolean().default(false),
 });
 export type ServiceInput = z.input<typeof serviceSchema>;
 
@@ -213,6 +214,17 @@ export const settingsSchema = z.object({
   crmReactivationMessage: text(600).pipe(z.string().min(10, 'Escreva a mensagem.')).default(DEFAULT_CRM_REACTIVATION_MESSAGE),
   pickupMessage: text(600).pipe(z.string().min(10, 'Escreva a mensagem.')).default(DEFAULT_PICKUP_MESSAGE),
   slotCapacityLimit: z.number().int().min(1).max(50).nullable().default(null),
+  taxiEnabled: z.boolean().default(false),
+  taxiWindows: z
+    .array(
+      z
+        .object({ weekday: z.number().int().min(0).max(6), startTime: timeSchema, endTime: timeSchema })
+        .refine((w) => timeToMinutes(w.endTime) > timeToMinutes(w.startTime), { message: 'O fim deve ser depois do início.', path: ['endTime'] }),
+    )
+    .max(7)
+    .default([]),
+  taxiPickupLeadMinutes: z.number().int().min(0).max(240).default(30),
+  taxiSlotMinutes: z.number().int().min(10).max(180).default(30),
 });
 export type SettingsInput = z.input<typeof settingsSchema>;
 
@@ -334,6 +346,27 @@ export type AppointmentListQuery = z.infer<typeof appointmentListQuerySchema>;
 
 export const adminRoleSchema = z.enum(ADMIN_ROLES);
 
+/** Horário de trabalho por dia da semana (profissionais e motoristas). */
+const workHoursSchema = z
+  .array(
+    z
+      .object({
+        weekday: z.number().int().min(0).max(6),
+        startTime: timeSchema,
+        endTime: timeSchema,
+        breakStart: timeSchema.nullable().default(null),
+        breakEnd: timeSchema.nullable().default(null),
+      })
+      .refine((d) => timeToMinutes(d.endTime) > timeToMinutes(d.startTime), { message: 'O fim deve ser depois do início.', path: ['endTime'] })
+      .refine((d) => (!d.breakStart && !d.breakEnd) || (d.breakStart && d.breakEnd && timeToMinutes(d.breakEnd) > timeToMinutes(d.breakStart)), {
+        message: 'Intervalo inválido.',
+        path: ['breakEnd'],
+      }),
+  )
+  .max(7)
+  .refine((days) => new Set(days.map((d) => d.weekday)).size === days.length, 'Cada dia da semana só pode aparecer uma vez.')
+  .default([]);
+
 export const professionalSchema = z.object({
   name: requiredText('o nome', 80),
   serviceIds: z.array(idSchema).max(100).default([]),
@@ -342,25 +375,7 @@ export const professionalSchema = z.object({
   sortOrder: sortOrderSchema.default(0),
   capacity: z.number().int().min(1, 'Use pelo menos 1.').max(10, 'Use no máximo 10.').default(1),
   /** Vazio = segue o horário de funcionamento. Dias ausentes = folga. */
-  workHours: z
-    .array(
-      z
-        .object({
-          weekday: z.number().int().min(0).max(6),
-          startTime: timeSchema,
-          endTime: timeSchema,
-          breakStart: timeSchema.nullable().default(null),
-          breakEnd: timeSchema.nullable().default(null),
-        })
-        .refine((d) => timeToMinutes(d.endTime) > timeToMinutes(d.startTime), { message: 'O fim deve ser depois do início.', path: ['endTime'] })
-        .refine((d) => (!d.breakStart && !d.breakEnd) || (d.breakStart && d.breakEnd && timeToMinutes(d.breakEnd) > timeToMinutes(d.breakStart)), {
-          message: 'Intervalo inválido.',
-          path: ['breakEnd'],
-        }),
-    )
-    .max(7)
-    .refine((days) => new Set(days.map((d) => d.weekday)).size === days.length, 'Cada dia da semana só pode aparecer uma vez.')
-    .default([]),
+  workHours: workHoursSchema,
 });
 export type ProfessionalInput = z.input<typeof professionalSchema>;
 
@@ -395,6 +410,8 @@ export const inspirationSchema = z.object({
   imageUrl: mediaUrlSchema,
   storagePath: z.string().max(300).default(''),
   serviceId: idSchema.nullable().default(null),
+  sizeId: idSchema.nullable().default(null),
+  groomingType: z.enum(GROOMING_TYPES).nullable().default(null),
   active: z.boolean().default(true),
   sortOrder: sortOrderSchema.default(0),
 });
@@ -468,4 +485,58 @@ export const paymentSchema = z.object({
 export const planUsageSchema = z.object({
   customerPlanId: idSchema,
   serviceId: idSchema,
+});
+
+// ---------------------------------------------------------------- Taxi Dog
+
+export const taxiRegionSchema = z.object({
+  name: requiredText('o nome da região', 60),
+  neighborhoods: z.array(z.string().trim().min(1).max(60)).min(1, 'Informe pelo menos um bairro (ou * para a cidade inteira).').max(200),
+  feeOneWayCents: centsSchema,
+  feeRoundTripCents: centsSchema,
+  active: z.boolean().default(true),
+  sortOrder: sortOrderSchema.default(0),
+});
+
+export const taxiDriverSchema = z.object({
+  name: requiredText('o nome', 80),
+  phone: z.union([z.literal(''), phoneSchema]).default(''),
+  active: z.boolean().default(true),
+  capacity: z.number().int().min(1).max(10).default(1),
+  workHours: workHoursSchema,
+  sortOrder: sortOrderSchema.default(0),
+});
+
+export const taxiBlockSchema = z
+  .object({
+    driverId: idSchema.nullable().default(null),
+    dateFrom: dateSchema,
+    dateTo: dateSchema,
+    startTime: timeSchema.nullable().default(null),
+    endTime: timeSchema.nullable().default(null),
+    reason: optionalText(200),
+  })
+  .refine((v) => v.dateTo >= v.dateFrom, { message: 'A data final deve ser igual ou depois da inicial.', path: ['dateTo'] })
+  .refine((v) => (!v.startTime && !v.endTime) || (v.startTime && v.endTime && timeToMinutes(v.endTime) > timeToMinutes(v.startTime)), {
+    message: 'Informe início e fim (ou deixe os dois em branco para o dia inteiro).',
+    path: ['endTime'],
+  });
+
+export const taxiTransportUpdateSchema = z
+  .object({
+    driverId: idSchema.nullable(),
+    status: z.enum(TAXI_STATUSES),
+    pickupTime: timeSchema.nullable(),
+    dropoffTime: timeSchema.nullable(),
+    notes: optionalText(500),
+  })
+  .partial();
+
+// ---------------------------------------------------------------- Comentários
+
+/** Comentário: texto simples (sem HTML), sem links (anti-spam). */
+export const commentSchema = z.object({
+  body: requiredText('o comentário', 500)
+    .refine((v) => v.length >= 2, 'Escreva um comentário.')
+    .refine((v) => !/(https?:\/\/|www\.|\.com\b|\.br\b)/i.test(v), 'Comentários não podem ter links.'),
 });

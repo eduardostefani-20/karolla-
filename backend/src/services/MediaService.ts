@@ -9,6 +9,7 @@ import {
   type Story,
 } from '@karolla/shared';
 import type { z } from 'zod';
+import { assertSchemaFor } from './schemaGuard';
 import type { DatabaseService } from '../repositories/types';
 import type { MediaStorage } from '../integrations/storage/MediaStorage';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors';
@@ -58,6 +59,7 @@ export class MediaService {
   }
 
   async createInspiration(input: z.output<typeof inspirationSchema>) {
+    await assertSchemaFor(this.db, 11, Boolean(input.sizeId || input.groomingType), 'As etiquetas de porte e tipo de tosa');
     const breed = await this.resolveBreed(input);
     if (!input.breedId && !input.breedName) throw new ValidationError('Informe a raça.', { breedName: 'Escolha a raça ou digite o nome.' });
     const all = await this.db.inspirations.list();
@@ -68,6 +70,7 @@ export class MediaService {
   async updateInspiration(id: string, input: Partial<z.output<typeof inspirationSchema>>) {
     const current = await this.db.inspirations.findById(id);
     if (!current) throw new NotFoundError('Inspiração não encontrada.');
+    await assertSchemaFor(this.db, 11, Boolean(input.sizeId || input.groomingType), 'As etiquetas de porte e tipo de tosa');
     const breed = input.breedId !== undefined ? await this.resolveBreed({ speciesId: input.speciesId, breedId: input.breedId }) : {};
     const updated = await this.db.inspirations.update(id, { ...input, ...breed });
     if (input.storagePath !== undefined && current.storagePath && current.storagePath !== input.storagePath) {

@@ -91,6 +91,8 @@ export interface Service {
   speciesIds: ID[];
   /** Limite OPCIONAL de atendimentos simultâneos deste serviço (ex.: 1 mesa de tosa). null = sem limite. */
   maxConcurrent: number | null;
+  /** O serviço inclui tosa (mostra a etapa "estilo de tosa" no agendamento). */
+  includesGrooming: boolean;
 }
 
 export interface ServicePrice {
@@ -273,10 +275,38 @@ export interface Inspiration {
   storagePath: string;
   /** Serviço sugerido para este visual (opcional, apenas informativo). */
   serviceId: ID | null;
+  /** Etiqueta de porte (opcional). */
+  sizeId: ID | null;
+  /** Etiqueta de tipo de tosa (opcional). */
+  groomingType: GroomingType | null;
   active: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export const GROOMING_TYPES = ['bebe', 'higienica', 'tesoura', 'maquina', 'raca', 'criativa', 'banho'] as const;
+export type GroomingType = (typeof GROOMING_TYPES)[number];
+export const GROOMING_TYPE_LABELS: Record<GroomingType, string> = {
+  bebe: 'Tosa bebê',
+  higienica: 'Tosa higiênica',
+  tesoura: 'Tosa na tesoura',
+  maquina: 'Tosa na máquina',
+  raca: 'Padrão da raça',
+  criativa: 'Tosa criativa',
+  banho: 'Só banho',
+};
+
+/** Comentário de cliente (com login) em uma inspiração. A equipe pode remover. */
+export interface InspirationComment {
+  id: ID;
+  inspirationId: ID;
+  customerId: ID;
+  /** Primeiro nome do autor, gravado no momento do comentário. */
+  authorName: string;
+  body: string;
+  status: 'visible' | 'removed';
+  createdAt: string;
 }
 
 /** Referência da inspiração escolhida, "fotografada" no agendamento. */
@@ -437,6 +467,14 @@ export interface BusinessSettings {
   pickupMessage: string;
   /** Limite geral OPCIONAL de pets por horário, mesmo com vários profissionais. null = sem limite extra. */
   slotCapacityLimit: number | null;
+  /** Taxi Dog ligado. */
+  taxiEnabled: boolean;
+  /** Dias e horários do Taxi Dog. */
+  taxiWindows: TaxiWindow[];
+  /** Quantos minutos antes do horário o pet é buscado. */
+  taxiPickupLeadMinutes: number;
+  /** Tamanho do bloco de horário usado para a capacidade dos motoristas (minutos). */
+  taxiSlotMinutes: number;
 }
 
 export const FORM_FIELD_KEYS = [
@@ -612,4 +650,93 @@ export interface PlanEvent {
   detail: string;
   actorName: string;
   createdAt: string;
+}
+
+// ---------------------------------------------------------------- Taxi Dog
+
+export const TAXI_DIRECTIONS = ['pickup', 'dropoff', 'both'] as const;
+export type TaxiDirection = (typeof TAXI_DIRECTIONS)[number];
+export const TAXI_DIRECTION_LABELS: Record<TaxiDirection, string> = {
+  pickup: 'Só ida (buscar o pet)',
+  dropoff: 'Só volta (levar o pet)',
+  both: 'Ida e volta',
+};
+
+/** Janela em que o Taxi Dog funciona (por dia da semana). */
+export interface TaxiWindow {
+  weekday: number;
+  startTime: string;
+  endTime: string;
+}
+
+/** Região atendida, com taxa. Bairros comparados sem acento/maiúsculas; "*" = cidade inteira. */
+export interface TaxiRegion {
+  id: ID;
+  name: string;
+  neighborhoods: string[];
+  /** Taxa de um trecho (só ida ou só volta). */
+  feeOneWayCents: number;
+  /** Taxa de ida e volta. */
+  feeRoundTripCents: number;
+  active: boolean;
+  sortOrder: number;
+}
+
+export interface TaxiDriver {
+  id: ID;
+  name: string;
+  phone: string;
+  active: boolean;
+  /** Pets por viagem/horário. */
+  capacity: number;
+  /** Horário próprio (vazio = toda a janela do Taxi Dog). */
+  workHours: ProfessionalWorkHours[];
+  sortOrder: number;
+}
+
+/** Período sem Taxi Dog (driverId null = serviço inteiro) ou indisponibilidade de um motorista. */
+export interface TaxiBlock {
+  id: ID;
+  driverId: ID | null;
+  dateFrom: string;
+  dateTo: string;
+  startTime: string | null;
+  endTime: string | null;
+  reason: string;
+  createdAt: string;
+}
+
+export const TAXI_STATUSES = ['requested', 'confirmed', 'on_the_way', 'picked_up', 'at_shop', 'out_for_delivery', 'delivered', 'cancelled'] as const;
+export type TaxiStatus = (typeof TAXI_STATUSES)[number];
+export const TAXI_STATUS_LABELS: Record<TaxiStatus, string> = {
+  requested: 'Solicitado',
+  confirmed: 'Confirmado',
+  on_the_way: 'A caminho do tutor',
+  picked_up: 'Pet buscado',
+  at_shop: 'Na Karolla Pet',
+  out_for_delivery: 'Saiu para entrega',
+  delivered: 'Entregue',
+  cancelled: 'Cancelado',
+};
+
+/** Transporte de um agendamento. O status é independente do status do atendimento. */
+export interface TaxiTransport {
+  id: ID;
+  appointmentId: ID;
+  customerId: ID;
+  petId: ID;
+  regionId: ID | null;
+  direction: TaxiDirection;
+  date: string;
+  /** Horário de buscar o pet (null = sem ida). */
+  pickupTime: string | null;
+  /** Horário previsto de levar o pet (null = sem volta). */
+  dropoffTime: string | null;
+  address: string;
+  notes: string;
+  feeCents: number;
+  driverId: ID | null;
+  status: TaxiStatus;
+  createdAt: string;
+  updatedAt: string;
 }

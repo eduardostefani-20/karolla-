@@ -91,7 +91,7 @@ export class CatalogService {
         tiktokPixelId: settings.tiktokPixelId,
       },
       mode: this.mode,
-      features: { customerAccounts: await this.db.featuresReady(9) },
+      features: { customerAccounts: await this.db.featuresReady(9), taxi: settings.taxiEnabled && (await this.db.featuresReady(11)) },
     };
   }
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TAXI_DIRECTIONS } from '../types/domain';
 import type { FormFieldConfig, FormFieldKey } from '../types/domain';
 import { DEFAULT_FORM_FIELDS } from '../constants';
 import { sanitizeAttribution } from '../utils/attribution';
@@ -55,6 +56,18 @@ export const bookingRequestSchema = z.object({
   professionalId: idSchema.nullable().optional(),
   /** Inspiração de tosa escolhida no catálogo (só a referência; o servidor busca os dados). */
   inspirationId: idSchema.nullable().optional(),
+  /** Como o tutor quer a tosa (texto livre). */
+  groomingNotes: optionalText(500),
+  /** Foto de referência enviada pelo tutor (armazenamento privado). */
+  groomingReference: z
+    .object({ path: z.string().min(5).max(300), description: optionalText(300) })
+    .nullable()
+    .optional(),
+  /** Taxi Dog (só é aceito se estiver disponível para o bairro e horário). */
+  taxi: z
+    .object({ direction: z.enum(TAXI_DIRECTIONS), notes: optionalText(300) })
+    .nullable()
+    .optional(),
   /** Origem do cliente (UTM/anúncio). Limpa no servidor; nunca bloqueia o agendamento. */
   attribution: z.unknown().optional().transform(sanitizeAttribution),
   /** Total que o cliente viu na tela. Se divergir do recálculo do servidor, o cliente é avisado. */
