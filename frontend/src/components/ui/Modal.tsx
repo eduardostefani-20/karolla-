@@ -20,10 +20,14 @@ export function Modal({
   size?: 'md' | 'lg';
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // As páginas passam `onClose` como função nova a cada render. Guardá-la numa ref evita que o efeito
+  // abaixo rode de novo a cada tecla digitada — antes ele devolvia o foco ao primeiro campo do formulário.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCloseRef.current();
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
     const first = ref.current?.querySelector<HTMLElement>('input, select, textarea, button:not([data-close])');
@@ -33,12 +37,12 @@ export function Modal({
       document.body.style.overflow = '';
       previous?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm" onClick={() => onCloseRef.current()} aria-hidden />
       <div
         ref={ref}
         role="dialog"
