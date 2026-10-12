@@ -35,6 +35,10 @@ export interface TableMapping<T> {
   toRow(entity: Partial<T>): Row;
   fromRow(row: Row): T;
   order: { column: string; ascending: boolean }[];
+  /** Colunas criadas por migração recente: se o banco ainda não as tiver, a gravação segue sem elas. */
+  optionalColumns?: string[];
+  /** Tabela criada por migração recente: sem ela, leituras devolvem vazio. */
+  optionalTable?: boolean;
 }
 
 const hhmm = (v: unknown) => (typeof v === 'string' ? v.slice(0, 5) : null);
@@ -145,6 +149,7 @@ export const addonMapping: TableMapping<Addon> = {
 
 export const customerMapping: TableMapping<Customer> = {
   table: 'customers',
+  optionalColumns: ['marketing_opt_out'],
   order: [{ column: 'created_at', ascending: true }],
   toRow: (e) => {
     const row = pick(e as Row, { id: 'id', name: 'name', whatsapp: 'whatsapp', email: 'email', notes: 'notes', userId: 'user_id', marketingOptOut: 'marketing_opt_out' });
@@ -181,6 +186,7 @@ export const customerMapping: TableMapping<Customer> = {
 
 export const petMapping: TableMapping<Pet> = {
   table: 'pets',
+  optionalColumns: ['birth_date', 'characteristics', 'grooming_preferences', 'internal_notes', 'photo_path'],
   order: [{ column: 'created_at', ascending: true }],
   toRow: (e) =>
     pick(e as Row, {
@@ -281,6 +287,9 @@ export function settingsToRow(s: Partial<BusinessSettings>): Row {
     crmReactivationMessage: 'crm_reactivation_message',
   });
 }
+
+/** Colunas de configurações criadas pela migração 0009. */
+export const SETTINGS_OPTIONAL_COLUMNS = ['crm_inactive_days', 'crm_reactivation_message'];
 
 export function settingsFromRow(r: Row): BusinessSettings {
   return {
@@ -443,6 +452,7 @@ export const storyMapping: TableMapping<Story> = {
 
 export const petReferenceMapping: TableMapping<PetReference> = {
   table: 'pet_references',
+  optionalTable: true,
   order: [{ column: 'created_at', ascending: true }],
   toRow: (e) =>
     pick(e as Row, { id: 'id', petId: 'pet_id', customerId: 'customer_id', path: 'path', description: 'description', appointmentId: 'appointment_id', uploadedBy: 'uploaded_by' }),
@@ -460,6 +470,7 @@ export const petReferenceMapping: TableMapping<PetReference> = {
 
 export const contactLogMapping: TableMapping<ContactLog> = {
   table: 'contact_logs',
+  optionalTable: true,
   order: [{ column: 'created_at', ascending: true }],
   toRow: (e) =>
     pick(e as Row, {

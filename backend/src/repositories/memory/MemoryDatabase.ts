@@ -292,6 +292,10 @@ export class MemoryDatabase implements DatabaseService {
     this.adminRows.set(record.userId, { customPermissions: null, professionalId: null, lastLoginAt: null, createdAt: nowIso(), ...record });
   }
 
+  async featuresReady() {
+    return true;
+  }
+
   async healthCheck() {
     return true;
   }

@@ -2,7 +2,7 @@ import express, { Router, type RequestHandler } from 'express';
 import { MemoryMediaStorage } from '../integrations/storage/providers';
 import type { Container } from '../container';
 import { asyncHandler as h } from '../utils/asyncHandler';
-import { auditTrail, can, canAny, linkedCustomer, redactResponses, requireCustomer, requireStaff } from '../middleware/auth';
+import { auditTrail, can, canAny, linkedCustomer, redactResponses, requireCustomer, requireFeatures, requireStaff } from '../middleware/auth';
 import { rateLimit } from '../middleware/rateLimit';
 import { publicController } from '../controllers/publicController';
 import { authController } from '../controllers/authController';
@@ -25,6 +25,7 @@ export function buildRoutes(c: Container): Router {
   const team = teamController(c);
   const acc = accountController(c);
   const isTest = c.env.NODE_ENV === 'test';
+  const ready = requireFeatures(c.db); // recursos que dependem da migração 0009
 
   router.get('/health', (_req, res) => {
     res.json({ ok: true, mode: c.env.APP_MODE });
@@ -74,17 +75,17 @@ export function buildRoutes(c: Container): Router {
   a.get('/pets', can('pets.view'), h(admin.listPets));
   a.get('/pets/:id', can('pets.view'), h(admin.getPet));
   a.patch('/pets/:id', can('pets.edit'), h(admin.updatePet));
-  a.post('/pets/:id/upload-ticket', can('pets.edit'), h(admin.petUploadTicket));
-  a.put('/pets/:id/photo', can('pets.edit'), h(admin.setPetPhoto));
-  a.post('/pets/:id/references', can('pets.edit'), h(admin.addPetReference));
-  a.delete('/pets/:id/references/:refId', can('pets.edit'), h(admin.removePetReference));
+  a.post('/pets/:id/upload-ticket', ready, can('pets.edit'), h(admin.petUploadTicket));
+  a.put('/pets/:id/photo', ready, can('pets.edit'), h(admin.setPetPhoto));
+  a.post('/pets/:id/references', ready, can('pets.edit'), h(admin.addPetReference));
+  a.delete('/pets/:id/references/:refId', ready, can('pets.edit'), h(admin.removePetReference));
   a.post('/customers/:id/link-account', can('customers.edit'), h(admin.linkAccount));
   a.delete('/customers/:id/link-account', can('customers.edit'), h(admin.unlinkAccount));
 
   // CRM (o telefone aparece na lista, por isso exige também "Clientes → Ver")
-  a.get('/crm', can('crm.view', 'customers.view'), h(admin.crm));
-  a.post('/customers/:id/contacts', can('crm.edit', 'customers.view'), h(admin.startContact));
-  a.patch('/contacts/:id', can('crm.edit'), h(admin.updateContact));
+  a.get('/crm', ready, can('crm.view', 'customers.view'), h(admin.crm));
+  a.post('/customers/:id/contacts', ready, can('crm.edit', 'customers.view'), h(admin.startContact));
+  a.patch('/contacts/:id', ready, can('crm.edit'), h(admin.updateContact));
 
   // Catálogo: leitura liberada para quem usa a agenda (nomes de serviços/portes). Valores saem sem "finance.view".
   a.get('/catalog', canAny('services.view', 'agenda.view', 'professionals.view'), h(admin.catalog));
@@ -145,12 +146,12 @@ export function buildRoutes(c: Container): Router {
   // ---------------- Portal do cliente (cada um só acessa o próprio cadastro) ----------------
   const accountLimit = rateLimit({ keyPrefix: 'account', windowMs: 15 * 60 * 1000, max: isTest ? 10_000 : 10 });
   const signupLimit = rateLimit({ keyPrefix: 'signup', windowMs: 60 * 60 * 1000, max: isTest ? 10_000 : 5, message: 'Muitos cadastros em sequência. Tente mais tarde.' });
-  router.post('/account/signup', signupLimit, h(acc.signUp));
-  router.post('/account/login', accountLimit, h(acc.login));
-  router.post('/account/refresh', rateLimit({ keyPrefix: 'account-refresh', windowMs: 15 * 60 * 1000, max: isTest ? 10_000 : 60 }), h(acc.refresh));
+  router.post('/account/signup', ready, signupLimit, h(acc.signUp));
+  router.post('/account/login', ready, accountLimit, h(acc.login));
+  router.post('/account/refresh', ready, rateLimit({ keyPrefix: 'account-refresh', windowMs: 15 * 60 * 1000, max: isTest ? 10_000 : 60 }), h(acc.refresh));
   router.post('/account/logout', h(acc.logout));
   const me = Router();
-  me.use(requireCustomer(c.auth, c.account), noStore);
+  me.use(ready, requireCustomer(c.auth, c.account), noStore);
   me.get('/', h(acc.me));
   me.patch('/', linkedCustomer, h(acc.updateProfile));
   me.post('/email', accountLimit, h(acc.changeEmail));

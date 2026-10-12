@@ -183,5 +183,7 @@ export interface DatabaseService {
   stories: StoryRepository;
   admins: AdminRepository;
   audit: AuditRepository;
+  /** false = migração mais recente do banco ainda não aplicada (portal, CRM e fotos ficam desativados). */
+  featuresReady(): Promise<boolean>;
   healthCheck(): Promise<boolean>;
 }

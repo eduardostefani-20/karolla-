@@ -1,6 +1,7 @@
 import { createClient, type PostgrestError, type SupabaseClient } from '@supabase/supabase-js';
 import { isBlockingStatus, NON_BLOCKING_STATUSES, type AuditLog, type Customer, type PermissionSet, type Story } from '@karolla/shared';
 import { InfrastructureError, NotFoundError, SlotConflictError, ConflictError } from '../../utils/errors';
+import { logger } from '../../utils/logger';
 import type {
   AdminPatch,
   AdminRecord,
@@ -37,6 +38,7 @@ import {
   serviceMapping,
   servicePriceMapping,
   settingsFromRow,
+  SETTINGS_OPTIONAL_COLUMNS,
   settingsToRow,
   sizeMapping,
   speciesMapping,
@@ -63,6 +65,22 @@ function fail(error: PostgrestError, context: string): never {
   throw new InfrastructureError(`Supabase (${context}): ${error.message}`, error);
 }
 
+/** Coluna ainda inexistente no banco (migração pendente). */
+const isMissingColumn = (e: PostgrestError) => e.code === 'PGRST204' || e.code === '42703';
+/** Tabela ainda inexistente no banco (migração pendente). */
+const isMissingTable = (e: PostgrestError) => e.code === 'PGRST205' || e.code === '42P01';
+
+function without(row: Row, columns: string[] = []): Row {
+  return Object.fromEntries(Object.entries(row).filter(([k]) => !columns.includes(k)));
+}
+
+let warnedPending = false;
+function warnPending(table: string) {
+  if (warnedPending) return;
+  warnedPending = true;
+  logger.warn(`Migração do banco pendente (${table}): recursos novos ficam desativados até aplicar database/migrations.`);
+}
+
 class SupabaseTable<T extends { id: string }> implements TableRepository<T> {
   constructor(
     protected readonly client: SupabaseClient,
@@ -75,34 +93,47 @@ class SupabaseTable<T extends { id: string }> implements TableRepository<T> {
     if (Object.keys(match).length) query = query.match(match);
     for (const o of this.mapping.order) query = query.order(o.column, { ascending: o.ascending });
     const { data, error } = await query;
+    if (error && this.mapping.optionalTable && isMissingTable(error)) {
+      warnPending(this.mapping.table);
+      return [];
+    }
     if (error) fail(error, `list ${this.mapping.table}`);
     return (data as Row[]).map(this.mapping.fromRow);
   }
 
   async findById(id: string): Promise<T | null> {
     const { data, error } = await this.client.from(this.mapping.table).select('*').eq('id', id).maybeSingle();
+    if (error && this.mapping.optionalTable && isMissingTable(error)) return null;
     if (error) fail(error, `find ${this.mapping.table}`);
     return data ? this.mapping.fromRow(data as Row) : null;
   }
 
+  /** Grava; se o banco ainda não tiver as colunas novas (migração pendente), grava sem elas. */
+  private async write<R>(row: Row, run: (row: Row) => PromiseLike<{ data: R; error: PostgrestError | null }>, context: string): Promise<R> {
+    let { data, error } = await run(row);
+    if (error && isMissingColumn(error) && this.mapping.optionalColumns?.length) {
+      warnPending(this.mapping.table);
+      ({ data, error } = await run(without(row, this.mapping.optionalColumns)));
+    }
+    if (error) fail(error, context);
+    return data;
+  }
+
   async create(input: NewEntity<T>): Promise<T> {
-    const { data, error } = await this.client
-      .from(this.mapping.table)
-      .insert(this.mapping.toRow(input as Partial<T>))
-      .select('*')
-      .single();
-    if (error) fail(error, `insert ${this.mapping.table}`);
+    const data = await this.write(
+      this.mapping.toRow(input as Partial<T>),
+      (row) => this.client.from(this.mapping.table).insert(row).select('*').single(),
+      `insert ${this.mapping.table}`,
+    );
     return this.mapping.fromRow(data as Row);
   }
 
   async update(id: string, patch: EntityPatch<T>): Promise<T> {
-    const { data, error } = await this.client
-      .from(this.mapping.table)
-      .update(this.mapping.toRow(patch as Partial<T>))
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-    if (error) fail(error, `update ${this.mapping.table}`);
+    const data = await this.write(
+      this.mapping.toRow(patch as Partial<T>),
+      (row) => this.client.from(this.mapping.table).update(row).eq('id', id).select('*').maybeSingle(),
+      `update ${this.mapping.table}`,
+    );
     if (!data) throw new NotFoundError();
     return this.mapping.fromRow(data as Row);
   }
@@ -311,12 +342,12 @@ export class SupabaseDatabase implements DatabaseService {
       return settingsFromRow(data as Row);
     },
     update: async (patch: Parameters<DatabaseService['settings']['update']>[0]) => {
-      const { data, error } = await this.client
-        .from('business_settings')
-        .update(settingsToRow(patch))
-        .eq('id', 1)
-        .select('*')
-        .single();
+      const run = (row: Row) => this.client.from('business_settings').update(row).eq('id', 1).select('*').single();
+      let { data, error } = await run(settingsToRow(patch));
+      if (error && isMissingColumn(error)) {
+        warnPending('business_settings');
+        ({ data, error } = await run(without(settingsToRow(patch), SETTINGS_OPTIONAL_COLUMNS)));
+      }
       if (error) fail(error, 'update settings');
       return settingsFromRow(data as Row);
     },
@@ -431,6 +462,22 @@ export class SupabaseDatabase implements DatabaseService {
       }));
     },
   };
+
+  private featuresOk = false;
+  private featuresCheckedAt = 0;
+
+  /** A migração mais recente (0009) já foi aplicada? Fica em cache; enquanto não, reconfere a cada minuto. */
+  async featuresReady(): Promise<boolean> {
+    if (this.featuresOk || Date.now() - this.featuresCheckedAt < 60_000) return this.featuresOk;
+    this.featuresCheckedAt = Date.now();
+    const [settings, contacts] = await Promise.all([
+      this.client.from('business_settings').select('crm_inactive_days').limit(1),
+      this.client.from('contact_logs').select('id').limit(1),
+    ]);
+    this.featuresOk = !settings.error && !contacts.error;
+    if (!this.featuresOk) warnPending('0009');
+    return this.featuresOk;
+  }
 
   async healthCheck() {
     const { error } = await this.client.from('business_settings').select('id').limit(1);
