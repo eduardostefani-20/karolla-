@@ -23,7 +23,7 @@ export function AppointmentHistory({ items, petNames }: { items: Appointment[]; 
             </span>
             <span className="flex items-center gap-3">
               <StatusBadge status={a.status} />
-              <span className="w-24 text-right font-semibold tabular-nums">{formatCents(a.totalCents)}</span>
+              {a.totalCents !== undefined && <span className="w-24 text-right font-semibold tabular-nums">{formatCents(a.totalCents)}</span>}
             </span>
           </Link>
         </li>

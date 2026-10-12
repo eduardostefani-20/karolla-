@@ -40,9 +40,11 @@ export default function DashboardPage() {
             <Panel
               title="Agenda de hoje"
               actions={
-                <span className="inline-flex items-center gap-1 text-sm font-semibold text-ink-500">
-                  <CircleDollarSign className="h-4 w-4" aria-hidden /> {formatCents(data.stats.revenueTodayCents)}
-                </span>
+                data.stats.revenueTodayCents !== undefined && (
+                  <span className="inline-flex items-center gap-1 text-sm font-semibold text-ink-500">
+                    <CircleDollarSign className="h-4 w-4" aria-hidden /> {formatCents(data.stats.revenueTodayCents)}
+                  </span>
+                )
               }
             >
               {data.todayAgenda.length === 0 ? (
@@ -84,7 +86,7 @@ export default function DashboardPage() {
                     </span>
                     <span className="shrink-0 text-right text-sm tabular-nums">
                       <strong>{c.count}</strong> {c.count === 1 ? 'agendamento' : 'agendamentos'}
-                      <span className="block text-xs text-ink-500">{formatCents(c.revenueCents)}</span>
+                      {c.revenueCents !== undefined && <span className="block text-xs text-ink-500">{formatCents(c.revenueCents)}</span>}
                     </span>
                   </li>
                 ))}

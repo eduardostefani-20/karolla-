@@ -5,7 +5,9 @@ import type {
   AppointmentListQuery,
   AppointmentStatus,
   AppointmentUpdateInput,
+  AuditLog,
   AuthSession,
+  StaffMember,
   BlockedDate,
   BlockedTime,
   Breed,
@@ -38,6 +40,20 @@ export const authApi = {
   login: (email: string, password: string) => apiRequest<AuthSession>('POST', '/auth/login', { body: { email, password } }),
   me: () => apiRequest<{ user: AuthSession['user'] }>('GET', '/auth/me', auth),
   logout: () => apiRequest<void>('POST', '/auth/logout', auth),
+  refresh: (refreshToken: string) => apiRequest<AuthSession>('POST', '/auth/refresh', { body: { refreshToken } }),
+  forgotPassword: (email: string) => apiRequest<void>('POST', '/auth/forgot-password', { body: { email } }),
+  resetPassword: (token: string, password: string) => apiRequest<void>('POST', '/auth/reset-password', { body: { token, password } }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiRequest<void>('POST', '/auth/change-password', { ...auth, body: { currentPassword, newPassword } }),
+};
+
+export const teamApi = {
+  list: () => apiRequest<StaffMember[]>('GET', '/admin/team', auth),
+  create: (body: Body) => apiRequest<StaffMember>('POST', '/admin/team', { ...auth, body }),
+  update: (id: string, body: Body) => apiRequest<StaffMember>('PATCH', `/admin/team/${id}`, { ...auth, body }),
+  setPassword: (id: string, password: string) => apiRequest<void>('PUT', `/admin/team/${id}/password`, { ...auth, body: { password } }),
+  sendReset: (id: string) => apiRequest<void>('POST', `/admin/team/${id}/send-reset`, auth),
+  audit: (query: { actorId?: string; entity?: string } = {}) => apiRequest<AuditLog[]>('GET', '/admin/audit', { ...auth, query }),
 };
 
 export const adminApi = {

@@ -20,6 +20,7 @@ import { adminApi } from '@/services/adminApi';
 import { friendlyMessage } from '@/services/api';
 import { useAsync } from '@/hooks/useAsync';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { useAuth } from '@/context/AuthContext';
 import { Alert, Spinner } from '@/components/ui/Feedback';
 import { Button, ExternalButton } from '@/components/ui/Button';
 import { Field, Input, Select, Textarea } from '@/components/ui/Field';
@@ -159,6 +160,7 @@ export default function AppointmentDetailPage() {
   const { id = '' } = useParams();
   useDocumentMeta({ title: 'Agendamento — Karolla Pet', noindex: true });
   const toast = useToast();
+  const { can } = useAuth();
   const { data: a, loading, error, reload, setData } = useAsync(() => adminApi.appointment(id), [id]);
   const { data: catalog } = useAsync(() => adminApi.catalog(), []);
   const [editCustomer, setEditCustomer] = useState(false);
@@ -203,11 +205,13 @@ export default function AppointmentDetailPage() {
       </Link>
       <PageHeader
         title={`${a.pet.name} • ${formatDateBR(a.date)} às ${a.time}`}
-        description={<span className="inline-flex flex-wrap items-center gap-2"><StatusBadge status={a.status} /> {a.services.map((s) => s.name).join(' + ')} • {formatCents(a.totalCents)} • {a.durationMinutes} min</span>}
+        description={<span className="inline-flex flex-wrap items-center gap-2"><StatusBadge status={a.status} /> {a.services.map((s) => s.name).join(' + ')} {can('finance.view') && `• ${formatCents(a.totalCents)}`} • {a.durationMinutes} min</span>}
         actions={
-          <ExternalButton href={buildWhatsAppLink(a.customer.whatsapp, customerMsg)} variant="whatsapp" size="sm" icon={<MessageCircle className="h-4 w-4" aria-hidden />}>
-            WhatsApp do tutor
-          </ExternalButton>
+          a.customer.whatsapp ? (
+            <ExternalButton href={buildWhatsAppLink(a.customer.whatsapp, customerMsg)} variant="whatsapp" size="sm" icon={<MessageCircle className="h-4 w-4" aria-hidden />}>
+              WhatsApp do tutor
+            </ExternalButton>
+          ) : undefined
         }
       />
 
@@ -220,7 +224,7 @@ export default function AppointmentDetailPage() {
                   key={s}
                   type="button"
                   aria-pressed={a.status === s}
-                  disabled={statusSaving !== null}
+                  disabled={statusSaving !== null || !can('agenda.confirm')}
                   onClick={() => a.status !== s && changeStatus(s)}
                   className={cn(
                     'rounded-full border-2 px-4 py-2 text-sm font-semibold transition-all disabled:opacity-60',
@@ -232,9 +236,11 @@ export default function AppointmentDetailPage() {
               ))}
             </div>
           </Panel>
-          <Panel title="Editar agendamento">
-            <EditForm a={a} onSaved={setData} />
-          </Panel>
+          {can('agenda.edit') && (
+            <Panel title="Editar agendamento">
+              <EditForm a={a} onSaved={setData} />
+            </Panel>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -255,19 +261,21 @@ export default function AppointmentDetailPage() {
             </Panel>
           )}
           {a.attribution && <OriginPanel attribution={a.attribution} />}
-          <Panel title="Itens e valores">
+          <Panel title={can('finance.view') ? 'Itens e valores' : 'Itens'}>
             <ul className="space-y-1.5 text-sm">
               {a.services.map((s) => (
-                <li key={s.serviceId} className="flex justify-between"><span className="font-semibold">{s.name}</span><span className="tabular-nums">{formatCents(s.priceCents)}</span></li>
+                <li key={s.serviceId} className="flex justify-between"><span className="font-semibold">{s.name}</span>{can('finance.view') && <span className="tabular-nums">{formatCents(s.priceCents)}</span>}</li>
               ))}
               {a.addons.map((s) => (
-                <li key={s.addonId} className="flex justify-between text-ink-500"><span>+ {s.name}</span><span className="tabular-nums">{formatCents(s.priceCents)}</span></li>
+                <li key={s.addonId} className="flex justify-between text-ink-500"><span>+ {s.name}</span>{can('finance.view') && <span className="tabular-nums">{formatCents(s.priceCents)}</span>}</li>
               ))}
             </ul>
-            <p className="mt-3 flex justify-between border-t border-dashed border-ink-900/10 pt-3 font-semibold"><span>Total</span><span className="tabular-nums">{formatCents(a.totalCents)}</span></p>
-            <p className="mt-1 text-xs text-ink-400">Porte considerado: {size?.name ?? a.sizeId}. Valores gravados no momento do agendamento.</p>
+            {can('finance.view') && (
+              <p className="mt-3 flex justify-between border-t border-dashed border-ink-900/10 pt-3 font-semibold"><span>Total</span><span className="tabular-nums">{formatCents(a.totalCents)}</span></p>
+            )}
+            <p className="mt-1 text-xs text-ink-400">Porte considerado: {size?.name ?? a.sizeId}.{can('finance.view') && ' Valores gravados no momento do agendamento.'}</p>
           </Panel>
-          <Panel title="Pet" actions={catalog && <Button size="sm" variant="ghost" icon={<Pencil className="h-4 w-4" />} onClick={() => setEditPet(true)}>Editar</Button>}>
+          <Panel title="Pet" actions={catalog && can('pets.edit') && <Button size="sm" variant="ghost" icon={<Pencil className="h-4 w-4" />} onClick={() => setEditPet(true)}>Editar</Button>}>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               <dt className="text-ink-500">Nome</dt><dd><Link className="font-semibold text-brand-700 underline-offset-2 hover:underline" to={`/admin/pets/${a.pet.id}`}>{a.pet.name}</Link></dd>
               <dt className="text-ink-500">Raça</dt><dd>{a.pet.breedName}</dd>
@@ -277,16 +285,27 @@ export default function AppointmentDetailPage() {
               <dt className="text-ink-500">Obs.</dt><dd>{a.pet.notes || '—'}</dd>
             </dl>
           </Panel>
-          <Panel title="Tutor" actions={<Button size="sm" variant="ghost" icon={<Pencil className="h-4 w-4" />} onClick={() => setEditCustomer(true)}>Editar</Button>}>
+          <Panel title="Tutor" actions={can('customers.edit') && a.customer.address && <Button size="sm" variant="ghost" icon={<Pencil className="h-4 w-4" />} onClick={() => setEditCustomer(true)}>Editar</Button>}>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-              <dt className="text-ink-500">Nome</dt><dd><Link className="font-semibold text-brand-700 underline-offset-2 hover:underline" to={`/admin/clientes/${a.customer.id}`}>{a.customer.name}</Link></dd>
-              <dt className="text-ink-500">WhatsApp</dt><dd>{formatPhone(a.customer.whatsapp)}</dd>
-              <dt className="text-ink-500">E-mail</dt><dd className="break-all">{a.customer.email || '—'}</dd>
-              <dt className="text-ink-500">Endereço</dt>
-              <dd>{[a.customer.address.street && `${a.customer.address.street}, ${a.customer.address.number}`, a.customer.address.complement, a.customer.address.neighborhood, a.customer.address.city].filter(Boolean).join(' — ') || '—'}</dd>
+              <dt className="text-ink-500">Nome</dt>
+              <dd>
+                {can('customers.view') ? (
+                  <Link className="font-semibold text-brand-700 underline-offset-2 hover:underline" to={`/admin/clientes/${a.customer.id}`}>{a.customer.name}</Link>
+                ) : (
+                  <span className="font-semibold">{a.customer.name}</span>
+                )}
+              </dd>
+              {a.customer.address && (
+                <>
+                  <dt className="text-ink-500">WhatsApp</dt><dd>{formatPhone(a.customer.whatsapp)}</dd>
+                  <dt className="text-ink-500">E-mail</dt><dd className="break-all">{a.customer.email || '—'}</dd>
+                  <dt className="text-ink-500">Endereço</dt>
+                  <dd>{[a.customer.address.street && `${a.customer.address.street}, ${a.customer.address.number}`, a.customer.address.complement, a.customer.address.neighborhood, a.customer.address.city].filter(Boolean).join(' — ') || '—'}</dd>
+                </>
+              )}
             </dl>
           </Panel>
-          <Panel title="Integrações" actions={<Button size="sm" variant="ghost" loading={resending} icon={<RefreshCw className="h-4 w-4" />} onClick={resend}>Reenviar</Button>}>
+          <Panel title="Integrações" actions={can('agenda.edit') && <Button size="sm" variant="ghost" loading={resending} icon={<RefreshCw className="h-4 w-4" />} onClick={resend}>Reenviar</Button>}>
             {a.integrationLogs?.length ? (
               <ul className="space-y-2 text-sm">
                 {a.integrationLogs.map((l) => (

@@ -10,7 +10,7 @@ import { configuredPlatforms, joinPlatforms, loadTrackers, trackEvent, trackPage
  * Liga os pixels de anúncio no site público:
  *  - só se houver algum ID configurado no painel;
  *  - só depois de o visitante aceitar (aviso de cookies — LGPD);
- *  - nunca nas páginas do painel administrativo.
+ *  - nunca nas páginas do painel administrativo, da conta do cliente e de redefinição de senha.
  */
 export function TrackingManager() {
   const { catalog } = useCatalog();
@@ -25,7 +25,8 @@ export function TrackingManager() {
     ? { metaPixelId: s.metaPixelId, googleAdsId: s.googleAdsId, googleAdsBookingLabel: s.googleAdsBookingLabel, googleAdsWhatsappLabel: s.googleAdsWhatsappLabel, tiktokPixelId: s.tiktokPixelId }
     : null;
   const platforms = configuredPlatforms(config);
-  const isAdmin = pathname.startsWith('/admin');
+  // Áreas privadas (painel, conta do cliente, redefinição de senha): nunca carregam pixels.
+  const isAdmin = /^\/(admin|minha-conta|redefinir-senha)(\/|$)/.test(pathname);
   const enabled = platforms.length > 0 && !isAdmin;
 
   useEffect(() => {

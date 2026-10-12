@@ -40,7 +40,7 @@ export function AppointmentCard({ a, showDate }: { a: AppointmentDetail; showDat
         </p>
       </div>
       <div className="hidden shrink-0 self-center text-right sm:block">
-        <p className="font-semibold tabular-nums">{formatCents(a.totalCents)}</p>
+        {a.totalCents !== undefined && <p className="font-semibold tabular-nums">{formatCents(a.totalCents)}</p>}
       </div>
     </Link>
   );

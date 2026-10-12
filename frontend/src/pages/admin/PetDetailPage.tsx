@@ -5,6 +5,7 @@ import { formatAge, formatCents, formatPhone } from '@karolla/shared';
 import { adminApi } from '@/services/adminApi';
 import { useAsync } from '@/hooks/useAsync';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { useAuth } from '@/context/AuthContext';
 import { Alert, Spinner } from '@/components/ui/Feedback';
 import { Button } from '@/components/ui/Button';
 import { PageHeader, Panel } from '@/components/admin/AdminUi';
@@ -14,6 +15,7 @@ import { EditPetModal } from '@/components/admin/EditPetModal';
 export default function PetDetailPage() {
   const { id = '' } = useParams();
   useDocumentMeta({ title: 'Pet — Karolla Pet', noindex: true });
+  const { can } = useAuth();
   const { data: p, loading, error, reload } = useAsync(() => adminApi.pet(id), [id]);
   const { data: catalog } = useAsync(() => adminApi.catalog(), []);
   const [editing, setEditing] = useState(false);
@@ -30,7 +32,7 @@ export default function PetDetailPage() {
       <PageHeader
         title={`${species?.emoji ?? ''} ${p.name}`}
         description={`${p.breedName} • tutor ${p.customer.name}`}
-        actions={catalog && <Button variant="outline" size="sm" icon={<Pencil className="h-4 w-4" />} onClick={() => setEditing(true)}>Editar</Button>}
+        actions={catalog && can('pets.edit') && <Button variant="outline" size="sm" icon={<Pencil className="h-4 w-4" />} onClick={() => setEditing(true)}>Editar</Button>}
       />
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         <div className="space-y-6">
@@ -46,14 +48,19 @@ export default function PetDetailPage() {
           </Panel>
           <Panel title="Tutor">
             <p className="text-sm">
-              <Link to={`/admin/clientes/${p.customer.id}`} className="font-semibold text-brand-700 hover:underline">{p.customer.name}</Link>
+              {can('customers.view') ? (
+                <Link to={`/admin/clientes/${p.customer.id}`} className="font-semibold text-brand-700 hover:underline">{p.customer.name}</Link>
+              ) : (
+                <span className="font-semibold">{p.customer.name}</span>
+              )}
               <br />
               {formatPhone(p.customer.whatsapp)}
             </p>
           </Panel>
           <Panel title="Resumo">
             <p className="text-sm text-ink-600">
-              {done.length} atendimento(s) concluído(s) • {formatCents(done.reduce((s, a) => s + a.totalCents, 0))}
+              {done.length} atendimento(s) concluído(s)
+              {done.every((a) => a.totalCents !== undefined) && ` • ${formatCents(done.reduce((s, a) => s + a.totalCents, 0))}`}
             </p>
           </Panel>
         </div>

@@ -25,11 +25,25 @@ const OFFLINE = 'Sem conexão com o servidor. Verifique sua internet e tente nov
 
 let authTokenGetter: () => string | null = () => null;
 let onUnauthorized: () => void = () => {};
+let refresher: (() => Promise<string | null>) | null = null;
+let refreshing: Promise<string | null> | null = null;
 
 /** Conectado pelo AuthContext — mantém a camada HTTP desacoplada do React. */
-export function configureApiAuth(getter: () => string | null, unauthorized: () => void) {
+export function configureApiAuth(getter: () => string | null, unauthorized: () => void, refresh?: () => Promise<string | null>) {
   authTokenGetter = getter;
   onUnauthorized = unauthorized;
+  refresher = refresh ?? null;
+}
+
+/** Renova a sessão uma única vez mesmo com várias requisições recebendo 401 ao mesmo tempo. */
+function refreshOnce(): Promise<string | null> {
+  if (!refresher) return Promise.resolve(null);
+  refreshing ??= refresher()
+    .catch(() => null)
+    .finally(() => {
+      setTimeout(() => (refreshing = null), 0);
+    });
+  return refreshing;
 }
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -37,7 +51,7 @@ type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 export async function apiRequest<T>(
   method: Method,
   path: string,
-  options: { body?: unknown; query?: Record<string, string | undefined>; auth?: boolean; signal?: AbortSignal } = {},
+  options: { body?: unknown; query?: Record<string, string | undefined>; auth?: boolean; signal?: AbortSignal; retried?: boolean } = {},
 ): Promise<T> {
   const url = new URL(`${BASE_URL}/api${path}`, window.location.origin);
   for (const [k, v] of Object.entries(options.query ?? {})) if (v !== undefined && v !== '') url.searchParams.set(k, v);
@@ -73,7 +87,11 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const err = (data as ApiErrorBody | null)?.error;
-    if (response.status === 401 && options.auth) onUnauthorized();
+    if (response.status === 401 && options.auth) {
+      // Token de acesso vencido: tenta renovar a sessão e repetir a chamada uma vez.
+      if (!options.retried && (await refreshOnce())) return apiRequest<T>(method, path, { ...options, retried: true });
+      onUnauthorized();
+    }
     const message = err?.message && response.status < 500 ? err.message : FRIENDLY_FALLBACK;
     throw new ApiError(message, response.status, err?.code ?? 'UNKNOWN', err?.fields ?? {});
   }

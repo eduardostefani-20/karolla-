@@ -15,6 +15,7 @@ const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const InspirationsPage = lazy(() => import('@/pages/InspirationsPage'));
 const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
 const AdminRoutes = lazy(() => import('@/pages/admin/AdminRoutes'));
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
                   </BookingProvider>
                 }
               />
+              <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
               <Route
                 path="/admin/*"
                 element={

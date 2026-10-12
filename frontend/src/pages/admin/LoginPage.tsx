@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Field';
 import { Alert } from '@/components/ui/Feedback';
 import { Logo } from '@/components/site/Logo';
+import { authApi } from '@/services/adminApi';
+import { emailSchema } from '@karolla/shared';
 
 export default function LoginPage() {
   useDocumentMeta({ title: 'Área administrativa — Karolla Pet', noindex: true });
@@ -58,9 +60,58 @@ export default function LoginPage() {
               ENTRAR
             </Button>
           </form>
+          <ForgotPassword />
         </div>
         <p className="mt-6 text-center text-xs text-brand-50">Acesso restrito à equipe da Karolla Pet.</p>
       </div>
     </div>
+  );
+}
+
+/** Pede o link de redefinição. A resposta é sempre a mesma (não revela se o e-mail tem conta). */
+function ForgotPassword() {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-5 block w-full text-center text-sm font-semibold text-brand-700 underline-offset-2 hover:underline">
+        Esqueci minha senha
+      </button>
+    );
+  }
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const parsed = emailSchema.safeParse(email);
+    if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? 'E-mail inválido.');
+    setError(null);
+    setSending(true);
+    try {
+      await authApi.forgotPassword(parsed.data);
+      setSent(true);
+    } catch (err) {
+      setError(friendlyMessage(err));
+    } finally {
+      setSending(false);
+    }
+  };
+  return (
+    <form onSubmit={submit} noValidate className="mt-6 space-y-4 border-t border-ink-900/10 pt-6">
+      {sent ? (
+        <Alert tone="success">Se este e-mail tiver acesso ao painel, você vai receber um link para criar uma senha nova. Confira também o spam.</Alert>
+      ) : (
+        <>
+          <Field label="E-mail da sua conta" required error={error ?? undefined}>
+            {(p) => <Input {...p} type="email" autoComplete="username" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />}
+          </Field>
+          <Button type="submit" variant="outline" block loading={sending}>
+            Enviar link de redefinição
+          </Button>
+        </>
+      )}
+    </form>
   );
 }
