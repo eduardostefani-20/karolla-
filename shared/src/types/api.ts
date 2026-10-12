@@ -8,6 +8,7 @@ import type {
   Breed,
   BusinessHours,
   BusinessSettings,
+  ContactLog,
   Customer,
   FormFieldConfig,
   IntegrationLog,
@@ -99,11 +100,18 @@ export interface CustomerSummary extends Customer {
 export interface CustomerDetail extends Customer {
   pets: Pet[];
   appointments: Appointment[];
+  /** Tentativas de contato pelo WhatsApp (mais recentes primeiro). */
+  contacts: ContactLog[];
+  /** E-mail da conta do portal vinculada (null = sem conta). */
+  accountEmail: string | null;
 }
 
 export interface PetDetail extends Pet {
   customer: Customer;
   appointments: Appointment[];
+  /** Link temporário da foto (armazenamento privado). */
+  photoUrl: string | null;
+  references: PortalReference[];
 }
 
 export interface DashboardData {
@@ -183,4 +191,86 @@ export interface SystemStatus {
   auth: { provider: string };
   whatsapp: { provider: string; configured: boolean };
   googleSheets: { provider: string; configured: boolean };
+}
+
+// ---------------------------------------------------------------- Portal do cliente
+
+/** Dados do cliente que ele mesmo vê (sem observações internas da equipe). */
+export type PortalCustomer = Omit<Customer, 'notes' | 'userId'>;
+
+export interface PortalReference {
+  id: string;
+  description: string;
+  /** Link temporário (expira em minutos). */
+  url: string;
+  appointmentId: string | null;
+  createdAt: string;
+}
+
+/** Pet como o tutor vê: sem observações internas; foto por link temporário. */
+export interface PortalPet extends Omit<Pet, 'internalNotes' | 'photoPath'> {
+  photoUrl: string | null;
+  references: PortalReference[];
+}
+
+/** Atendimento como o tutor vê (sem anotações internas). */
+export interface PortalAppointment extends Omit<Appointment, 'notes' | 'attribution'> {
+  petName: string;
+  professionalName: string | null;
+}
+
+export interface CustomerAccount {
+  email: string;
+  name: string;
+  /** linked = conta ligada a um cadastro; pending = a equipe precisa confirmar o vínculo. */
+  status: 'linked' | 'pending';
+  customer: PortalCustomer | null;
+}
+
+export interface CustomerSession {
+  token: string;
+  refreshToken?: string;
+  expiresAt: string;
+  account: CustomerAccount;
+}
+
+export interface SignUpResponse {
+  /** true = enviamos um e-mail de confirmação; o login só funciona depois de confirmar. */
+  needsConfirmation: boolean;
+  session: CustomerSession | null;
+}
+
+// ---------------------------------------------------------------- CRM
+
+export type CrmSegment = 'new' | 'recurring' | 'inactive';
+
+export interface CrmCustomer {
+  id: string;
+  name: string;
+  whatsapp: string;
+  email: string;
+  marketingOptOut: boolean;
+  hasAccount: boolean;
+  pets: { id: string; name: string }[];
+  segment: CrmSegment;
+  /** Atendimentos concluídos. */
+  visits: number;
+  lastVisit: string | null;
+  daysSinceLastVisit: number | null;
+  nextAppointment: string | null;
+  lastContact: ContactLog | null;
+  createdAt: string;
+}
+
+export interface CrmResponse {
+  inactiveDays: number;
+  today: string;
+  counts: Record<CrmSegment, number>;
+  customers: CrmCustomer[];
+}
+
+export interface ContactResult {
+  contact: ContactLog;
+  /** Conversa do WhatsApp com a mensagem pronta (o envio é feito pela pessoa, não pelo sistema). */
+  whatsappLink: string;
 }

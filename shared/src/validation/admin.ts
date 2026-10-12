@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { ADMIN_ROLES, APPOINTMENT_STATUSES, FORM_FIELD_KEYS } from '../types/domain';
+import { ADMIN_ROLES, APPOINTMENT_STATUSES, CONTACT_KINDS, CONTACT_STATUSES, FORM_FIELD_KEYS } from '../types/domain';
+import { DEFAULT_CRM_INACTIVE_DAYS, DEFAULT_CRM_REACTIVATION_MESSAGE } from '../utils/crm';
 import { ASSIGNABLE_ROLES, sanitizeGrants } from '../auth/permissions';
 import { DEFAULT_PROFESSIONAL_COLOR } from '../utils/color';
 import {
@@ -12,7 +13,9 @@ import {
   phoneSchema,
   requiredText,
   sortOrderSchema,
+  text,
   timeSchema,
+  birthDateSchema,
 } from './primitives';
 import { addressSchema } from './booking';
 import { timeToMinutes } from '../utils/date';
@@ -204,6 +207,8 @@ export const settingsSchema = z.object({
   googleAdsBookingLabel: trackingId(/^[A-Za-z0-9_-]{4,64}$/, 'Rótulo de conversão inválido (copie só o trecho depois da barra em send_to).'),
   googleAdsWhatsappLabel: trackingId(/^[A-Za-z0-9_-]{4,64}$/, 'Rótulo de conversão inválido (copie só o trecho depois da barra em send_to).'),
   tiktokPixelId: trackingId(/^[A-Z0-9]{10,40}$/, 'O ID do Pixel do TikTok tem letras maiúsculas e números (ex.: C4ABCDEF123GHIJ456KL).', (v) => v.toUpperCase()),
+  crmInactiveDays: z.number({ invalid_type_error: 'Informe os dias.' }).int().min(7, 'Use pelo menos 7 dias.').max(365, 'Use no máximo 365 dias.').default(DEFAULT_CRM_INACTIVE_DAYS),
+  crmReactivationMessage: text(600).pipe(z.string().min(10, 'Escreva a mensagem.')).default(DEFAULT_CRM_REACTIVATION_MESSAGE),
 });
 export type SettingsInput = z.input<typeof settingsSchema>;
 
@@ -244,6 +249,7 @@ export const customerUpdateSchema = z
     email: z.union([z.literal(''), emailSchema]),
     address: addressSchema,
     notes: optionalText(1000),
+    marketingOptOut: z.boolean(),
   })
   .partial();
 
@@ -256,9 +262,25 @@ export const petUpdateSchema = z
     sizeId: idSchema,
     weightKg: z.number().positive().max(150).nullable(),
     ageMonths: z.number().int().min(0).max(360).nullable(),
+    birthDate: birthDateSchema.nullable(),
     notes: optionalText(1000),
+    characteristics: optionalText(500),
+    groomingPreferences: optionalText(500),
+    internalNotes: optionalText(1000),
   })
   .partial();
+
+export const crmQuerySchema = z.object({
+  segment: z.enum(['all', 'new', 'recurring', 'inactive']).default('all'),
+  search: z.string().trim().max(80).optional(),
+});
+
+export const contactCreateSchema = z.object({
+  kind: z.enum(CONTACT_KINDS).default('reactivation'),
+  appointmentId: idSchema.nullable().default(null),
+});
+export const contactUpdateSchema = z.object({ status: z.enum(CONTACT_STATUSES) });
+export const linkAccountSchema = z.object({ email: emailSchema });
 
 export const appointmentListQuerySchema = z.object({
   from: dateSchema.optional(),

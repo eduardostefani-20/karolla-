@@ -103,7 +103,12 @@ export interface Customer {
   whatsapp: string;
   email: string;
   address: Address;
+  /** Observações INTERNAS da equipe (o cliente nunca vê). */
   notes: string;
+  /** Conta do portal do cliente vinculada (null = sem login). */
+  userId: ID | null;
+  /** O cliente pediu para não receber mensagens de lembrete/promoção (o CRM respeita). */
+  marketingOptOut: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -120,7 +125,73 @@ export interface Pet {
   sizeId: ID;
   weightKg: number | null;
   ageMonths: number | null;
+  /** Data de nascimento (aaaa-mm-dd). Quando informada, a idade é calculada a partir dela. */
+  birthDate: string | null;
+  /** Observações do tutor (visíveis para o cliente e a equipe). */
   notes: string;
+  /** Temperamento e características (ex.: medroso com secador, idoso, alérgico). */
+  characteristics: string;
+  /** Preferências de tosa informadas pelo tutor. */
+  groomingPreferences: string;
+  /** Observações INTERNAS da equipe (o cliente nunca vê). */
+  internalNotes: string;
+  /** Foto do pet no armazenamento PRIVADO ('' = sem foto). Exibida por link temporário. */
+  photoPath: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Valores iniciais dos campos acrescentados ao cliente e ao pet (portal/CRM). */
+export const CUSTOMER_DEFAULTS = { userId: null, marketingOptOut: false } satisfies Pick<Customer, 'userId' | 'marketingOptOut'>;
+export const PET_DEFAULTS = {
+  birthDate: null,
+  characteristics: '',
+  groomingPreferences: '',
+  internalNotes: '',
+  photoPath: '',
+} satisfies Pick<Pet, 'birthDate' | 'characteristics' | 'groomingPreferences' | 'internalNotes' | 'photoPath'>;
+
+/** Foto de referência (ex.: corte desejado) guardada em armazenamento privado. */
+export interface PetReference {
+  id: ID;
+  petId: ID;
+  customerId: ID;
+  path: string;
+  description: string;
+  /** Agendamento ao qual a referência foi associada (null = referência geral do pet). */
+  appointmentId: ID | null;
+  uploadedBy: 'customer' | 'staff';
+  createdAt: string;
+}
+
+export const CONTACT_KINDS = ['reactivation', 'pickup', 'other'] as const;
+export type ContactKind = (typeof CONTACT_KINDS)[number];
+export const CONTACT_KIND_LABELS: Record<ContactKind, string> = {
+  reactivation: 'Reativação (cliente inativo)',
+  pickup: 'Aviso de retirada',
+  other: 'Outro contato',
+};
+export const CONTACT_STATUSES = ['opened', 'sent', 'cancelled'] as const;
+export type ContactStatus = (typeof CONTACT_STATUSES)[number];
+export const CONTACT_STATUS_LABELS: Record<ContactStatus, string> = {
+  opened: 'WhatsApp aberto (envio não confirmado)',
+  sent: 'Enviado',
+  cancelled: 'Não enviado',
+};
+
+/**
+ * Tentativa de contato pelo WhatsApp. O sistema NUNCA envia sozinho: abre a conversa com a mensagem
+ * pronta e a equipe confirma se enviou.
+ */
+export interface ContactLog {
+  id: ID;
+  customerId: ID;
+  appointmentId: ID | null;
+  kind: ContactKind;
+  status: ContactStatus;
+  message: string;
+  actorId: ID | null;
+  actorName: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -303,6 +374,10 @@ export interface BusinessSettings {
   googleAdsWhatsappLabel: string;
   /** Pixel do TikTok Ads. Vazio = desligado. */
   tiktokPixelId: string;
+  /** CRM: cliente sem atendimento concluído há mais de N dias é considerado inativo. */
+  crmInactiveDays: number;
+  /** CRM: mensagem de reativação. Variáveis: {tutor}, {pet}, {dias}. */
+  crmReactivationMessage: string;
 }
 
 export const FORM_FIELD_KEYS = [

@@ -30,6 +30,13 @@ export const emailSchema = z
   .email('Informe um e-mail válido. Ex.: nome@email.com');
 
 export const dateSchema = z.string().refine(isValidDateString, 'Data inválida.');
+
+/** Data de nascimento do pet: não pode ser no futuro nem ter mais de 40 anos. */
+export const birthDateSchema = dateSchema.refine((v) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const oldest = `${Number(today.slice(0, 4)) - 40}${today.slice(4)}`;
+  return v <= today && v >= oldest;
+}, 'Data de nascimento inválida.');
 export const timeSchema = z.string().regex(TIME_RE, 'Horário inválido.');
 
 export const centsSchema = z
