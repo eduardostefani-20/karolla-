@@ -21,6 +21,14 @@ import {
   sizeSchema,
   speciesSchema,
   type SystemStatus,
+  contactCreateSchema,
+  contactUpdateSchema,
+  crmQuerySchema,
+  idSchema,
+  linkAccountSchema,
+  petPhotoSchema,
+  petReferenceSchema,
+  privateUploadSchema,
 } from '@karolla/shared';
 import { z } from 'zod';
 import type { Container } from '../container';
@@ -142,6 +150,36 @@ export function adminController(c: Container) {
     },
     async updatePet(req: Request, res: Response) {
       res.json(await c.customers.updatePet(id(req), parse(petUpdateSchema, req.body)));
+    },
+    async linkAccount(req: Request, res: Response) {
+      res.json(await c.customers.linkAccount(id(req), parse(linkAccountSchema, req.body).email));
+    },
+    async unlinkAccount(req: Request, res: Response) {
+      res.json(await c.customers.unlinkAccount(id(req)));
+    },
+    async petUploadTicket(req: Request, res: Response) {
+      res.json(await c.customers.petUploadTicket(id(req), parse(privateUploadSchema, req.body)));
+    },
+    async setPetPhoto(req: Request, res: Response) {
+      res.json(await c.customers.setPetPhoto(id(req), parse(petPhotoSchema, req.body).path));
+    },
+    async addPetReference(req: Request, res: Response) {
+      res.status(201).json(await c.customers.addPetReference(id(req), parse(petReferenceSchema, req.body)));
+    },
+    async removePetReference(req: Request, res: Response) {
+      const refId = parse(z.object({ refId: idSchema }), req.params).refId;
+      res.json(await c.customers.removePetReference(id(req), refId));
+    },
+
+    // ----- CRM -----
+    async crm(req: Request, res: Response) {
+      res.json(await c.crm.list(parse(crmQuerySchema, req.query)));
+    },
+    async startContact(req: Request, res: Response) {
+      res.status(201).json(await c.crm.startContact(id(req), parse(contactCreateSchema, req.body), req.admin!));
+    },
+    async updateContact(req: Request, res: Response) {
+      res.json(await c.crm.updateContact(id(req), parse(contactUpdateSchema, req.body).status));
     },
 
     // ----- Catálogo -----

@@ -3,7 +3,8 @@ import { hasPermission, redactFinance, type Permission } from '@karolla/shared';
 import type { AuthService } from '../integrations/auth/AuthService';
 import type { DatabaseService } from '../repositories/types';
 import type { StaffService } from '../services/StaffService';
-import { ForbiddenError, UnauthorizedError } from '../utils/errors';
+import { AppError, ForbiddenError, UnauthorizedError } from '../utils/errors';
+import { PENDING_MESSAGE, type CustomerAccountService } from '../services/CustomerAccountService';
 import { asyncHandler } from '../utils/asyncHandler';
 import { errorMeta, logger } from '../utils/logger';
 
@@ -117,3 +118,22 @@ export function auditTrail(db: DatabaseService): RequestHandler {
     next();
   };
 }
+
+/** Portal do cliente: exige login; `req.customer` é o cadastro vinculado (ou null = pendente). */
+export function requireCustomer(auth: AuthService, account: CustomerAccountService): RequestHandler {
+  return asyncHandler(async (req, _res, next) => {
+    const token = bearerToken(req.headers.authorization);
+    if (!token) throw new UnauthorizedError('Entre na sua conta para continuar.');
+    const identity = await auth.verify(token);
+    if (!identity) throw new UnauthorizedError('Sua sessão expirou. Entre novamente.');
+    req.identity = identity;
+    req.customer = await account.resolve(identity);
+    next();
+  });
+}
+
+/** Rotas que precisam do cadastro já vinculado. */
+export const linkedCustomer: RequestHandler = (req, _res, next) => {
+  if (!req.customer) return next(new AppError(403, 'ACCOUNT_PENDING', PENDING_MESSAGE));
+  next();
+};

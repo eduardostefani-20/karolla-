@@ -17,6 +17,7 @@ interface MockUser {
   hash: string;
   /** Incrementado ao revogar sessões: tokens antigos deixam de valer. */
   epoch: number;
+  whatsapp?: string;
 }
 
 const hashPassword = (password: string, salt: string) => scryptSync(password, salt, 32).toString('hex');
@@ -57,7 +58,7 @@ export class MockAuthService implements AuthService {
   }
 
   private identity(u: MockUser): AuthIdentity {
-    return { userId: u.id, email: u.email, name: u.name };
+    return { userId: u.id, email: u.email, name: u.name, emailConfirmed: true, ...(u.whatsapp ? { whatsapp: u.whatsapp } : {}) };
   }
 
   private issue(u: MockUser): AuthTokens {
@@ -98,15 +99,21 @@ export class MockAuthService implements AuthService {
     if (user) await this.revokeSessions(user.id);
   }
 
-  async signUp(input: { email: string; password: string; name: string }): Promise<SignUpResult> {
+  async signUp(input: { email: string; password: string; name: string; metadata?: Record<string, string> }): Promise<SignUpResult> {
     if (this.byEmail(input.email)) throw new ValidationError('Este e-mail já tem cadastro. Entre ou recupere a senha.', { email: 'E-mail já cadastrado.' });
     const user = this.addUser(randomUUID(), input.email, input.password, input.name);
+    if (input.metadata?.whatsapp) user.whatsapp = input.metadata.whatsapp;
     return { identity: this.identity(user), needsConfirmation: false, tokens: this.issue(user) };
   }
 
   async createUser(input: { email: string; password: string; name: string }) {
     if (this.byEmail(input.email)) throw new ValidationError('Já existe uma conta com este e-mail.', { email: 'E-mail já cadastrado.' });
     return this.identity(this.addUser(randomUUID(), input.email, input.password, input.name));
+  }
+
+  async findUserById(userId: string) {
+    const user = this.users.get(userId);
+    return user ? this.identity(user) : null;
   }
 
   async findUserByEmail(email: string) {
@@ -148,6 +155,15 @@ export class MockAuthService implements AuthService {
   async revokeSessions(userId: string) {
     const user = this.users.get(userId);
     if (user) user.epoch += 1;
+  }
+
+  /** DEMO: não há e-mail; a troca vale na hora. */
+  async requestEmailChange(token: string, newEmail: string) {
+    const payload = verifyToken(token, this.opts.secret);
+    const user = payload ? this.users.get(payload.sub) : undefined;
+    if (!user) throw new UnauthorizedError();
+    if (this.byEmail(newEmail)) throw new ValidationError('Este e-mail já está em uso.', { email: 'E-mail já cadastrado.' });
+    user.email = newEmail.trim().toLowerCase();
   }
 
   async updateProfile(userId: string, data: { name?: string; email?: string }) {

@@ -15,6 +15,8 @@ import {
   type AppointmentInspiration,
   type Customer,
   type Pet,
+  CUSTOMER_DEFAULTS,
+  PET_DEFAULTS,
 } from '@karolla/shared';
 import type { DatabaseService } from '../repositories/types';
 import { AppError, ConflictError, SlotConflictError, ValidationError } from '../utils/errors';
@@ -181,7 +183,7 @@ export class BookingService {
   private async upsertCustomer(tutor: BookingRequest['tutor']): Promise<Customer> {
     const existing = await this.db.customers.findByWhatsapp(tutor.whatsapp);
     if (!existing) {
-      return this.db.customers.create({ name: tutor.name, whatsapp: tutor.whatsapp, email: tutor.email, address: tutor.address, notes: '' });
+      return this.db.customers.create({ ...CUSTOMER_DEFAULTS, name: tutor.name, whatsapp: tutor.whatsapp, email: tutor.email, address: tutor.address, notes: '' });
     }
     // Cliente recorrente: completa apenas dados que estavam vazios (o formulário público não sobrescreve cadastro).
     const hasAddress = Boolean(existing.address.street);
@@ -204,7 +206,7 @@ export class BookingService {
       ageMonths: data.ageMonths,
       notes: data.notes,
     };
-    if (!existing) return this.db.pets.create({ customerId, ...fields });
+    if (!existing) return this.db.pets.create({ ...PET_DEFAULTS, customerId, ...fields });
     return this.db.pets.update(existing.id, {
       ...fields,
       weightKg: data.weightKg ?? existing.weightKg,

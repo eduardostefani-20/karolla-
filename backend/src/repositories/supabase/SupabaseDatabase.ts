@@ -24,6 +24,8 @@ import {
   breedMapping,
   businessHoursMapping,
   customerMapping,
+  contactLogMapping,
+  petReferenceMapping,
   formFieldFromRow,
   formFieldToRow,
   integrationLogMapping,
@@ -113,6 +115,20 @@ class SupabaseTable<T extends { id: string }> implements TableRepository<T> {
 }
 
 class SupabaseCustomers extends SupabaseTable<Customer> {
+  async findByUserId(userId: string): Promise<Customer | null> {
+    const { data, error } = await this.client.from('customers').select('*').eq('user_id', userId).maybeSingle();
+    if (error) fail(error, 'find customer by user');
+    return data ? customerMapping.fromRow(data as Row) : null;
+  }
+
+  async findUnlinkedByEmail(email: string): Promise<Customer[]> {
+    // ilike sem curingas: compara sem diferenciar maiúsculas (escapa % e _ do e-mail)
+    const pattern = email.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
+    const { data, error } = await this.client.from('customers').select('*').is('user_id', null).ilike('email', pattern);
+    if (error) fail(error, 'find customers by email');
+    return (data as Row[]).map((r) => customerMapping.fromRow(r));
+  }
+
   async findByWhatsapp(whatsapp: string): Promise<Customer | null> {
     const { data, error } = await this.client.from('customers').select('*').eq('whatsapp', whatsapp).maybeSingle();
     if (error) fail(error, 'find customer by whatsapp');
@@ -248,6 +264,8 @@ export class SupabaseDatabase implements DatabaseService {
   addons;
   customers;
   pets;
+  petReferences;
+  contacts;
   appointments;
   businessHours;
   blockedDates;
@@ -269,6 +287,8 @@ export class SupabaseDatabase implements DatabaseService {
     this.addons = new SupabaseTable(this.client, addonMapping);
     this.customers = new SupabaseCustomers(this.client, customerMapping);
     this.pets = new SupabaseTable(this.client, petMapping);
+    this.petReferences = new SupabaseTable(this.client, petReferenceMapping);
+    this.contacts = new SupabaseTable(this.client, contactLogMapping);
     this.appointments = new SupabaseAppointments(this.client);
     this.businessHours = new SupabaseTable(this.client, businessHoursMapping);
     this.blockedDates = new SupabaseTable(this.client, blockedDateMapping);

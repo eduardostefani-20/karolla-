@@ -25,7 +25,14 @@ export class SupabaseAuthService implements AuthService {
   }
 
   private identity(user: User): AuthIdentity {
-    return { userId: user.id, email: user.email ?? '', name: String(user.user_metadata?.name ?? '') };
+    const whatsapp = typeof user.user_metadata?.whatsapp === 'string' ? user.user_metadata.whatsapp : undefined;
+    return {
+      userId: user.id,
+      email: user.email ?? '',
+      name: String(user.user_metadata?.name ?? ''),
+      emailConfirmed: confirmedByLink(user),
+      ...(whatsapp ? { whatsapp } : {}),
+    };
   }
 
   private tokens(session: { access_token: string; refresh_token: string; expires_at?: number }): AuthTokens {
@@ -103,10 +110,16 @@ export class SupabaseAuthService implements AuthService {
     return this.identity(data.user);
   }
 
+  async findUserById(userId: string) {
+    const { data, error } = await this.admin.auth.admin.getUserById(userId);
+    return error || !data.user ? null : this.identity(data.user);
+  }
+
   async findUserByEmail(email: string) {
     const { data, error } = await this.admin.from('users').select('id, email, name').ilike('email', email.trim()).maybeSingle();
     if (error || !data) return null;
-    return { userId: String(data.id), email: String(data.email), name: String(data.name ?? '') };
+    const { data: full } = await this.admin.auth.admin.getUserById(String(data.id));
+    return full.user ? this.identity(full.user) : null;
   }
 
   async setPassword(userId: string, password: string) {
@@ -140,6 +153,17 @@ export class SupabaseAuthService implements AuthService {
     for (const [token, entry] of this.cache) if (entry.identity.userId === userId) this.cache.delete(token);
   }
 
+  async requestEmailChange(token: string, newEmail: string, redirectTo: string) {
+    // Feito com o token do próprio usuário: o Supabase envia o link de confirmação ao novo e-mail.
+    const res = await fetch(`${this.url.replace(/\/$/, '')}/auth/v1/user?redirect_to=${encodeURIComponent(redirectTo)}`, {
+      method: 'PUT',
+      headers: { apikey: this.anonKey, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: newEmail }),
+    }).catch(() => null);
+    if (!res?.ok) throw new ValidationError('Não foi possível trocar o e-mail agora. Confira o endereço e tente novamente.', { email: 'E-mail recusado.' });
+    this.cache.clear();
+  }
+
   async updateProfile(userId: string, data: { name?: string; email?: string }) {
     const { error } = await this.admin.auth.admin.updateUserById(userId, {
       ...(data.email ? { email: data.email } : {}),
@@ -151,6 +175,16 @@ export class SupabaseAuthService implements AuthService {
     if (data.email) patch.email = data.email;
     if (Object.keys(patch).length) await this.admin.from('users').update(patch).eq('id', userId);
   }
+}
+
+/**
+ * E-mail confirmado PELO LINK. Se a confirmação de e-mail do Supabase estiver desligada, o login nasce
+ * "confirmado" no mesmo instante do cadastro — nesse caso NÃO tratamos como confirmado, para que ninguém
+ * crie uma conta com o e-mail de outra pessoa e veja o cadastro dela.
+ */
+function confirmedByLink(user: User): boolean {
+  if (!user.email_confirmed_at) return false;
+  return Date.parse(user.email_confirmed_at) - Date.parse(user.created_at) > 5_000;
 }
 
 /**

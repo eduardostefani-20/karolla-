@@ -12,6 +12,7 @@ import type {
   BlockedTime,
   BusinessHours,
   BusinessSettings,
+  ContactLog,
   Customer,
   FormFieldConfig,
   IntegrationLog,
@@ -20,6 +21,7 @@ import type {
   Professional,
   Story,
   Pet,
+  PetReference,
   PetSize,
   Service,
   ServicePrice,
@@ -122,6 +124,13 @@ export interface FormFieldRepository {
   upsertMany(fields: FormFieldConfig[]): Promise<FormFieldConfig[]>;
 }
 
+export interface CustomerRepository extends TableRepository<Customer> {
+  findByWhatsapp(whatsapp: string): Promise<Customer | null>;
+  findByUserId(userId: string): Promise<Customer | null>;
+  /** Cadastros SEM conta vinculada com este e-mail (sem diferenciar maiúsculas). */
+  findUnlinkedByEmail(email: string): Promise<Customer[]>;
+}
+
 export interface AdminRecord {
   userId: string;
   email: string;
@@ -158,8 +167,10 @@ export interface DatabaseService {
   services: TableRepository<Service>;
   servicePrices: TableRepository<ServicePrice>;
   addons: TableRepository<Addon>;
-  customers: TableRepository<Customer> & { findByWhatsapp(whatsapp: string): Promise<Customer | null> };
+  customers: CustomerRepository;
   pets: TableRepository<Pet>;
+  petReferences: TableRepository<PetReference>;
+  contacts: TableRepository<ContactLog>;
   appointments: AppointmentRepository;
   businessHours: TableRepository<BusinessHours>;
   blockedDates: TableRepository<BlockedDate>;

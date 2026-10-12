@@ -1,7 +1,11 @@
 import {
   addDays,
   calculateAppointmentPrice,
+  CUSTOMER_DEFAULTS,
+  DEFAULT_CRM_INACTIVE_DAYS,
+  DEFAULT_CRM_REACTIVATION_MESSAGE,
   DEFAULT_FORM_FIELDS,
+  PET_DEFAULTS,
   nowInTimezone,
   type AppointmentStatus,
   type BusinessSettings,
@@ -35,6 +39,8 @@ export function demoSettings(env: { WHATSAPP_NUMBER?: string; TIMEZONE: string }
     googleAdsBookingLabel: '',
     googleAdsWhatsappLabel: '',
     tiktokPixelId: '',
+    crmInactiveDays: DEFAULT_CRM_INACTIVE_DAYS,
+    crmReactivationMessage: DEFAULT_CRM_REACTIVATION_MESSAGE,
   };
 }
 
@@ -195,21 +201,24 @@ export async function seedDemoData(db: MemoryDatabase, opts: { now: Date; timezo
   // Clientes e pets fictícios
   const empty = { street: '', number: '', complement: '', neighborhood: '', city: '' };
   const joao = await db.customers.create({
+    ...CUSTOMER_DEFAULTS,
     name: 'João Silva (demo)', whatsapp: '11988887777', email: 'joao.demo@exemplo.com',
     address: { street: 'Rua das Flores', number: '120', complement: '', neighborhood: 'Centro', city: 'São Paulo' }, notes: '',
   });
   const maria = await db.customers.create({
+    ...CUSTOMER_DEFAULTS,
     name: 'Maria Souza (demo)', whatsapp: '11977776666', email: 'maria.demo@exemplo.com',
     address: { street: 'Av. Brasil', number: '45', complement: 'Apto 12', neighborhood: 'Jardins', city: 'São Paulo' }, notes: 'Prefere contato à tarde.',
   });
   const ana = await db.customers.create({
+    ...CUSTOMER_DEFAULTS,
     name: 'Ana Lima (demo)', whatsapp: '11966665555', email: '', address: empty, notes: '',
   });
 
-  const thor = await db.pets.create({ customerId: joao.id, name: 'Thor', speciesId: 'dog', breedId: 'dog-golden-retriever', breedName: 'Golden Retriever', sizeId: 'grande', weightKg: 32, ageMonths: 48, notes: 'Adora água.' });
-  const mel = await db.pets.create({ customerId: maria.id, name: 'Mel', speciesId: 'dog', breedId: 'dog-shih-tzu', breedName: 'Shih Tzu', sizeId: 'pequeno', weightKg: 6, ageMonths: 30, notes: 'Sensível ao secador.' });
-  const luna = await db.pets.create({ customerId: maria.id, name: 'Luna', speciesId: 'dog', breedId: 'dog-poodle', breedName: 'Poodle', sizeId: 'pequeno', weightKg: 7, ageMonths: 18, notes: '' });
-  const nina = await db.pets.create({ customerId: ana.id, name: 'Nina', speciesId: 'cat', breedId: 'cat-persa', breedName: 'Persa', sizeId: 'pequeno', weightKg: 4, ageMonths: 60, notes: 'Gata tranquila.' });
+  const thor = await db.pets.create({ ...PET_DEFAULTS, customerId: joao.id, name: 'Thor', speciesId: 'dog', breedId: 'dog-golden-retriever', breedName: 'Golden Retriever', sizeId: 'grande', weightKg: 32, ageMonths: 48, notes: 'Adora água.' });
+  const mel = await db.pets.create({ ...PET_DEFAULTS, customerId: maria.id, name: 'Mel', speciesId: 'dog', breedId: 'dog-shih-tzu', breedName: 'Shih Tzu', sizeId: 'pequeno', weightKg: 6, ageMonths: 30, notes: 'Sensível ao secador.' });
+  const luna = await db.pets.create({ ...PET_DEFAULTS, customerId: maria.id, name: 'Luna', speciesId: 'dog', breedId: 'dog-poodle', breedName: 'Poodle', sizeId: 'pequeno', weightKg: 7, ageMonths: 18, notes: '' });
+  const nina = await db.pets.create({ ...PET_DEFAULTS, customerId: ana.id, name: 'Nina', speciesId: 'cat', breedId: 'cat-persa', breedName: 'Persa', sizeId: 'pequeno', weightKg: 4, ageMonths: 60, notes: 'Gata tranquila.' });
 
   // Agendamentos fictícios ao redor de hoje
   const today = nowInTimezone(opts.now, opts.timezone).date;

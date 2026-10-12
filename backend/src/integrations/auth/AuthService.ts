@@ -13,6 +13,10 @@ export interface AuthIdentity {
   email: string;
   /** Nome informado no cadastro (metadados). */
   name: string;
+  /** E-mail confirmado pelo link enviado (só e-mails confirmados ligam a conta a um cadastro existente). */
+  emailConfirmed: boolean;
+  /** WhatsApp informado no cadastro do portal (metadados; não verificado). */
+  whatsapp?: string;
 }
 
 export interface AuthTokens {
@@ -40,6 +44,7 @@ export interface AuthService {
   signUp(input: { email: string; password: string; name: string; metadata?: Record<string, string>; redirectTo: string }): Promise<SignUpResult>;
   /** Conta criada pela administradora (e-mail já confirmado). */
   createUser(input: { email: string; password: string; name: string }): Promise<AuthIdentity>;
+  findUserById(userId: string): Promise<AuthIdentity | null>;
   /** Busca por e-mail (sem diferenciar maiúsculas). Uso interno do servidor. */
   findUserByEmail(email: string): Promise<AuthIdentity | null>;
   setPassword(userId: string, password: string): Promise<void>;
@@ -52,4 +57,6 @@ export interface AuthService {
   /** Encerra todas as sessões do usuário (desativação/revogação). */
   revokeSessions(userId: string): Promise<void>;
   updateProfile(userId: string, data: { name?: string; email?: string }): Promise<void>;
+  /** Troca de e-mail pelo próprio usuário: só vale depois de confirmar pelo link enviado ao novo e-mail. */
+  requestEmailChange(token: string, newEmail: string, redirectTo: string): Promise<void>;
 }

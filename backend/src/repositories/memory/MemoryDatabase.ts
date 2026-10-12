@@ -10,7 +10,7 @@ import {
   type FormFieldConfig,
   type Story,
 } from '@karolla/shared';
-import { NotFoundError, SlotConflictError } from '../../utils/errors';
+import { ConflictError, NotFoundError, SlotConflictError } from '../../utils/errors';
 import type {
   AdminPatch,
   AdminRecord,
@@ -95,6 +95,25 @@ class MemoryCustomers extends MemoryTable<Customer> {
   }
   async findByWhatsapp(whatsapp: string): Promise<Customer | null> {
     return this.listSync({ whatsapp } as Partial<Customer>)[0] ?? null;
+  }
+  async findByUserId(userId: string): Promise<Customer | null> {
+    return this.listSync({ userId } as Partial<Customer>)[0] ?? null;
+  }
+  async findUnlinkedByEmail(email: string): Promise<Customer[]> {
+    const e = email.trim().toLowerCase();
+    return this.listSync().filter((c) => !c.userId && c.email.trim().toLowerCase() === e);
+  }
+  override async create(data: NewEntity<Customer>): Promise<Customer> {
+    if (data.userId && (await this.findByUserId(data.userId))) throw new ConflictError('DUPLICATED', 'Esta conta já está ligada a outro cadastro.');
+    if (await this.findByWhatsapp(data.whatsapp)) throw new ConflictError('DUPLICATED', 'Já existe um cadastro com este WhatsApp.');
+    return super.create(data);
+  }
+  override async update(id: string, patch: EntityPatch<Customer>): Promise<Customer> {
+    if (patch.userId) {
+      const other = await this.findByUserId(patch.userId);
+      if (other && other.id !== id) throw new ConflictError('DUPLICATED', 'Esta conta já está ligada a outro cadastro.');
+    }
+    return super.update(id, patch);
   }
 }
 
@@ -198,6 +217,8 @@ export class MemoryDatabase implements DatabaseService {
   addons = new MemoryTable<import('@karolla/shared').Addon>();
   customers = new MemoryCustomers();
   pets = new MemoryTable<import('@karolla/shared').Pet>(true);
+  petReferences = new MemoryTable<import('@karolla/shared').PetReference>(true);
+  contacts = new MemoryTable<import('@karolla/shared').ContactLog>(true);
   appointments = new MemoryAppointments();
   businessHours = new MemoryTable<import('@karolla/shared').BusinessHours>();
   blockedDates = new MemoryTable<import('@karolla/shared').BlockedDate>();

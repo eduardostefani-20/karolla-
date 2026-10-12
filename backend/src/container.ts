@@ -15,6 +15,9 @@ import type { MediaStorage } from './integrations/storage/MediaStorage';
 import { MemoryMediaStorage, SupabaseMediaStorage } from './integrations/storage/providers';
 import { DisabledInstagramFeed, GraphInstagramFeed, type InstagramFeedService } from './integrations/instagram/InstagramFeedService';
 import { StaffService } from './services/StaffService';
+import { CustomerAccountService } from './services/CustomerAccountService';
+import { CrmService } from './services/CrmService';
+import { MemoryPrivateStorage, SupabasePrivateStorage, type PrivateStorage } from './integrations/storage/PrivateStorage';
 import { MediaService } from './services/MediaService';
 import { CatalogService } from './services/CatalogService';
 import { ScheduleService } from './services/ScheduleService';
@@ -46,6 +49,9 @@ export interface Container {
   instagram: InstagramFeedService;
   media: MediaService;
   staff: StaffService;
+  privateStorage: PrivateStorage;
+  account: CustomerAccountService;
+  crm: CrmService;
 }
 
 export interface ContainerOverrides {
@@ -55,6 +61,7 @@ export interface ContainerOverrides {
   whatsapp?: WhatsAppService;
   sheets?: GoogleSheetsService;
   storage?: MediaStorage;
+  privateStorage?: PrivateStorage;
   instagram?: InstagramFeedService;
 }
 
@@ -116,6 +123,12 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
       ? new SupabaseMediaStorage(db.rawClient, { url: env.SUPABASE_URL!, anonKey: env.SUPABASE_ANON_KEY ?? '' })
       : new MemoryMediaStorage());
 
+  const privateStorage =
+    overrides.privateStorage ??
+    (db instanceof SupabaseDatabase
+      ? new SupabasePrivateStorage(db.rawClient, { url: env.SUPABASE_URL!, anonKey: env.SUPABASE_ANON_KEY ?? '' })
+      : new MemoryPrivateStorage());
+
   const instagram =
     overrides.instagram ??
     (env.INSTAGRAM_ACCESS_TOKEN
@@ -127,10 +140,12 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
   const notifications = new NotificationService(db, whatsapp, sheets);
   const booking = new BookingService(db, catalog, schedule, notifications);
   const appointments = new AppointmentService(db, catalog, schedule, notifications, clock);
-  const customers = new CustomerService(db);
+  const customers = new CustomerService(db, auth, privateStorage, clock);
+  const account = new CustomerAccountService(db, auth, privateStorage, clock);
+  const crm = new CrmService(db, clock);
 
   const media = new MediaService(db, storage, clock);
   const staff = new StaffService(db, auth, clock);
 
-  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media, staff };
+  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media, staff, privateStorage, account, crm };
 }

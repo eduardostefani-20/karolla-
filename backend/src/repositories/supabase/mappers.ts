@@ -6,11 +6,13 @@ import type {
   Breed,
   BusinessHours,
   BusinessSettings,
+  ContactLog,
   Customer,
   FormFieldConfig,
   IntegrationLog,
   Inspiration,
   Pet,
+  PetReference,
   Professional,
   Story,
   PetSize,
@@ -18,7 +20,7 @@ import type {
   ServicePrice,
   Species,
 } from '@karolla/shared';
-import { DEFAULT_PROFESSIONAL_COLOR } from '@karolla/shared';
+import { DEFAULT_CRM_INACTIVE_DAYS, DEFAULT_CRM_REACTIVATION_MESSAGE, DEFAULT_PROFESSIONAL_COLOR } from '@karolla/shared';
 
 /**
  * Conversão entre o modelo de domínio (camelCase) e as colunas do PostgreSQL (snake_case).
@@ -145,7 +147,7 @@ export const customerMapping: TableMapping<Customer> = {
   table: 'customers',
   order: [{ column: 'created_at', ascending: true }],
   toRow: (e) => {
-    const row = pick(e as Row, { id: 'id', name: 'name', whatsapp: 'whatsapp', email: 'email', notes: 'notes' });
+    const row = pick(e as Row, { id: 'id', name: 'name', whatsapp: 'whatsapp', email: 'email', notes: 'notes', userId: 'user_id', marketingOptOut: 'marketing_opt_out' });
     if (e.address) {
       Object.assign(row, {
         address_street: e.address.street,
@@ -170,6 +172,8 @@ export const customerMapping: TableMapping<Customer> = {
       city: str(r.address_city),
     },
     notes: str(r.notes),
+    userId: (r.user_id as string | null) ?? null,
+    marketingOptOut: Boolean(r.marketing_opt_out),
     createdAt: str(r.created_at),
     updatedAt: str(r.updated_at),
   }),
@@ -181,6 +185,7 @@ export const petMapping: TableMapping<Pet> = {
   toRow: (e) =>
     pick(e as Row, {
       id: 'id', customerId: 'customer_id', name: 'name', speciesId: 'species_id', breedId: 'breed_id', breedName: 'breed_name', sizeId: 'size_id', weightKg: 'weight_kg', ageMonths: 'age_months', notes: 'notes',
+      birthDate: 'birth_date', characteristics: 'characteristics', groomingPreferences: 'grooming_preferences', internalNotes: 'internal_notes', photoPath: 'photo_path',
     }),
   fromRow: (r) => ({
     id: str(r.id),
@@ -192,7 +197,12 @@ export const petMapping: TableMapping<Pet> = {
     sizeId: str(r.size_id),
     weightKg: num(r.weight_kg),
     ageMonths: num(r.age_months),
+    birthDate: (r.birth_date as string | null) ?? null,
     notes: str(r.notes),
+    characteristics: str(r.characteristics),
+    groomingPreferences: str(r.grooming_preferences),
+    internalNotes: str(r.internal_notes),
+    photoPath: str(r.photo_path),
     createdAt: str(r.created_at),
     updatedAt: str(r.updated_at),
   }),
@@ -267,6 +277,8 @@ export function settingsToRow(s: Partial<BusinessSettings>): Row {
     googleAdsBookingLabel: 'google_ads_booking_label',
     googleAdsWhatsappLabel: 'google_ads_whatsapp_label',
     tiktokPixelId: 'tiktok_pixel_id',
+    crmInactiveDays: 'crm_inactive_days',
+    crmReactivationMessage: 'crm_reactivation_message',
   });
 }
 
@@ -289,6 +301,8 @@ export function settingsFromRow(r: Row): BusinessSettings {
     googleAdsBookingLabel: str(r.google_ads_booking_label),
     googleAdsWhatsappLabel: str(r.google_ads_whatsapp_label),
     tiktokPixelId: str(r.tiktok_pixel_id),
+    crmInactiveDays: r.crm_inactive_days == null ? DEFAULT_CRM_INACTIVE_DAYS : Number(r.crm_inactive_days),
+    crmReactivationMessage: str(r.crm_reactivation_message) || DEFAULT_CRM_REACTIVATION_MESSAGE,
   };
 }
 
@@ -424,5 +438,43 @@ export const storyMapping: TableMapping<Story> = {
     caption: str(r.caption),
     createdAt: new Date(str(r.created_at)).toISOString(),
     expiresAt: new Date(str(r.expires_at)).toISOString(),
+  }),
+};
+
+export const petReferenceMapping: TableMapping<PetReference> = {
+  table: 'pet_references',
+  order: [{ column: 'created_at', ascending: true }],
+  toRow: (e) =>
+    pick(e as Row, { id: 'id', petId: 'pet_id', customerId: 'customer_id', path: 'path', description: 'description', appointmentId: 'appointment_id', uploadedBy: 'uploaded_by' }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    petId: str(r.pet_id),
+    customerId: str(r.customer_id),
+    path: str(r.path),
+    description: str(r.description),
+    appointmentId: (r.appointment_id as string | null) ?? null,
+    uploadedBy: r.uploaded_by === 'staff' ? 'staff' : 'customer',
+    createdAt: str(r.created_at),
+  }),
+};
+
+export const contactLogMapping: TableMapping<ContactLog> = {
+  table: 'contact_logs',
+  order: [{ column: 'created_at', ascending: true }],
+  toRow: (e) =>
+    pick(e as Row, {
+      id: 'id', customerId: 'customer_id', appointmentId: 'appointment_id', kind: 'kind', status: 'status', message: 'message', actorId: 'actor_id', actorName: 'actor_name',
+    }),
+  fromRow: (r) => ({
+    id: str(r.id),
+    customerId: str(r.customer_id),
+    appointmentId: (r.appointment_id as string | null) ?? null,
+    kind: r.kind as ContactLog['kind'],
+    status: r.status as ContactLog['status'],
+    message: str(r.message),
+    actorId: (r.actor_id as string | null) ?? null,
+    actorName: str(r.actor_name),
+    createdAt: str(r.created_at),
+    updatedAt: str(r.updated_at),
   }),
 };

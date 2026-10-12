@@ -1,13 +1,21 @@
-import express, { Router } from 'express';
+import express, { Router, type RequestHandler } from 'express';
 import { MemoryMediaStorage } from '../integrations/storage/providers';
 import type { Container } from '../container';
 import { asyncHandler as h } from '../utils/asyncHandler';
-import { auditTrail, can, canAny, redactResponses, requireStaff } from '../middleware/auth';
+import { auditTrail, can, canAny, linkedCustomer, redactResponses, requireCustomer, requireStaff } from '../middleware/auth';
 import { rateLimit } from '../middleware/rateLimit';
 import { publicController } from '../controllers/publicController';
 import { authController } from '../controllers/authController';
 import { adminController } from '../controllers/adminController';
 import { teamController } from '../controllers/teamController';
+import { accountController } from '../controllers/accountController';
+import { MemoryPrivateStorage } from '../integrations/storage/PrivateStorage';
+
+/** Dados pessoais: o navegador/proxy não guarda cópia. */
+const noStore: RequestHandler = (_req, res, next) => {
+  res.set('Cache-Control', 'private, no-store');
+  next();
+};
 
 export function buildRoutes(c: Container): Router {
   const router = Router();
@@ -15,6 +23,7 @@ export function buildRoutes(c: Container): Router {
   const auth = authController(c);
   const admin = adminController(c);
   const team = teamController(c);
+  const acc = accountController(c);
   const isTest = c.env.NODE_ENV === 'test';
 
   router.get('/health', (_req, res) => {
@@ -65,6 +74,17 @@ export function buildRoutes(c: Container): Router {
   a.get('/pets', can('pets.view'), h(admin.listPets));
   a.get('/pets/:id', can('pets.view'), h(admin.getPet));
   a.patch('/pets/:id', can('pets.edit'), h(admin.updatePet));
+  a.post('/pets/:id/upload-ticket', can('pets.edit'), h(admin.petUploadTicket));
+  a.put('/pets/:id/photo', can('pets.edit'), h(admin.setPetPhoto));
+  a.post('/pets/:id/references', can('pets.edit'), h(admin.addPetReference));
+  a.delete('/pets/:id/references/:refId', can('pets.edit'), h(admin.removePetReference));
+  a.post('/customers/:id/link-account', can('customers.edit'), h(admin.linkAccount));
+  a.delete('/customers/:id/link-account', can('customers.edit'), h(admin.unlinkAccount));
+
+  // CRM (o telefone aparece na lista, por isso exige também "Clientes → Ver")
+  a.get('/crm', can('crm.view', 'customers.view'), h(admin.crm));
+  a.post('/customers/:id/contacts', can('crm.edit', 'customers.view'), h(admin.startContact));
+  a.patch('/contacts/:id', can('crm.edit'), h(admin.updateContact));
 
   // Catálogo: leitura liberada para quem usa a agenda (nomes de serviços/portes). Valores saem sem "finance.view".
   a.get('/catalog', canAny('services.view', 'agenda.view', 'professionals.view'), h(admin.catalog));
@@ -121,6 +141,43 @@ export function buildRoutes(c: Container): Router {
   a.get('/audit', can('team.admin'), h(team.audit));
 
   router.use('/admin', a);
+
+  // ---------------- Portal do cliente (cada um só acessa o próprio cadastro) ----------------
+  const accountLimit = rateLimit({ keyPrefix: 'account', windowMs: 15 * 60 * 1000, max: isTest ? 10_000 : 10 });
+  const signupLimit = rateLimit({ keyPrefix: 'signup', windowMs: 60 * 60 * 1000, max: isTest ? 10_000 : 5, message: 'Muitos cadastros em sequência. Tente mais tarde.' });
+  router.post('/account/signup', signupLimit, h(acc.signUp));
+  router.post('/account/login', accountLimit, h(acc.login));
+  router.post('/account/refresh', rateLimit({ keyPrefix: 'account-refresh', windowMs: 15 * 60 * 1000, max: isTest ? 10_000 : 60 }), h(acc.refresh));
+  router.post('/account/logout', h(acc.logout));
+  const me = Router();
+  me.use(requireCustomer(c.auth, c.account), noStore);
+  me.get('/', h(acc.me));
+  me.patch('/', linkedCustomer, h(acc.updateProfile));
+  me.post('/email', accountLimit, h(acc.changeEmail));
+  me.get('/pets', linkedCustomer, h(acc.pets));
+  me.post('/pets', linkedCustomer, h(acc.createPet));
+  me.get('/pets/:id', linkedCustomer, h(acc.pet));
+  me.patch('/pets/:id', linkedCustomer, h(acc.updatePet));
+  me.post('/pets/:id/upload-ticket', linkedCustomer, rateLimit({ keyPrefix: 'upload', windowMs: 60 * 60 * 1000, max: isTest ? 10_000 : 40 }), h(acc.uploadTicket));
+  me.put('/pets/:id/photo', linkedCustomer, h(acc.setPhoto));
+  me.post('/pets/:id/references', linkedCustomer, h(acc.addReference));
+  me.delete('/references/:id', linkedCustomer, h(acc.removeReference));
+  me.get('/appointments', linkedCustomer, h(acc.appointments));
+  router.use('/account/me', me);
+
+  // ---------------- Arquivos PRIVADOS do modo DEMO (em produção: bucket privado do Supabase) ----------------
+  if (c.privateStorage instanceof MemoryPrivateStorage) {
+    const priv = c.privateStorage;
+    router.put('/private-upload/:token', express.raw({ type: () => true, limit: '10mb' }), (req, res) => {
+      priv.receive(String(req.params.token), req.body as Buffer, String(req.headers['content-type'] ?? ''));
+      res.status(204).end();
+    });
+    router.get('/private-files/:token', (req, res) => {
+      const file = priv.read(String(req.params.token));
+      if (!file) return void res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Link expirado.' } });
+      res.set('Content-Type', file.contentType).set('Cache-Control', 'private, no-store').send(file.body);
+    });
+  }
 
   // ---------------- Mídia do modo DEMO (em produção os arquivos ficam no Supabase Storage) ----------------
   if (c.storage instanceof MemoryMediaStorage) {
