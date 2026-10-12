@@ -78,6 +78,22 @@ export default function SettingsPage() {
               <Field label="Vagas por horário" required error={errors.capacity} hint="Pets atendidos ao mesmo tempo. Com 1, cada horário aceita um único agendamento.">{(p) => <Input {...p} type="number" min={1} {...numberField('capacity')} />}</Field>
               <Field label="Antecedência mínima (min)" required error={errors.minAdvanceMinutes} hint="Ex.: 120 = agendar com pelo menos 2h.">{(p) => <Input {...p} type="number" min={0} step={30} {...numberField('minAdvanceMinutes')} />}</Field>
               <Field label="Agenda aberta por (dias)" required error={errors.maxAdvanceDays}>{(p) => <Input {...p} type="number" min={1} {...numberField('maxAdvanceDays')} />}</Field>
+              <Field
+                label="Limite geral de pets por horário (opcional)"
+                error={errors.slotCapacityLimit}
+                hint="Vale mesmo com vários profissionais. Vazio = sem limite extra (usa os profissionais disponíveis)."
+              >
+                {(p) => (
+                  <Input
+                    {...p}
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={form.slotCapacityLimit ?? ''}
+                    onChange={(e) => set({ slotCapacityLimit: e.target.value ? Number(e.target.value) : null })}
+                  />
+                )}
+              </Field>
             </div>
             <Field label="Aviso exibido no resumo do agendamento" className="mt-4" error={errors.bookingNotice}>{(p) => <Textarea {...p} value={form.bookingNotice} onChange={(e) => set({ bookingNotice: e.target.value })} />}</Field>
           </Panel>
@@ -92,6 +108,9 @@ export default function SettingsPage() {
               hint="Use {tutor}, {pet} e {dias}. A mensagem abre no WhatsApp para você revisar e enviar — nada é enviado automaticamente."
             >
               {(p) => <Textarea {...p} rows={3} value={form.crmReactivationMessage} onChange={(e) => set({ crmReactivationMessage: e.target.value })} />}
+            </Field>
+            <Field label="Mensagem “Pronto para retirada”" className="mt-4" error={errors.pickupMessage} hint="Use {tutor} e {pet}. Abre no WhatsApp para revisar e enviar.">
+              {(p) => <Textarea {...p} rows={2} value={form.pickupMessage} onChange={(e) => set({ pickupMessage: e.target.value })} />}
             </Field>
           </Panel>
           <Panel title="Anúncios (tráfego pago)">

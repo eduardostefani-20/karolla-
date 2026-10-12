@@ -20,6 +20,7 @@ export function ContactButton({
   disabledReason,
   size = 'sm',
   onDone,
+  start: startOverride,
 }: {
   customerId: string;
   kind?: ContactKind;
@@ -29,6 +30,8 @@ export function ContactButton({
   disabledReason?: string;
   size?: 'sm' | 'md';
   onDone?: (contact: ContactLog) => void;
+  /** Outra forma de abrir o contato (ex.: aviso de retirada a partir do agendamento). */
+  start?: () => Promise<{ contact: ContactLog; whatsappLink: string }>;
 }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -39,7 +42,7 @@ export function ContactButton({
     const tab = window.open('about:blank', '_blank');
     setBusy(true);
     try {
-      const { contact, whatsappLink } = await adminApi.startContact(customerId, { kind, appointmentId });
+      const { contact, whatsappLink } = startOverride ? await startOverride() : await adminApi.startContact(customerId, { kind, appointmentId });
       if (tab) {
         tab.opener = null;
         tab.location.href = whatsappLink;

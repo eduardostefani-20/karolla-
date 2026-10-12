@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ImageIcon, Megaphone, MessageCircle, Pencil, RefreshCw, UserRound } from 'lucide-react';
 import {
+  APPOINTMENT_ORIGIN_LABELS,
+  SUBSCRIPTION_STATUS_LABELS,
   APPOINTMENT_STATUSES,
   APPOINTMENT_STATUS_LABELS,
   attributionChannel,
@@ -29,6 +31,7 @@ import { useToast } from '@/components/ui/Toast';
 import { PageHeader, Panel, StatusBadge, STATUS_STYLES } from '@/components/admin/AdminUi';
 import { EditCustomerModal } from '@/components/admin/EditCustomerModal';
 import { EditPetModal } from '@/components/admin/EditPetModal';
+import { ContactButton } from '@/components/admin/ContactButton';
 import { cn } from '@/utils/cn';
 
 const LOG_LABEL: Record<string, string> = { success: 'Enviado', failed: 'Falhou', skipped: 'Não configurado', link_generated: 'Link gerado' };
@@ -207,11 +210,21 @@ export default function AppointmentDetailPage() {
         title={`${a.pet.name} • ${formatDateBR(a.date)} às ${a.time}`}
         description={<span className="inline-flex flex-wrap items-center gap-2"><StatusBadge status={a.status} /> {a.services.map((s) => s.name).join(' + ')} {can('finance.view') && `• ${formatCents(a.totalCents)}`} • {a.durationMinutes} min</span>}
         actions={
-          a.customer.whatsapp ? (
-            <ExternalButton href={buildWhatsAppLink(a.customer.whatsapp, customerMsg)} variant="whatsapp" size="sm" icon={<MessageCircle className="h-4 w-4" aria-hidden />}>
-              WhatsApp do tutor
-            </ExternalButton>
-          ) : undefined
+          <>
+            {can('agenda.confirm') && can('customers.view') && (
+              <ContactButton
+                customerId={a.customerId}
+                kind="pickup"
+                label={a.status === 'ready' ? 'Avisar que está pronto' : 'Avisar tutor pelo WhatsApp'}
+                start={() => adminApi.notifyPickup(a.id)}
+              />
+            )}
+            {a.customer.whatsapp && (
+              <ExternalButton href={buildWhatsAppLink(a.customer.whatsapp, customerMsg)} variant="outline" size="sm" icon={<MessageCircle className="h-4 w-4" aria-hidden />}>
+                Conversar
+              </ExternalButton>
+            )}
+          </>
         }
       />
 
@@ -261,6 +274,7 @@ export default function AppointmentDetailPage() {
             </Panel>
           )}
           {a.attribution && <OriginPanel attribution={a.attribution} />}
+          {can('plans.view') && <PlansPanel appointment={a} canUse={can('plans.edit')} />}
           <Panel title={can('finance.view') ? 'Itens e valores' : 'Itens'}>
             <ul className="space-y-1.5 text-sm">
               {a.services.map((s) => (
@@ -324,7 +338,8 @@ export default function AppointmentDetailPage() {
             )}
           </Panel>
           <p className="text-xs text-ink-400">
-            Criado em {new Date(a.createdAt).toLocaleString('pt-BR')} • Atualizado em {new Date(a.updatedAt).toLocaleString('pt-BR')} • Origem: {a.source === 'online' ? 'site' : 'painel'}
+            Criado em {new Date(a.createdAt).toLocaleString('pt-BR')} • Atualizado em {new Date(a.updatedAt).toLocaleString('pt-BR')} • Origem: {a.origin ? APPOINTMENT_ORIGIN_LABELS[a.origin] : a.source === 'online' ? 'Site' : 'Painel'}
+            {a.createdByName && ` • criado por ${a.createdByName}`}
           </p>
         </div>
       </div>
@@ -361,6 +376,73 @@ function OriginPanel({ attribution: o }: { attribution: AppointmentAttribution }
             </div>
           ))}
       </dl>
+    </Panel>
+  );
+}
+
+/** Planos do tutor que cobrem serviços deste atendimento: usar (desconta 1 uso) ou desfazer. */
+function PlansPanel({ appointment: a, canUse }: { appointment: AppointmentDetail; canUse: boolean }) {
+  const toast = useToast();
+  const { data, error, setData } = useAsync(() => adminApi.appointmentPlans(a.id), [a.id]);
+  const [busy, setBusy] = useState<string | null>(null);
+  if (error || !data || (data.plans.length === 0 && data.usages.length === 0)) return null;
+
+  const run = async (key: string, fn: () => Promise<typeof data>, ok: string) => {
+    setBusy(key);
+    try {
+      setData(await fn());
+      toast(ok);
+    } catch (err) {
+      toast(friendlyMessage(err), 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Panel title="Planos do tutor">
+      <ul className="space-y-3 text-sm">
+        {data.plans.map((p) => (
+          <li key={p.id} className="rounded-2xl bg-lilac-50 px-3 py-2">
+            <p className="flex flex-wrap justify-between gap-2 font-semibold">
+              <span>{p.plan.name}{p.petName ? ` • ${p.petName}` : ''}</span>
+              <span>{SUBSCRIPTION_STATUS_LABELS[p.effectiveStatus]} • {p.usesLeft} de {p.plan.usesPerPeriod} usos</span>
+            </p>
+            {canUse && p.effectiveStatus === 'active' && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {a.services
+                  .filter((s) => p.plan.serviceIds.includes(s.serviceId) && !data.usages.some((u) => u.serviceId === s.serviceId))
+                  .map((s) => (
+                    <Button
+                      key={s.serviceId}
+                      size="sm"
+                      variant="outline"
+                      disabled={p.usesLeft <= 0}
+                      loading={busy === `${p.id}:${s.serviceId}`}
+                      onClick={() => run(`${p.id}:${s.serviceId}`, () => adminApi.usePlan(a.id, { customerPlanId: p.id, serviceId: s.serviceId }), 'Uso do plano registrado.')}
+                    >
+                      Usar para {s.name}
+                    </Button>
+                  ))}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      {data.usages.length > 0 && (
+        <ul className="mt-3 space-y-1 text-sm">
+          {data.usages.map((u) => (
+            <li key={u.id} className="flex items-center justify-between gap-2">
+              <span>✅ {a.services.find((s) => s.serviceId === u.serviceId)?.name ?? u.serviceId} coberto pelo plano ({u.recordedByName})</span>
+              {canUse && (
+                <Button size="sm" variant="ghost" loading={busy === u.id} onClick={() => run(u.id, () => adminApi.revertPlanUsage(u.id), 'Uso desfeito.')}>
+                  Desfazer
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </Panel>
   );
 }

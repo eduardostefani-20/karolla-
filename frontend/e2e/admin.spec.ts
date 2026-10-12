@@ -22,7 +22,7 @@ test.describe('Administradora', () => {
     await page.getByTestId('appointment-card').first().click();
     await expect(page.getByRole('heading', { name: 'Status' })).toBeVisible();
 
-    const status = test.info().project.name === 'mobile' ? 'Em atendimento' : 'Confirmado';
+    const status = test.info().project.name === 'mobile' ? 'Em atendimento' : 'Agendado';
     await page.getByRole('button', { name: status, exact: true }).click();
     await expect(page.getByText(`Status alterado para "${status}".`)).toBeVisible();
 

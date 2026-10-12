@@ -2,6 +2,7 @@ import type {
   CustomerAccount,
   CustomerSession,
   PortalAppointment,
+  PortalCustomerPlan,
   PortalCustomer,
   PortalPet,
   SignUpResponse,
@@ -36,4 +37,5 @@ export const accountApi = {
   removeReference: (id: string) => apiRequest<void>('DELETE', `/account/me/references/${id}`, auth),
 
   appointments: () => apiRequest<PortalAppointment[]>('GET', '/account/me/appointments', auth),
+  plans: () => apiRequest<PortalCustomerPlan[]>('GET', '/account/me/plans', auth),
 };

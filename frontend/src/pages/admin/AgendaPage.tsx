@@ -21,6 +21,7 @@ import { Alert, EmptyState, Spinner } from '@/components/ui/Feedback';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
 import { PageHeader, STATUS_STYLES } from '@/components/admin/AdminUi';
+import { NewAppointmentButton } from '@/components/admin/NewAppointmentButton';
 import { AppointmentCard } from '@/components/admin/AppointmentCard';
 import { AppointmentFilters, type FilterState } from '@/components/admin/AppointmentFilters';
 import { cn } from '@/utils/cn';
@@ -139,7 +140,7 @@ export default function AgendaPage() {
 
   return (
     <div>
-      <PageHeader title="Agenda" description="Visualize os atendimentos por dia, semana ou em lista." />
+      <PageHeader title="Agenda" description="Visualize os atendimentos por dia, semana ou em lista." actions={<NewAppointmentButton catalog={adminCatalog} defaultDate={date} />} />
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div role="tablist" aria-label="Visualização" className="inline-flex rounded-full bg-white p-1 shadow-card">
           {(

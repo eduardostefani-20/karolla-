@@ -8,6 +8,7 @@ import {
   formatCents,
   formatDateBR,
   formatPhone,
+  SUBSCRIPTION_STATUS_LABELS,
   type PortalCustomer,
 } from '@karolla/shared';
 import { useCustomerAuth } from '@/context/CustomerAuthContext';
@@ -66,6 +67,7 @@ export default function AccountPage() {
       ) : (
         <>
           <PetsSection />
+          <PlansSection />
           <HistorySection />
           <ProfileSection customer={account.customer} />
         </>
@@ -123,6 +125,30 @@ function PetsSection() {
           }}
         />
       )}
+    </section>
+  );
+}
+
+function PlansSection() {
+  const { data } = useAsync(() => accountApi.plans().catch(() => []), []);
+  if (!data || data.length === 0) return null;
+  return (
+    <section aria-labelledby="meus-planos" className="space-y-4">
+      <h2 id="meus-planos" className="text-2xl font-extrabold text-ink-900">Meus planos</h2>
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {data.map((p) => (
+          <li key={p.id} className="card p-4">
+            <p className="text-lg font-extrabold text-ink-900">{p.plan.name}{p.petName ? ` • ${p.petName}` : ''}</p>
+            <p className="text-sm font-semibold text-brand-700">{SUBSCRIPTION_STATUS_LABELS[p.effectiveStatus]}</p>
+            <p className="mt-1 text-sm text-ink-600">
+              {p.effectiveStatus === 'active' && `${p.usesLeft} de ${p.plan.usesPerPeriod} uso(s) disponíveis até ${formatDateBR(p.nextDueDate)}`}
+              {p.effectiveStatus === 'overdue' && `Venceu em ${formatDateBR(p.nextDueDate)}. Fale com a Karolla Pet para regularizar.`}
+              {p.effectiveStatus === 'pending' && 'Aguardando o primeiro pagamento.'}
+            </p>
+            {p.plan.rules && <p className="mt-2 text-xs text-ink-500">{p.plan.rules}</p>}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

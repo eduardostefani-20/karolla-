@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { CalendarHeart, Menu, UserRound, X } from 'lucide-react';
 import { useOptionalCustomerAuth } from '@/context/CustomerAuthContext';
+import { useCatalog } from '@/context/CatalogContext';
 import { ButtonLink } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
 import { Logo } from './Logo';
@@ -17,6 +18,9 @@ const links = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const customer = useOptionalCustomerAuth();
+  const { catalog } = useCatalog();
+  // "Minha conta" só aparece quando o recurso já está ativo no banco
+  const accountsOn = catalog?.features?.customerAccounts ?? false;
   const accountLabel = customer?.status === 'authenticated' ? 'Minha conta' : 'Entrar';
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -43,12 +47,14 @@ export function Header() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <Link
-            to="/minha-conta"
-            className="hidden items-center gap-1.5 rounded-pill px-3 py-2 text-sm font-bold text-white/90 transition-colors hover:bg-white/10 hover:text-white sm:inline-flex"
-          >
-            <UserRound className="h-4 w-4" aria-hidden /> {accountLabel}
-          </Link>
+          {accountsOn && (
+            <Link
+              to="/minha-conta"
+              className="hidden items-center gap-1.5 rounded-pill px-3 py-2 text-sm font-bold text-white/90 transition-colors hover:bg-white/10 hover:text-white sm:inline-flex"
+            >
+              <UserRound className="h-4 w-4" aria-hidden /> {accountLabel}
+            </Link>
+          )}
           <ButtonLink to="/agendar" size="sm" variant="accent" className="hidden sm:inline-flex" icon={<CalendarHeart className="h-4 w-4" aria-hidden />}>
             Agendar agora
           </ButtonLink>
@@ -75,9 +81,11 @@ export function Header() {
               </li>
             ))}
           </ul>
-          <Link to="/minha-conta" onClick={() => setOpen(false)} className="mt-1 flex items-center gap-2 rounded-card px-4 py-3 text-base font-bold text-white hover:bg-white/10">
-            <UserRound className="h-5 w-5" aria-hidden /> {accountLabel === 'Entrar' ? 'Entrar / Minha conta' : 'Minha conta'}
-          </Link>
+          {accountsOn && (
+            <Link to="/minha-conta" onClick={() => setOpen(false)} className="mt-1 flex items-center gap-2 rounded-card px-4 py-3 text-base font-bold text-white hover:bg-white/10">
+              <UserRound className="h-5 w-5" aria-hidden /> {accountLabel === 'Entrar' ? 'Entrar / Minha conta' : 'Minha conta'}
+            </Link>
+          )}
           <ButtonLink to="/agendar" block size="lg" variant="accent" className="mt-3" onClick={() => setOpen(false)}>
             Agendar agora
           </ButtonLink>

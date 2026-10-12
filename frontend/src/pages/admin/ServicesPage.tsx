@@ -16,8 +16,8 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { moveItem, ReorderButtons } from '@/components/admin/ReorderButtons';
 import { useCatalog } from '@/context/CatalogContext';
 
-type Draft = { id?: string; name: string; description: string; category: string; durationMinutes: string; active: boolean; speciesIds: string[] };
-const empty: Draft = { name: '', description: '', category: 'Banho', durationMinutes: '60', active: true, speciesIds: [] };
+type Draft = { id?: string; name: string; description: string; category: string; durationMinutes: string; active: boolean; speciesIds: string[]; maxConcurrent: string };
+const empty: Draft = { name: '', description: '', category: 'Banho', durationMinutes: '60', active: true, speciesIds: [], maxConcurrent: '' };
 
 export default function ServicesPage() {
   useDocumentMeta({ title: 'Serviços — Karolla Pet', noindex: true });
@@ -46,6 +46,7 @@ export default function ServicesPage() {
       description: editing.description,
       category: editing.category,
       durationMinutes: Number(editing.durationMinutes),
+      maxConcurrent: editing.maxConcurrent ? Number(editing.maxConcurrent) : null,
       active: editing.active,
       speciesIds: editing.speciesIds,
     };
@@ -132,7 +133,7 @@ export default function ServicesPage() {
               <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
                 <Toggle checked={s.active} onChange={() => toggleActive(s)} label={s.active ? 'Ativo' : 'Inativo'} className="sm:mr-2" />
                 <div className="flex">
-                  <Button size="sm" variant="ghost" aria-label={`Editar ${s.name}`} onClick={() => setEditing({ ...s, durationMinutes: String(s.durationMinutes) })} icon={<Pencil className="h-4 w-4" />} />
+                  <Button size="sm" variant="ghost" aria-label={`Editar ${s.name}`} onClick={() => setEditing({ ...s, durationMinutes: String(s.durationMinutes), maxConcurrent: s.maxConcurrent ? String(s.maxConcurrent) : '' })} icon={<Pencil className="h-4 w-4" />} />
                   <Button size="sm" variant="ghost" aria-label={`Excluir ${s.name}`} onClick={() => setToDelete(s)} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
                 </div>
               </div>
@@ -155,6 +156,9 @@ export default function ServicesPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Categoria" required error={errors.category}>{(p) => <Input {...p} list="categorias" value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} />}</Field>
               <Field label="Duração (minutos)" required error={errors.durationMinutes}>{(p) => <Input {...p} type="number" min={5} step={5} value={editing.durationMinutes} onChange={(e) => setEditing({ ...editing, durationMinutes: e.target.value })} />}</Field>
+              <Field label="Limite de atendimentos ao mesmo tempo (opcional)" hint="Ex.: 1 se só há uma mesa de tosa. Vazio = sem limite." error={errors.maxConcurrent}>
+                {(p) => <Input {...p} type="number" min={1} max={50} value={editing.maxConcurrent} onChange={(e) => setEditing({ ...editing, maxConcurrent: e.target.value })} />}
+              </Field>
             </div>
             <datalist id="categorias">{[...new Set(data.services.map((s) => s.category))].map((c) => <option key={c} value={c} />)}</datalist>
             <fieldset>

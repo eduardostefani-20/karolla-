@@ -8,6 +8,10 @@ import type {
   AuditLog,
   ContactLog,
   ContactResult,
+  CustomerPlanDetail,
+  Plan,
+  PlanUsage,
+  ProfessionalTimeOff,
   CrmResponse,
   AuthSession,
   StaffMember,
@@ -114,7 +118,8 @@ export const adminApi = {
   createStory: (body: Body) => apiRequest<Story>('POST', '/admin/stories', { ...auth, body }),
   deleteStory: (id: string) => apiRequest<void>('DELETE', `/admin/stories/${id}`, auth),
 
-  schedule: () => apiRequest<{ businessHours: BusinessHours[]; blockedDates: BlockedDate[]; blockedTimes: BlockedTime[] }>('GET', '/admin/schedule', auth),
+  schedule: () =>
+    apiRequest<{ businessHours: BusinessHours[]; blockedDates: BlockedDate[]; blockedTimes: BlockedTime[]; professionalTimeOff: ProfessionalTimeOff[] }>('GET', '/admin/schedule', auth),
   saveBusinessHours: (days: Omit<BusinessHours, 'id'>[]) => apiRequest<BusinessHours[]>('PUT', '/admin/business-hours', { ...auth, body: { days } }),
   addBlockedDate: (body: { date: string; reason: string }) => apiRequest<BlockedDate>('POST', '/admin/blocked-dates', { ...auth, body }),
   removeBlockedDate: (id: string) => apiRequest<void>('DELETE', `/admin/blocked-dates/${id}`, auth),
@@ -123,6 +128,25 @@ export const adminApi = {
   removeBlockedTime: (id: string) => apiRequest<void>('DELETE', `/admin/blocked-times/${id}`, auth),
   settings: () => apiRequest<BusinessSettings>('GET', '/admin/settings', auth),
   saveSettings: (body: BusinessSettings) => apiRequest<BusinessSettings>('PUT', '/admin/settings', { ...auth, body }),
+
+  createAppointment: (body: Body) => apiRequest<AppointmentDetail>('POST', '/admin/appointments', { ...auth, body }),
+  notifyPickup: (id: string) => apiRequest<ContactResult>('POST', `/admin/appointments/${id}/notify-pickup`, auth),
+  addTimeOff: (body: Body) => apiRequest<ProfessionalTimeOff>('POST', '/admin/professional-time-off', { ...auth, body }),
+  removeTimeOff: (id: string) => apiRequest<void>('DELETE', `/admin/professional-time-off/${id}`, auth),
+
+  plans: () => apiRequest<Plan[]>('GET', '/admin/plans', auth),
+  createPlan: (body: Body) => apiRequest<Plan>('POST', '/admin/plans', { ...auth, body }),
+  updatePlan: (id: string, body: Body) => apiRequest<Plan>('PATCH', `/admin/plans/${id}`, { ...auth, body }),
+  deletePlan: (id: string) => apiRequest<void>('DELETE', `/admin/plans/${id}`, auth),
+  customerPlans: (query: { customerId?: string; status?: string } = {}) => apiRequest<CustomerPlanDetail[]>('GET', '/admin/customer-plans', { ...auth, query }),
+  customerPlan: (id: string) => apiRequest<CustomerPlanDetail>('GET', `/admin/customer-plans/${id}`, auth),
+  subscribe: (body: Body) => apiRequest<CustomerPlanDetail>('POST', '/admin/customer-plans', { ...auth, body }),
+  updateSubscription: (id: string, body: Body) => apiRequest<CustomerPlanDetail>('PATCH', `/admin/customer-plans/${id}`, { ...auth, body }),
+  recordPayment: (id: string, body: Body) => apiRequest<CustomerPlanDetail>('POST', `/admin/customer-plans/${id}/payments`, { ...auth, body }),
+  appointmentPlans: (id: string) => apiRequest<{ plans: CustomerPlanDetail[]; usages: PlanUsage[] }>('GET', `/admin/appointments/${id}/plans`, auth),
+  usePlan: (id: string, body: { customerPlanId: string; serviceId: string }) =>
+    apiRequest<{ plans: CustomerPlanDetail[]; usages: PlanUsage[] }>('POST', `/admin/appointments/${id}/plan-usages`, { ...auth, body }),
+  revertPlanUsage: (usageId: string) => apiRequest<{ plans: CustomerPlanDetail[]; usages: PlanUsage[] }>('DELETE', `/admin/plan-usages/${usageId}`, auth),
 
   crm: (query: { segment?: string; search?: string } = {}) => apiRequest<CrmResponse>('GET', '/admin/crm', { ...auth, query }),
   startContact: (customerId: string, body: { kind: 'reactivation' | 'pickup' | 'other'; appointmentId?: string | null }) =>

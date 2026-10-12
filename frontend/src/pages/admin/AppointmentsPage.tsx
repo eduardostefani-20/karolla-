@@ -8,6 +8,7 @@ import { useCatalog } from '@/context/CatalogContext';
 import { Alert, EmptyState, Spinner } from '@/components/ui/Feedback';
 import { Field, Input } from '@/components/ui/Field';
 import { PageHeader } from '@/components/admin/AdminUi';
+import { NewAppointmentButton } from '@/components/admin/NewAppointmentButton';
 import { AppointmentCard } from '@/components/admin/AppointmentCard';
 import { AppointmentFilters, type FilterState } from '@/components/admin/AppointmentFilters';
 
@@ -27,7 +28,7 @@ export default function AppointmentsPage() {
 
   return (
     <div>
-      <PageHeader title="Agendamentos" description="Todos os agendamentos recebidos pelo site e pelo painel." />
+      <PageHeader title="Agendamentos" description="Todos os agendamentos recebidos pelo site e pelo painel." actions={<NewAppointmentButton catalog={adminCatalog ?? null} defaultDate={today} />} />
       <div className="card mb-5 space-y-3 p-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="De" required>{(p) => <Input {...p} type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="py-2.5" />}</Field>

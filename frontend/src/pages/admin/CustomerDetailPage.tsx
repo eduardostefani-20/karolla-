@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Link2, MessageCircle, Pencil } from 'lucide-react';
-import { buildWhatsAppLink, CONTACT_KIND_LABELS, CONTACT_STATUS_LABELS, formatAge, formatPhone, type CustomerDetail } from '@karolla/shared';
+import { buildWhatsAppLink, CONTACT_KIND_LABELS, CONTACT_STATUS_LABELS, formatAge, formatDateBR, formatPhone, SUBSCRIPTION_STATUS_LABELS, type CustomerDetail } from '@karolla/shared';
 import { adminApi } from '@/services/adminApi';
 import { useAsync } from '@/hooks/useAsync';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
@@ -11,7 +11,9 @@ import { PageHeader, Panel } from '@/components/admin/AdminUi';
 import { AppointmentHistory } from '@/components/admin/AppointmentHistory';
 import { EditCustomerModal } from '@/components/admin/EditCustomerModal';
 import { ContactButton } from '@/components/admin/ContactButton';
-import { Field, Input } from '@/components/ui/Field';
+import { Field, Input, Select } from '@/components/ui/Field';
+import { Badge } from '@/components/ui/Feedback';
+import { SubscriptionModal, SUBSCRIPTION_BADGE } from './PlansPage';
 import { Toggle } from '@/components/ui/Toggle';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
@@ -76,6 +78,7 @@ export default function CustomerDetailPage() {
             )}
           </Panel>
           <AccountPanel c={c} canEdit={can('customers.edit')} onChange={setData} />
+          {can('plans.view') && <CustomerPlansPanel c={c} />}
           {c.contacts.length > 0 && (
             <Panel title="Contatos pelo WhatsApp">
               <ul className="space-y-2 text-sm">
@@ -156,6 +159,93 @@ function AccountPanel({ c, canEdit, onChange }: { c: CustomerDetail; canEdit: bo
           )}
         </div>
       )}
+    </Panel>
+  );
+}
+
+/** Planos do cliente e contratação (sem cobrança online). */
+function CustomerPlansPanel({ c }: { c: CustomerDetail }) {
+  const toast = useToast();
+  const { can } = useAuth();
+  const { data, error, reload } = useAsync(() => adminApi.customerPlans({ customerId: c.id }), [c.id]);
+  const { data: plans } = useAsync(() => (can('plans.create') ? adminApi.plans() : Promise.resolve([])), []);
+  const [form, setForm] = useState<{ planId: string; petId: string; startDate: string } | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  if (error) return null;
+
+  const subscribe = async () => {
+    if (!form) return;
+    setBusy(true);
+    try {
+      await adminApi.subscribe({ customerId: c.id, planId: form.planId, petId: form.petId || null, startDate: form.startDate });
+      toast('Plano contratado. Ele fica ativo quando o primeiro pagamento for registrado.');
+      setForm(null);
+      await reload();
+    } catch (err) {
+      toast(friendlyMessage(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Panel
+      title="Planos"
+      actions={
+        can('plans.create') && !form ? (
+          <Button size="sm" variant="ghost" onClick={() => setForm({ planId: plans?.find((p) => p.active)?.id ?? '', petId: '', startDate: new Date().toISOString().slice(0, 10) })}>
+            Contratar plano
+          </Button>
+        ) : undefined
+      }
+    >
+      {data && data.length === 0 && !form && <p className="text-sm text-ink-500">Nenhum plano.</p>}
+      {data && data.length > 0 && (
+        <ul className="space-y-2 text-sm">
+          {data.map((s) => (
+            <li key={s.id}>
+              <button type="button" onClick={() => setOpen(s.id)} className="flex w-full flex-wrap items-center justify-between gap-2 rounded-2xl bg-lilac-50 px-3 py-2 text-left hover:bg-brand-50">
+                <span>
+                  <strong>{s.plan.name}</strong>
+                  {s.petName && ` • ${s.petName}`} • vence {formatDateBR(s.nextDueDate)} • {s.usesLeft}/{s.plan.usesPerPeriod} usos
+                </span>
+                <Badge className={SUBSCRIPTION_BADGE[s.effectiveStatus]}>{SUBSCRIPTION_STATUS_LABELS[s.effectiveStatus]}</Badge>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {form && (
+        <div className="mt-3 space-y-3">
+          <Field label="Plano">
+            {(p) => (
+              <Select {...p} value={form.planId} onChange={(e) => setForm({ ...form, planId: e.target.value })}>
+                <option value="">Escolha</option>
+                {plans?.filter((x) => x.active).map((x) => (
+                  <option key={x.id} value={x.id}>{x.name}</option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field label="Pet (opcional)">
+            {(p) => (
+              <Select {...p} value={form.petId} onChange={(e) => setForm({ ...form, petId: e.target.value })}>
+                <option value="">Qualquer pet do cliente</option>
+                {c.pets.map((x) => (
+                  <option key={x.id} value={x.id}>{x.name}</option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field label="Início">{(p) => <Input {...p} type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />}</Field>
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setForm(null)}>Cancelar</Button>
+            <Button size="sm" loading={busy} disabled={!form.planId} onClick={subscribe}>Contratar</Button>
+          </div>
+        </div>
+      )}
+      {open && <SubscriptionModal id={open} onClose={() => setOpen(null)} onChanged={() => void reload()} />}
     </Panel>
   );
 }

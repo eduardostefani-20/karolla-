@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Pencil, Plus, Trash2, UserRound } from 'lucide-react';
-import { PROFESSIONAL_COLORS, readableTextOn, type Professional } from '@karolla/shared';
+import { CalendarOff, Pencil, Plus, Trash2, UserRound } from 'lucide-react';
+import { formatDateBR, PROFESSIONAL_COLORS, readableTextOn, WEEKDAY_LABELS, type Professional, type ProfessionalWorkHours } from '@karolla/shared';
 import { cn } from '@/utils/cn';
 import { adminApi } from '@/services/adminApi';
 import { ApiError, friendlyMessage } from '@/services/api';
@@ -19,7 +19,7 @@ import { moveItem, ReorderButtons } from '@/components/admin/ReorderButtons';
 
 const COLORS = PROFESSIONAL_COLORS.map((c) => c.hex);
 const colorName = (hex: string) => PROFESSIONAL_COLORS.find((c) => c.hex.toLowerCase() === hex.toLowerCase())?.name ?? hex;
-type Draft = { id?: string; name: string; color: string; serviceIds: string[]; active: boolean };
+type Draft = { id?: string; name: string; color: string; serviceIds: string[]; active: boolean; capacity: number; workHours: ProfessionalWorkHours[] };
 
 /** Equipe: cada profissional atende 1 pet por vez; a agenda passa a ser por profissional. */
 export default function ProfessionalsPage() {
@@ -31,6 +31,7 @@ export default function ProfessionalsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<Professional | null>(null);
+  const [timeOffFor, setTimeOffFor] = useState<Professional | null>(null);
 
   const refresh = async () => {
     await reload();
@@ -41,7 +42,7 @@ export default function ProfessionalsPage() {
     if (!editing) return;
     setSaving(true);
     setErrors({});
-    const body = { name: editing.name, color: editing.color, serviceIds: editing.serviceIds, active: editing.active };
+    const body = { name: editing.name, color: editing.color, serviceIds: editing.serviceIds, active: editing.active, capacity: editing.capacity, workHours: editing.workHours };
     try {
       if (editing.id) await adminApi.updateProfessional(editing.id, body);
       else await adminApi.createProfessional(body);
@@ -92,7 +93,7 @@ export default function ProfessionalsPage() {
       <PageHeader
         title="Profissionais"
         description="Cada profissional atende um pet por vez. O site só oferece horários em que há alguém livre que faz o serviço."
-        actions={<Button onClick={() => setEditing({ name: '', color: COLORS[(data?.professionals.length ?? 0) % COLORS.length]!, serviceIds: [], active: true })} icon={<Plus className="h-4 w-4" />}>Novo profissional</Button>}
+        actions={<Button onClick={() => setEditing({ name: '', color: COLORS[(data?.professionals.length ?? 0) % COLORS.length]!, serviceIds: [], active: true, capacity: 1, workHours: [] })} icon={<Plus className="h-4 w-4" />}>Novo profissional</Button>}
       />
       {data && (
         <Alert tone="info" className="mb-5">
@@ -117,10 +118,13 @@ export default function ProfessionalsPage() {
                   {p.name} {!p.active && <Badge className="bg-ink-900/10 text-ink-600">Inativo</Badge>}
                 </p>
                 <p className="truncate text-sm text-ink-500">
+                  {p.workHours.length > 0 ? 'Horário próprio • ' : ''}
+                  {p.capacity > 1 ? `${p.capacity} pets por vez • ` : ''}
                   {p.serviceIds.length ? p.serviceIds.map((id) => data.services.find((s) => s.id === id)?.name).filter(Boolean).join(', ') : 'Todos os serviços'}
                 </p>
               </div>
               <Toggle checked={p.active} onChange={() => toggle(p)} label={p.active ? 'Ativo' : 'Inativo'} />
+              <Button size="sm" variant="ghost" aria-label={`Folgas de ${p.name}`} onClick={() => setTimeOffFor(p)} icon={<CalendarOff className="h-4 w-4" />} />
               <Button size="sm" variant="ghost" aria-label={`Editar ${p.name}`} onClick={() => setEditing({ ...p })} icon={<Pencil className="h-4 w-4" />} />
               <Button size="sm" variant="ghost" aria-label={`Excluir ${p.name}`} onClick={() => setToDelete(p)} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
             </li>
@@ -155,11 +159,144 @@ export default function ProfessionalsPage() {
                 ))}
               </div>
             </fieldset>
-            <Toggle checked={editing.active} onChange={(v) => setEditing({ ...editing, active: v })} label="Ativo (recebe agendamentos)" />
+            <Field label="Pets atendidos ao mesmo tempo" hint="Normalmente 1." error={errors.capacity}>
+              {(p) => <Input {...p} type="number" min={1} max={10} value={editing.capacity} onChange={(e) => setEditing({ ...editing, capacity: Number(e.target.value) || 1 })} />}
+            </Field>
+            <WorkHoursEditor value={editing.workHours} onChange={(workHours) => setEditing({ ...editing, workHours })} error={errors.workHours} />
+            <Toggle checked={editing.active} onChange={(v) => setEditing({ ...editing, active: v })} label="Ativo (recebe agendamentos)" description="Desativar tira o profissional dos horários futuros; o histórico continua." />
           </div>
         </Modal>
       )}
+      {timeOffFor && <TimeOffModal professional={timeOffFor} onClose={() => setTimeOffFor(null)} />}
       <ConfirmDialog open={Boolean(toDelete)} title="Excluir profissional?" message={`"${toDelete?.name}" será removido. Se já tiver agendamentos, desative em vez de excluir.`} confirmLabel="Excluir" danger onConfirm={remove} onClose={() => setToDelete(null)} />
     </div>
+  );
+}
+
+/** Horário próprio por dia da semana. Vazio = segue o funcionamento da loja; dia desmarcado = folga. */
+function WorkHoursEditor({ value, onChange, error }: { value: ProfessionalWorkHours[]; onChange: (v: ProfessionalWorkHours[]) => void; error?: string }) {
+  const custom = value.length > 0;
+  const day = (w: number) => value.find((d) => d.weekday === w);
+  const set = (w: number, patch: Partial<ProfessionalWorkHours> | null) => {
+    const others = value.filter((d) => d.weekday !== w);
+    if (patch === null) return onChange(others);
+    const current = day(w) ?? { weekday: w, startTime: '08:00', endTime: '18:00', breakStart: null, breakEnd: null };
+    onChange([...others, { ...current, ...patch }].sort((a, b) => a.weekday - b.weekday));
+  };
+  return (
+    <fieldset className="rounded-2xl border border-ink-900/10 p-3">
+      <legend className="px-1 text-sm font-semibold text-ink-700">Horário de trabalho</legend>
+      <label className="flex cursor-pointer items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="h-5 w-5 accent-brand-600"
+          checked={custom}
+          onChange={(e) => onChange(e.target.checked ? [1, 2, 3, 4, 5, 6].map((w) => ({ weekday: w, startTime: '08:00', endTime: '18:00', breakStart: null, breakEnd: null })) : [])}
+        />
+        Horário diferente do funcionamento da loja
+      </label>
+      {custom && (
+        <ul className="mt-3 space-y-2">
+          {WEEKDAY_LABELS.map((label, w) => {
+            const d = day(w);
+            return (
+              <li key={w} className="flex flex-wrap items-center gap-2 text-sm">
+                <label className="flex w-36 items-center gap-2">
+                  <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={Boolean(d)} onChange={(e) => set(w, e.target.checked ? {} : null)} />
+                  {label}
+                </label>
+                {d ? (
+                  <>
+                    <Input type="time" aria-label={`${label}: início`} className="w-auto py-1.5" value={d.startTime} onChange={(e) => set(w, { startTime: e.target.value })} />
+                    <span>às</span>
+                    <Input type="time" aria-label={`${label}: fim`} className="w-auto py-1.5" value={d.endTime} onChange={(e) => set(w, { endTime: e.target.value })} />
+                    <span className="text-ink-500">intervalo</span>
+                    <Input type="time" aria-label={`${label}: início do intervalo`} className="w-auto py-1.5" value={d.breakStart ?? ''} onChange={(e) => set(w, { breakStart: e.target.value || null })} />
+                    <Input type="time" aria-label={`${label}: fim do intervalo`} className="w-auto py-1.5" value={d.breakEnd ?? ''} onChange={(e) => set(w, { breakEnd: e.target.value || null })} />
+                  </>
+                ) : (
+                  <span className="text-ink-400">Folga</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {error && <p className="mt-2 text-sm font-semibold text-danger-600">{error}</p>}
+    </fieldset>
+  );
+}
+
+/** Folgas, férias e indisponibilidades (dia inteiro ou só um período). */
+function TimeOffModal({ professional, onClose }: { professional: Professional; onClose: () => void }) {
+  const toast = useToast();
+  const { data, reload } = useAsync(() => adminApi.schedule(), []);
+  const [form, setForm] = useState({ dateFrom: '', dateTo: '', startTime: '', endTime: '', reason: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const items = (data?.professionalTimeOff ?? []).filter((t) => t.professionalId === professional.id);
+
+  const add = async () => {
+    setSaving(true);
+    setErrors({});
+    try {
+      await adminApi.addTimeOff({
+        professionalId: professional.id,
+        dateFrom: form.dateFrom,
+        dateTo: form.dateTo || form.dateFrom,
+        startTime: form.startTime || null,
+        endTime: form.endTime || null,
+        reason: form.reason,
+      });
+      setForm({ dateFrom: '', dateTo: '', startTime: '', endTime: '', reason: '' });
+      toast('Folga registrada. Esses horários saíram da agenda deste profissional.');
+      await reload();
+    } catch (err) {
+      if (err instanceof ApiError) setErrors(err.fields);
+      toast(friendlyMessage(err), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    try {
+      await adminApi.removeTimeOff(id);
+      await reload();
+    } catch (err) {
+      toast(friendlyMessage(err), 'error');
+    }
+  };
+
+  return (
+    <Modal open onClose={onClose} title={`Folgas — ${professional.name}`} footer={<Button variant="ghost" onClick={onClose}>Fechar</Button>}>
+      <div className="space-y-4">
+        {items.length === 0 ? (
+          <p className="text-sm text-ink-500">Nenhuma folga cadastrada.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {items.map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-2 rounded-2xl bg-lilac-50 px-3 py-2">
+                <span>
+                  {formatDateBR(t.dateFrom)}
+                  {t.dateTo !== t.dateFrom && ` a ${formatDateBR(t.dateTo)}`}
+                  {t.startTime ? ` • ${t.startTime}–${t.endTime}` : ' • dia inteiro'}
+                  {t.reason && ` • ${t.reason}`}
+                </span>
+                <Button size="sm" variant="ghost" aria-label="Remover folga" onClick={() => remove(t.id)} icon={<Trash2 className="h-4 w-4 text-danger-500" />} />
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="De" required error={errors.dateFrom}>{(p) => <Input {...p} type="date" value={form.dateFrom} onChange={(e) => setForm({ ...form, dateFrom: e.target.value })} />}</Field>
+          <Field label="Até" hint="Vazio = só um dia." error={errors.dateTo}>{(p) => <Input {...p} type="date" value={form.dateTo} onChange={(e) => setForm({ ...form, dateTo: e.target.value })} />}</Field>
+          <Field label="Das (opcional)">{(p) => <Input {...p} type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />}</Field>
+          <Field label="Até as (opcional)" error={errors.endTime}>{(p) => <Input {...p} type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} />}</Field>
+        </div>
+        <Field label="Motivo (interno)">{(p) => <Input {...p} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Ex.: férias, consulta" />}</Field>
+        <Button onClick={add} loading={saving} disabled={!form.dateFrom}>Adicionar folga</Button>
+      </div>
+    </Modal>
   );
 }
