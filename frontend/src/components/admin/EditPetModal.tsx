@@ -20,7 +20,11 @@ export function EditPetModal({ pet, catalog, open, onClose, onSaved }: { pet: Pe
     sizeId: pet.sizeId,
     weight: pet.weightKg != null ? String(pet.weightKg) : '',
     ageMonths: pet.ageMonths != null ? String(pet.ageMonths) : '',
+    birthDate: pet.birthDate ?? '',
     notes: pet.notes,
+    characteristics: pet.characteristics,
+    groomingPreferences: pet.groomingPreferences,
+    internalNotes: pet.internalNotes,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +46,11 @@ export function EditPetModal({ pet, catalog, open, onClose, onSaved }: { pet: Pe
         sizeId: form.sizeId,
         weightKg: weight,
         ageMonths: age,
+        birthDate: form.birthDate || null,
         notes: form.notes,
+        characteristics: form.characteristics,
+        groomingPreferences: form.groomingPreferences,
+        internalNotes: form.internalNotes,
       });
       toast('Dados do pet atualizados.');
       onSaved();
@@ -93,7 +101,15 @@ export function EditPetModal({ pet, catalog, open, onClose, onSaved }: { pet: Pe
           <Field label="Peso (kg)" error={errors.weightKg}>{(p) => <Input {...p} inputMode="decimal" value={form.weight} onChange={(e) => set({ weight: e.target.value })} />}</Field>
           <Field label="Idade (meses)" error={errors.ageMonths}>{(p) => <Input {...p} inputMode="numeric" value={form.ageMonths} onChange={(e) => set({ ageMonths: e.target.value })} />}</Field>
         </div>
-        <Field label="Observações">{(p) => <Textarea {...p} value={form.notes} onChange={(e) => set({ notes: e.target.value })} />}</Field>
+        <Field label="Data de nascimento" hint="Quando informada, a idade é calculada automaticamente." error={errors.birthDate}>
+          {(p) => <Input {...p} type="date" value={form.birthDate} onChange={(e) => set({ birthDate: e.target.value })} />}
+        </Field>
+        <Field label="Características e temperamento" error={errors.characteristics}>{(p) => <Textarea {...p} rows={2} value={form.characteristics} onChange={(e) => set({ characteristics: e.target.value })} />}</Field>
+        <Field label="Preferências de tosa" error={errors.groomingPreferences}>{(p) => <Textarea {...p} rows={2} value={form.groomingPreferences} onChange={(e) => set({ groomingPreferences: e.target.value })} />}</Field>
+        <Field label="Observações (o tutor também vê)">{(p) => <Textarea {...p} value={form.notes} onChange={(e) => set({ notes: e.target.value })} />}</Field>
+        <Field label="Observações internas (só a equipe vê)" error={errors.internalNotes}>
+          {(p) => <Textarea {...p} rows={2} className="bg-sun-50" value={form.internalNotes} onChange={(e) => set({ internalNotes: e.target.value })} />}
+        </Field>
       </div>
     </Modal>
   );

@@ -81,6 +81,19 @@ export default function SettingsPage() {
             </div>
             <Field label="Aviso exibido no resumo do agendamento" className="mt-4" error={errors.bookingNotice}>{(p) => <Textarea {...p} value={form.bookingNotice} onChange={(e) => set({ bookingNotice: e.target.value })} />}</Field>
           </Panel>
+          <Panel title="CRM (clientes inativos)">
+            <Field label="Considerar inativo depois de (dias)" required error={errors.crmInactiveDays} hint="Contados a partir do último atendimento concluído. Padrão: 40.">
+              {(p) => <Input {...p} type="number" min={7} max={365} {...numberField('crmInactiveDays')} />}
+            </Field>
+            <Field
+              label="Mensagem de convite para voltar"
+              className="mt-4"
+              error={errors.crmReactivationMessage}
+              hint="Use {tutor}, {pet} e {dias}. A mensagem abre no WhatsApp para você revisar e enviar — nada é enviado automaticamente."
+            >
+              {(p) => <Textarea {...p} rows={3} value={form.crmReactivationMessage} onChange={(e) => set({ crmReactivationMessage: e.target.value })} />}
+            </Field>
+          </Panel>
           <Panel title="Anúncios (tráfego pago)">
             <p className="mb-4 text-sm text-ink-500">
               Cole aqui só os <strong>IDs</strong> (não o código inteiro). Os pixels medem quem agenda depois de ver um anúncio e só carregam

@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { CatalogProvider } from '@/context/CatalogContext';
 import { BookingProvider } from '@/context/BookingContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { CustomerAuthProvider } from '@/context/CustomerAuthContext';
 import { ToastProvider } from '@/components/ui/Toast';
 import { Spinner } from '@/components/ui/Feedback';
 import { PublicLayout } from '@/layouts/PublicLayout';
@@ -16,18 +17,25 @@ const InspirationsPage = lazy(() => import('@/pages/InspirationsPage'));
 const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
 const AdminRoutes = lazy(() => import('@/pages/admin/AdminRoutes'));
 const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
+const AccountLoginPage = lazy(() => import('@/pages/account/AccountLoginPage'));
+const AccountPage = lazy(() => import('@/pages/account/AccountPage'));
+const AccountPetPage = lazy(() => import('@/pages/account/AccountPetPage'));
 
 export default function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
         <CatalogProvider>
+          <CustomerAuthProvider>
           <Suspense fallback={<Spinner className="min-h-dvh" />}>
             <Routes>
               <Route element={<PublicLayout />}>
                 <Route index element={<HomePage />} />
                 <Route path="inspiracoes" element={<InspirationsPage />} />
                 <Route path="privacidade" element={<PrivacyPage />} />
+                <Route path="minha-conta/entrar" element={<AccountLoginPage />} />
+                <Route path="minha-conta" element={<AccountPage />} />
+                <Route path="minha-conta/pets/:id" element={<AccountPetPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
               <Route
@@ -49,6 +57,7 @@ export default function App() {
               />
             </Routes>
           </Suspense>
+          </CustomerAuthProvider>
           <TrackingManager />
         </CatalogProvider>
       </ToastProvider>

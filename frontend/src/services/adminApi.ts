@@ -6,6 +6,9 @@ import type {
   AppointmentStatus,
   AppointmentUpdateInput,
   AuditLog,
+  ContactLog,
+  ContactResult,
+  CrmResponse,
   AuthSession,
   StaffMember,
   BlockedDate,
@@ -120,4 +123,16 @@ export const adminApi = {
   removeBlockedTime: (id: string) => apiRequest<void>('DELETE', `/admin/blocked-times/${id}`, auth),
   settings: () => apiRequest<BusinessSettings>('GET', '/admin/settings', auth),
   saveSettings: (body: BusinessSettings) => apiRequest<BusinessSettings>('PUT', '/admin/settings', { ...auth, body }),
+
+  crm: (query: { segment?: string; search?: string } = {}) => apiRequest<CrmResponse>('GET', '/admin/crm', { ...auth, query }),
+  startContact: (customerId: string, body: { kind: 'reactivation' | 'pickup' | 'other'; appointmentId?: string | null }) =>
+    apiRequest<ContactResult>('POST', `/admin/customers/${customerId}/contacts`, { ...auth, body }),
+  updateContact: (id: string, status: 'sent' | 'cancelled' | 'opened') => apiRequest<ContactLog>('PATCH', `/admin/contacts/${id}`, { ...auth, body: { status } }),
+  linkAccount: (customerId: string, email: string) => apiRequest<CustomerDetail>('POST', `/admin/customers/${customerId}/link-account`, { ...auth, body: { email } }),
+  unlinkAccount: (customerId: string) => apiRequest<CustomerDetail>('DELETE', `/admin/customers/${customerId}/link-account`, auth),
+  petUploadTicket: (petId: string, body: { kind: 'pet-photo' | 'pet-reference'; contentType: string; size: number }) =>
+    apiRequest<UploadTicket>('POST', `/admin/pets/${petId}/upload-ticket`, { ...auth, body }),
+  setPetPhoto: (petId: string, path: string) => apiRequest<PetDetail>('PUT', `/admin/pets/${petId}/photo`, { ...auth, body: { path } }),
+  addPetReference: (petId: string, body: { path: string; description: string }) => apiRequest<PetDetail>('POST', `/admin/pets/${petId}/references`, { ...auth, body }),
+  removePetReference: (petId: string, refId: string) => apiRequest<PetDetail>('DELETE', `/admin/pets/${petId}/references/${refId}`, auth),
 };

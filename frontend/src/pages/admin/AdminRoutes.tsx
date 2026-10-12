@@ -23,6 +23,7 @@ const ProfessionalsPage = lazy(() => import('./ProfessionalsPage'));
 const InspirationsAdminPage = lazy(() => import('./InspirationsAdminPage'));
 const StoriesAdminPage = lazy(() => import('./StoriesAdminPage'));
 const TeamPage = lazy(() => import('./TeamPage'));
+const CrmPage = lazy(() => import('./CrmPage'));
 
 const guard = (permission: Permission, page: ReactElement) => <RequirePermission permission={permission}>{page}</RequirePermission>;
 
@@ -48,6 +49,7 @@ export default function AdminRoutes() {
         <Route path="profissionais" element={guard('professionals.view', <ProfessionalsPage />)} />
         <Route path="inspiracoes" element={guard('inspirations.view', <InspirationsAdminPage />)} />
         <Route path="stories" element={guard('inspirations.view', <StoriesAdminPage />)} />
+        <Route path="crm" element={guard('crm.view', <CrmPage />)} />
         <Route path="equipe" element={guard('team.view', <TeamPage />)} />
         <Route path="*" element={guard('dashboard.view', <DashboardPage />)} />
       </Route>

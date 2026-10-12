@@ -51,6 +51,11 @@ export default function PrivacyPage() {
               <strong>Do agendamento:</strong> serviço, adicionais, data, horário, valor e a foto de inspiração escolhida (se houver).
             </li>
             <li>
+              <strong>Se você criar uma conta em “Minha conta”:</strong> e-mail e senha de acesso (a senha é guardada de forma criptografada pelo
+              provedor de login e ninguém da equipe consegue vê-la), além das informações que você mesmo cadastrar sobre seus pets, como data de
+              nascimento, características, preferências de tosa e fotos.
+            </li>
+            <li>
               <strong>Origem da visita:</strong> se você chegou por um link de anúncio ou de outro site (ex.: Instagram, Google), guardamos essa
               informação junto com o agendamento para saber quais divulgações funcionam.
             </li>
@@ -62,12 +67,21 @@ export default function PrivacyPage() {
             Para agendar e realizar o atendimento do seu pet, confirmar o horário e falar com você pelo WhatsApp, e manter o histórico de atendimentos.
             Não vendemos seus dados.
           </p>
+          <p>
+            A equipe pode chamar você pelo WhatsApp para lembrar de um novo banho quando faz tempo desde o último atendimento. Essas mensagens são
+            sempre enviadas por uma pessoa (nunca automaticamente) e você pode pedir para não receber — em “Minha conta” ou falando com a gente.
+          </p>
         </Block>
 
         <Block title="Onde os dados ficam">
           <p>
             Os dados ficam no sistema de agendamento da {name}, hospedado em provedores de nuvem (banco de dados Supabase e site na Netlify),
-            com acesso restrito à equipe por login e senha. As mensagens de confirmação usam o WhatsApp.
+            com acesso restrito à equipe por login e senha, e cada pessoa da equipe vê apenas o que a função dela exige. As mensagens de
+            confirmação usam o WhatsApp.
+          </p>
+          <p>
+            As fotos do seu pet ficam em um armazenamento <strong>privado</strong>: não têm endereço público e só abrem por links temporários para
+            você e para a equipe. Na sua conta você vê somente os seus dados e os dos seus pets.
           </p>
         </Block>
 

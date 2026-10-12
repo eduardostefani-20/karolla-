@@ -23,27 +23,39 @@ export class ApiError extends Error {
 const FRIENDLY_FALLBACK = 'Não foi possível concluir agora. Tente novamente em instantes.';
 const OFFLINE = 'Sem conexão com o servidor. Verifique sua internet e tente novamente.';
 
-let authTokenGetter: () => string | null = () => null;
-let onUnauthorized: () => void = () => {};
-let refresher: (() => Promise<string | null>) | null = null;
-let refreshing: Promise<string | null> | null = null;
+interface AuthChannel {
+  getToken: () => string | null;
+  onUnauthorized: () => void;
+  refresh: (() => Promise<string | null>) | null;
+  refreshing: Promise<string | null> | null;
+}
+
+/** Duas sessões independentes: equipe (painel) e cliente (Minha conta). */
+const channels: Record<'admin' | 'customer', AuthChannel> = {
+  admin: { getToken: () => null, onUnauthorized: () => {}, refresh: null, refreshing: null },
+  customer: { getToken: () => null, onUnauthorized: () => {}, refresh: null, refreshing: null },
+};
 
 /** Conectado pelo AuthContext — mantém a camada HTTP desacoplada do React. */
 export function configureApiAuth(getter: () => string | null, unauthorized: () => void, refresh?: () => Promise<string | null>) {
-  authTokenGetter = getter;
-  onUnauthorized = unauthorized;
-  refresher = refresh ?? null;
+  Object.assign(channels.admin, { getToken: getter, onUnauthorized: unauthorized, refresh: refresh ?? null });
+}
+
+/** Conectado pelo CustomerAuthContext (portal do cliente). */
+export function configureCustomerAuth(getter: () => string | null, unauthorized: () => void, refresh?: () => Promise<string | null>) {
+  Object.assign(channels.customer, { getToken: getter, onUnauthorized: unauthorized, refresh: refresh ?? null });
 }
 
 /** Renova a sessão uma única vez mesmo com várias requisições recebendo 401 ao mesmo tempo. */
-function refreshOnce(): Promise<string | null> {
-  if (!refresher) return Promise.resolve(null);
-  refreshing ??= refresher()
+function refreshOnce(channel: AuthChannel): Promise<string | null> {
+  if (!channel.refresh) return Promise.resolve(null);
+  channel.refreshing ??= channel
+    .refresh()
     .catch(() => null)
     .finally(() => {
-      setTimeout(() => (refreshing = null), 0);
+      setTimeout(() => (channel.refreshing = null), 0);
     });
-  return refreshing;
+  return channel.refreshing;
 }
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -51,15 +63,16 @@ type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 export async function apiRequest<T>(
   method: Method,
   path: string,
-  options: { body?: unknown; query?: Record<string, string | undefined>; auth?: boolean; signal?: AbortSignal; retried?: boolean } = {},
+  options: { body?: unknown; query?: Record<string, string | undefined>; auth?: boolean | 'customer'; signal?: AbortSignal; retried?: boolean } = {},
 ): Promise<T> {
+  const channel = options.auth ? channels[options.auth === 'customer' ? 'customer' : 'admin'] : null;
   const url = new URL(`${BASE_URL}/api${path}`, window.location.origin);
   for (const [k, v] of Object.entries(options.query ?? {})) if (v !== undefined && v !== '') url.searchParams.set(k, v);
 
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
-  if (options.auth) {
-    const token = authTokenGetter();
+  if (channel) {
+    const token = channel.getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
@@ -87,10 +100,10 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const err = (data as ApiErrorBody | null)?.error;
-    if (response.status === 401 && options.auth) {
+    if (response.status === 401 && channel) {
       // Token de acesso vencido: tenta renovar a sessão e repetir a chamada uma vez.
-      if (!options.retried && (await refreshOnce())) return apiRequest<T>(method, path, { ...options, retried: true });
-      onUnauthorized();
+      if (!options.retried && (await refreshOnce(channel))) return apiRequest<T>(method, path, { ...options, retried: true });
+      channel.onUnauthorized();
     }
     const message = err?.message && response.status < 500 ? err.message : FRIENDLY_FALLBACK;
     throw new ApiError(message, response.status, err?.code ?? 'UNKNOWN', err?.fields ?? {});

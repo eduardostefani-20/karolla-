@@ -68,7 +68,10 @@ export default function ResetPasswordPage() {
         {done ? (
           <div className="space-y-4 text-center">
             <Alert tone="success">Senha alterada! Já pode entrar com a senha nova.</Alert>
-            <Link to="/admin/login" className="font-semibold text-brand-700 underline">Entrar no painel</Link>
+            <p className="flex flex-wrap justify-center gap-4">
+              <Link to="/minha-conta/entrar" className="font-semibold text-brand-700 underline">Entrar na minha conta</Link>
+              <Link to="/admin/login" className="font-semibold text-brand-700 underline">Entrar no painel da equipe</Link>
+            </p>
           </div>
         ) : !token ? (
           <Alert tone="error">

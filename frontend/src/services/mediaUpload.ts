@@ -1,4 +1,4 @@
-import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, VIDEO_TYPES } from '@karolla/shared';
+import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, PRIVATE_IMAGE_MAX_BYTES, PRIVATE_IMAGE_TYPES, VIDEO_TYPES, type UploadTicket } from '@karolla/shared';
 import { adminApi } from './adminApi';
 import { ApiError } from './api';
 
@@ -11,7 +11,7 @@ import { ApiError } from './api';
 
 const MAX_SIDE = 1600;
 
-async function shrinkImage(file: File): Promise<Blob> {
+export async function shrinkImage(file: File): Promise<Blob> {
   if (file.type === 'image/gif') return file;
   try {
     const bitmap = await createImageBitmap(file);
@@ -46,6 +46,12 @@ export async function uploadMedia(file: File, kind: 'inspiration' | 'story'): Pr
   const contentType = body.type || file.type;
 
   const ticket = await adminApi.uploadTicket({ kind, contentType, size: body.size });
+  await sendWithTicket(ticket, body, contentType);
+  return { url: ticket.publicUrl, path: ticket.path, mediaType: isVideo ? 'video' : 'image' };
+}
+
+/** Envia o arquivo direto ao armazenamento usando a autorização temporária devolvida pela API. */
+export async function sendWithTicket(ticket: UploadTicket, body: Blob, contentType: string): Promise<void> {
   try {
     if (ticket.provider === 'supabase') {
       const { StorageClient } = await import('@supabase/storage-js');
@@ -59,5 +65,22 @@ export async function uploadMedia(file: File, kind: 'inspiration' | 'story'): Pr
   } catch {
     throw new ApiError('Não foi possível enviar o arquivo. Verifique a conexão e tente novamente.', 0, 'UPLOAD_FAILED');
   }
-  return { url: ticket.publicUrl, path: ticket.path, mediaType: isVideo ? 'video' : 'image' };
+}
+
+/**
+ * Foto PRIVADA (foto do pet ou referência): JPG/PNG/WebP, reduzida no navegador, até 8 MB.
+ * `getTicket` pede a autorização de envio (portal do cliente ou painel). Devolve o caminho do arquivo.
+ */
+export async function uploadPrivatePhoto(
+  file: File,
+  getTicket: (input: { contentType: string; size: number }) => Promise<UploadTicket>,
+): Promise<string> {
+  if (!(PRIVATE_IMAGE_TYPES as readonly string[]).includes(file.type)) throw new ApiError('Envie uma foto JPG, PNG ou WebP.', 400, 'INVALID_FILE');
+  if (file.size > 40 * 1024 * 1024) throw new ApiError('Foto muito grande.', 400, 'INVALID_FILE');
+  const body = await shrinkImage(file);
+  if (body.size > PRIVATE_IMAGE_MAX_BYTES) throw new ApiError('Foto muito grande mesmo após reduzir (máximo 8 MB).', 400, 'INVALID_FILE');
+  const contentType = body.type || file.type;
+  const ticket = await getTicket({ contentType, size: body.size });
+  await sendWithTicket(ticket, body, contentType);
+  return ticket.path;
 }

@@ -4,6 +4,7 @@ import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
 import {
   CalendarDays,
   Clapperboard,
+  HeartHandshake,
   Images,
   IdCard,
   ClipboardList,
@@ -38,6 +39,7 @@ export const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean; 
   { to: '/admin/agendamentos', label: 'Agendamentos', icon: ClipboardList, permission: 'agenda.view' },
   { to: '/admin/clientes', label: 'Clientes', icon: Users, permission: 'customers.view' },
   { to: '/admin/pets', label: 'Pets', icon: PawPrint, permission: 'pets.view' },
+  { to: '/admin/crm', label: 'CRM', icon: HeartHandshake, permission: 'crm.view' },
   { to: '/admin/profissionais', label: 'Profissionais', icon: IdCard, permission: 'professionals.view' },
   { to: '/admin/servicos', label: 'Serviços', icon: Scissors, permission: 'services.view' },
   { to: '/admin/precos', label: 'Preços', icon: Tags, permission: 'finance.view' },
