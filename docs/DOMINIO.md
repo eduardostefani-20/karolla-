@@ -53,3 +53,20 @@ A propagação leva de minutos até 48 h.
 - `netlify.toml`: `VITE_SITE_URL`, cabeçalhos de segurança (HSTS, nosniff, anti-iframe, referrer).
 - `sitemap.xml` e `robots.txt` gerados no build (o painel `/admin` e a API ficam fora das buscas).
 - Dados estruturados (PetStore) com nome, telefone, endereço, horários e Instagram vindos do painel.
+
+## 4. Login e e-mails com o domínio
+1. **Netlify → Environment variables**: `PUBLIC_SITE_URL` = `https://karollapet.com.br` (é o endereço
+   usado nos links de confirmação de cadastro e de nova senha) → *Deploys → Trigger deploy*.
+2. **Supabase → Authentication → URL Configuration**: *Site URL* = `https://karollapet.com.br`; em
+   *Redirect URLs*, adicione `https://karollapet.com.br/minha-conta/entrar`,
+   `https://karollapet.com.br/minha-conta` e `https://karollapet.com.br/redefinir-senha`.
+3. **Envio de e-mails (obrigatório)**: o envio padrão do Supabase só entrega para e-mails da equipe do
+   projeto. Configure um SMTP próprio, por exemplo o **Resend** (gratuito até 3.000 e-mails/mês):
+   1. Crie a conta em <https://resend.com> → *Domains → Add domain* → `karollapet.com.br`.
+   2. Cadastre no DNS (Netlify ou Registro.br, o que você escolheu acima) os registros que o Resend
+      mostrar (MX/TXT de envio e DKIM) e clique em *Verify*.
+   3. *API Keys → Create API key* (permissão de envio).
+   4. **Supabase → Authentication → Emails → SMTP Settings → Enable custom SMTP**: remetente
+      `nao-responda@karollapet.com.br`, nome `Karolla Pet`, host `smtp.resend.com`, porta `465`,
+      usuário `resend`, senha = a chave de API. A chave fica só no Supabase — nunca no código.
+   5. Teste: crie uma conta em *Minha conta* com um e-mail qualquer e confira a caixa de entrada.
