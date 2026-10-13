@@ -38,6 +38,13 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+/** E-mail ou senha errados (conta para o bloqueio de tentativas). */
+export class InvalidCredentialsError extends UnauthorizedError {
+  constructor() {
+    super('E-mail ou senha incorretos.');
+  }
+}
+
 export class ForbiddenError extends AppError {
   constructor(message = 'Você não tem permissão para esta ação.') {
     super(403, 'FORBIDDEN', message);

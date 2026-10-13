@@ -173,6 +173,8 @@ export interface AdminRepository {
 export interface AuditRepository {
   create(entry: Omit<AuditLog, 'id' | 'createdAt'>): Promise<void>;
   list(filter: { limit: number; actorId?: string; entity?: string }): Promise<AuditLog[]>;
+  /** Quantos registros de uma ação para um e-mail desde um instante (ex.: logins errados). */
+  countSince(filter: { action: string; actorEmail: string; since: string }): Promise<number>;
 }
 
 export interface DatabaseService {

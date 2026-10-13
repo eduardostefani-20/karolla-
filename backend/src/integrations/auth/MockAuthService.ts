@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
-import { UnauthorizedError, ValidationError } from '../../utils/errors';
+import { InvalidCredentialsError, UnauthorizedError, ValidationError } from '../../utils/errors';
 import { logger } from '../../utils/logger';
 import type { AuthIdentity, AuthService, AuthTokens, SignUpResult } from './AuthService';
 import { signToken, verifyToken } from './signedToken';
@@ -73,7 +73,7 @@ export class MockAuthService implements AuthService {
     const user = this.byEmail(email);
     // compara mesmo sem usuário (tempo parecido; não revela se o e-mail existe)
     const ok = user ? this.passwordMatches(user, password) : (hashPassword(password, 'x'), false);
-    if (!user || !ok) throw new UnauthorizedError('E-mail ou senha incorretos.');
+    if (!user || !ok) throw new InvalidCredentialsError();
     return { identity: this.identity(user), tokens: this.issue(user) };
   }
 

@@ -10,6 +10,25 @@ import { authApi } from '@/services/adminApi';
  * As permissões aqui servem só para esconder menus e botões — quem decide é sempre o servidor.
  */
 const STORAGE_KEY = 'karolla:admin-session';
+const ACTIVITY_KEY = 'karolla:admin-activity';
+/** Sem uso do painel por este tempo, a sessão é encerrada (ex.: computador da loja esquecido aberto). */
+export const ADMIN_IDLE_LIMIT_MS = 8 * 60 * 60 * 1000;
+
+function lastActivity(): number {
+  try {
+    return Number(localStorage.getItem(ACTIVITY_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function touchActivity() {
+  try {
+    localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
+  } catch {
+    /* storage indisponível */
+  }
+}
 
 interface AuthState {
   user: AdminUser | null;
@@ -26,6 +45,12 @@ function readSession(): AuthSession | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const session = JSON.parse(raw) as AuthSession;
+    // parado há mais tempo que o limite: exige login de novo
+    const last = lastActivity();
+    if (last && Date.now() - last > ADMIN_IDLE_LIMIT_MS) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
     // token vencido sem refresh token: não há como renovar
     if (!session.token || (!session.refreshToken && Date.parse(session.expiresAt) <= Date.now())) {
       localStorage.removeItem(STORAGE_KEY);
@@ -91,8 +116,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(clear);
   }, [status, clear]);
 
+  // Encerra a sessão por inatividade (vale entre abas: a última atividade fica no navegador).
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    let lastWrite = 0;
+    const onActivity = () => {
+      if (Date.now() - lastWrite < 60_000) return;
+      lastWrite = Date.now();
+      touchActivity();
+    };
+    onActivity();
+    const events = ['pointerdown', 'keydown', 'scroll', 'visibilitychange'] as const;
+    events.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
+    const timer = window.setInterval(() => {
+      if (Date.now() - lastActivity() > ADMIN_IDLE_LIMIT_MS) {
+        void authApi.logout().catch(() => undefined);
+        clear();
+      }
+    }, 60_000);
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, onActivity));
+      window.clearInterval(timer);
+    };
+  }, [status, clear]);
+
   const login = useCallback(async (email: string, password: string) => {
     const result = await authApi.login(email, password);
+    touchActivity();
     sessionRef.current = result;
     writeSession(result);
     setSession(result);

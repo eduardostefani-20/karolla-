@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
-import { AppError, UnauthorizedError, ValidationError } from '../../utils/errors';
+import { AppError, InvalidCredentialsError, UnauthorizedError, ValidationError } from '../../utils/errors';
 import { errorMeta, logger } from '../../utils/logger';
 import type { AuthIdentity, AuthService, AuthTokens, SignUpResult } from './AuthService';
 
@@ -48,7 +48,7 @@ export class SupabaseAuthService implements AuthService {
     if (error?.message?.toLowerCase().includes('not confirmed')) {
       throw new UnauthorizedError('Confirme seu e-mail pelo link que enviamos antes de entrar.');
     }
-    if (error || !data.session || !data.user) throw new UnauthorizedError('E-mail ou senha incorretos.');
+    if (error || !data.session || !data.user) throw new InvalidCredentialsError();
     return { identity: this.identity(data.user), tokens: this.tokens(data.session) };
   }
 

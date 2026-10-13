@@ -29,7 +29,7 @@ export function accountController(c: Container) {
     },
     async login(req: Request, res: Response) {
       const { email, password } = parse(accountLoginSchema, req.body);
-      res.json(await c.account.login(email, password));
+      res.json(await c.loginGuard.attempt(email, 'conta', () => c.account.login(email, password)));
     },
     async refresh(req: Request, res: Response) {
       res.json(await c.account.refresh(parse(refreshSchema, req.body).refreshToken));

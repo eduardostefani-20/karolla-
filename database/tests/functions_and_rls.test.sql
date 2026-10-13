@@ -68,10 +68,16 @@ end $$;
 update public.services set active = false where id = 'escovacao';
 set role anon;
 do $$
+declare t text; n int;
 begin
-  assert (select count(*) from public.customers) = 0, 'anon não pode ler clientes';
-  assert (select count(*) from public.appointments) = 0, 'anon não pode ler agendamentos';
-  assert (select count(*) from public.pets) = 0, 'anon não pode ler pets';
+  -- bloqueio pela RLS (0 linhas) ou, desde a 0012, sem permissão nenhuma na tabela
+  foreach t in array array['customers','appointments','pets'] loop
+    begin
+      execute format('select count(*) from public.%I', t) into n;
+      assert n = 0, format('anon não pode ler %s', t);
+    exception when insufficient_privilege then null;
+    end;
+  end loop;
   assert (select count(*) from public.services where id = 'escovacao') = 0, 'anon não pode ver serviço inativo';
   assert (select count(*) from public.services) > 0, 'anon deve ver serviços ativos';
   assert (select count(*) from public.service_prices where service_id = 'escovacao') = 0, 'preço de serviço inativo oculto';

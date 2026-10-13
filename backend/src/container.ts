@@ -29,6 +29,7 @@ import { BookingService } from './services/BookingService';
 import { AppointmentService } from './services/AppointmentService';
 import { CustomerService } from './services/CustomerService';
 import { systemClock, type Clock } from './utils/clock';
+import { LoginGuard } from './services/LoginGuard';
 import { logger } from './utils/logger';
 
 /**
@@ -58,6 +59,7 @@ export interface Container {
   plans: PlanService;
   taxi: TaxiService;
   comments: CommentService;
+  loginGuard: LoginGuard;
 }
 
 export interface ContainerOverrides {
@@ -155,6 +157,7 @@ export async function buildContainer(env: Env, overrides: ContainerOverrides = {
 
   const media = new MediaService(db, storage, clock);
   const staff = new StaffService(db, auth, clock);
+  const loginGuard = new LoginGuard(db, clock);
 
-  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media, staff, privateStorage, account, crm, plans, taxi, comments };
+  return { env, clock, db, auth, whatsapp, sheets, catalog, schedule, notifications, booking, appointments, customers, storage, instagram, media, staff, privateStorage, account, crm, plans, taxi, comments, loginGuard };
 }

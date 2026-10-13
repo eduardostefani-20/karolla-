@@ -11,7 +11,7 @@ export function authController(c: Container) {
   return {
     async login(req: Request, res: Response) {
       const { email, password } = parse(loginSchema, req.body);
-      res.json(await c.staff.login(email, password));
+      res.json(await c.loginGuard.attempt(email, 'painel', () => c.staff.login(email, password)));
     },
     async refresh(req: Request, res: Response) {
       res.json(await c.staff.refresh(parse(refreshSchema, req.body).refreshToken));

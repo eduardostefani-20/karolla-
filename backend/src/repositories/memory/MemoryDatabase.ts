@@ -318,6 +318,8 @@ export class MemoryDatabase implements DatabaseService {
           .slice(-filter.limit)
           .reverse(),
       ),
+    countSince: async (filter: { action: string; actorEmail: string; since: string }) =>
+      this.auditRows.filter((r) => r.action === filter.action && r.actorEmail === filter.actorEmail && r.createdAt >= filter.since).length,
   };
 
   addAdmin(record: Omit<AdminRecord, 'createdAt' | 'lastLoginAt' | 'customPermissions' | 'professionalId'> & Partial<AdminRecord>) {

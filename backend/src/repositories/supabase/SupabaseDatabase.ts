@@ -502,6 +502,16 @@ export class SupabaseDatabase implements DatabaseService {
         createdAt: String(r.created_at),
       }));
     },
+    countSince: async (filter: { action: string; actorEmail: string; since: string }): Promise<number> => {
+      const { count, error } = await this.client
+        .from('audit_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('action', filter.action)
+        .eq('actor_email', filter.actorEmail)
+        .gte('created_at', filter.since);
+      if (error) fail(error, 'count audit');
+      return count ?? 0;
+    },
   };
 
   private features = new Map<number, { ok: boolean; at: number }>();
