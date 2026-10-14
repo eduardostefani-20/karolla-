@@ -56,7 +56,7 @@ Itens marcados com *(publicar)* estão no código e entram no ar na próxima pub
 | # | Item | Situação | Detalhe |
 |---|---|---|---|
 | 26 | Isolamento de clientes | OK | Cada cliente só vê o próprio cadastro, pets, fotos e agendamentos (testado). |
-| 27 | Proteção do banco | OK | RLS ligada em todas as tabelas. O visitante anônimo lê 0 linhas (verificado no Supabase). A **0012** remove também as permissões padrão (aplicar no SQL Editor). |
+| 27 | Proteção do banco | OK | RLS ligada em todas as tabelas. O visitante anônimo lê 0 linhas (verificado no Supabase). A **0012** (aplicada em 14/10) removeu também as permissões padrão. |
 | 28 | Regras de acesso | OK | 8 arquivos de teste SQL das regras de linha, mais os testes do servidor. |
 | 29 | Criptografia | OK | HTTPS em tudo. O Supabase criptografa o banco e os arquivos (AES-256). Senhas guardadas com hash (bcrypt). Fotos privadas só por link temporário de 10 minutos. |
 | 30 | Minimização de dados | **Parcial** | O site público não expõe IDs nem contatos; o comentário mostra só o primeiro nome. Falta uma regra de **prazo para apagar** dados antigos (LGPD). |
@@ -124,7 +124,6 @@ As fotos (buckets `karolla-media` e `karolla-private`) podem ser baixadas em *St
 
 ## Próximas melhorias recomendadas (por prioridade)
 1. Tornar o repositório do GitHub **privado** e ativar a verificação em duas etapas em GitHub, Netlify, Supabase, Registro.br e Resend.
-2. Aplicar a migração **0012** no SQL Editor do Supabase.
 3. Configurar o SMTP (Resend) para os e-mails de confirmação e de nova senha.
 4. Fazer o primeiro backup e o teste de restauração.
 5. Autenticação em duas etapas no painel (contas dona e administradora).
