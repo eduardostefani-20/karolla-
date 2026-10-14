@@ -3,6 +3,7 @@ import { Instagram, Mail, MapPin, MessageCircle } from 'lucide-react';
 import { buildWhatsAppLink, formatPhone, instagramProfileUrl, WEEKDAY_SHORT } from '@karolla/shared';
 import { useCatalog } from '@/context/CatalogContext';
 import { Logo } from './Logo';
+import { InstallAppButton } from './InstallAppButton';
 import { WaveDivider } from '@/components/brand/BrandShapes';
 import { openConsentPreferences } from '@/services/consent';
 import { configuredPlatforms } from '@/services/tracking';
@@ -19,6 +20,7 @@ export function Footer() {
         <div className="space-y-4">
           <Logo size="lg" />
           <p className="max-w-xs text-sm text-brand-200">Banho, tosa e estética animal com carinho, higiene e agendamento online.</p>
+          <InstallAppButton />
         </div>
         <div>
           <h2 className="mb-3 font-heading text-lg font-extrabold text-white">Contato</h2>
